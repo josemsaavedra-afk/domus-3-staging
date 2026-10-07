@@ -28,10 +28,10 @@ Frontend conectado exclusivamente a Staging: saldos, extractos, confirmaciones y
 
 ## Pendiente obligatorio
 
-1. Iniciar sesión de prueba en el navegador de verificación: ahora muestra formulario de acceso, sin sesión autenticada.
+1. Iniciar sesión de prueba en el navegador de verificación: el formulario seguro se envió, pero Supabase Auth mostró «Correo o contraseña incorrectos». No hay sesión autenticada.
 2. Desde un hogar SOLO de pruebas: guardar saldo, importar CSV, confirmar/revocar y comprobar recibos, duplicados/conflictos y otro hogar.
 3. Cerrar sesión/volver a entrar; recargar; segundo contexto/dispositivo. Verificar datos realmente comprometidos por HTTP y recuperados.
 4. Build 30038 confirmado por HTTP en version.json de Pages. Pendiente comprobar caché PWA tras sesión/recarga.
 5. Verificar funcionalidades RC1 en la app autenticada sin regresiones.
 
-Siguiente acción concreta: autenticar una cuenta de Staging por el formulario seguro y ejecutar la secuencia del punto 2. No pedir secretos en el chat. No fabricar tokens ni desactivar Auth/RLS. No afirmar SOLUCIONADA mientras estos puntos sigan pendientes.
+Siguiente acción concreta: el usuario debe iniciar sesión con credenciales válidas de Staging en el navegador de pruebas mediante handoff seguro y ejecutar la secuencia del punto 2. No pedir secretos en el chat. No fabricar tokens ni desactivar Auth/RLS. No afirmar SOLUCIONADA mientras estos puntos sigan pendientes.
