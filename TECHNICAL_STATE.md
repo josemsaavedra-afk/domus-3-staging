@@ -1,12 +1,12 @@
 # DOMUS RC1 — Tesorería Staging
 
-2026-10-07. Estado: implementación desplegable; NO declarar SOLUCIONADA sin prueba autenticada desde la app.
+2026-10-07. Estado: implementación desplegada en Staging; NO declarar SOLUCIONADA sin prueba autenticada desde la app.
 
 - Referencia preservada: RC1 30037, commit 936ada874eed968abd901e285db2fe7d2e263cc8.
 - Nueva versión: 3.0.0-rc.1.2, build 30038.
 - Repositorio autorizado: josemsaavedra-afk/domus-3-staging, main, domus-3/.
-- Supabase autorizado: pmgonotpbmybtwvxbcvf. No tocar producción ji wfpczmffsjpfvsrrvk (identificador real sin espacio: jiwfpczmffsjpfvsrrvk).
-- Último commit de aplicación desplegado: pendiente de publicación; actualizar tras push.
+- Supabase autorizado: pmgonotpbmybtwvxbcvf. No tocar producción jiwfpczmffsjpfvsrrvk.
+- Último commit de aplicación desplegado: 2d0bdf92adfbbe0b8839105dc4e573120b008b59. GitHub main actualizado mediante conector tras no disponer de credenciales CLI.
 
 ## Cambios
 
@@ -23,12 +23,15 @@ Frontend conectado exclusivamente a Staging: saldos, extractos, confirmaciones y
 - Pruebas heredadas de desarrollo: 33 pruebas de runtime/persistencia/motor/contexto y 51 pruebas SQL/RLS/servidor correctas. La versión de desarrollo es antigua; nunca se usó como frontend de despliegue.
 - Advisors: ningún nuevo hallazgo de Tesorería. Advertencias previas de create_household/join_household y protección de contraseñas, ajenas a esta corrección.
 
+- HTTP real Edge Function: OPTIONS 204 con CORS correcto; POST sin token 401. No se probó aún un POST con token real.
+- Despliegue frontend confirmado: https://josemsaavedra-afk.github.io/domus-3-staging/domus-3/version.json devuelve 3.0.0-rc.1.2 build 30038.
+
 ## Pendiente obligatorio
 
 1. Iniciar sesión de prueba en el navegador de verificación: ahora muestra formulario de acceso, sin sesión autenticada.
 2. Desde un hogar SOLO de pruebas: guardar saldo, importar CSV, confirmar/revocar y comprobar recibos, duplicados/conflictos y otro hogar.
 3. Cerrar sesión/volver a entrar; recargar; segundo contexto/dispositivo. Verificar datos realmente comprometidos por HTTP y recuperados.
-4. Confirmar build 30038 en Pages y caché PWA actualizada.
+4. Build 30038 confirmado por HTTP en version.json de Pages. Pendiente comprobar caché PWA tras sesión/recarga.
 5. Verificar funcionalidades RC1 en la app autenticada sin regresiones.
 
 Siguiente acción concreta: autenticar una cuenta de Staging por el formulario seguro y ejecutar la secuencia del punto 2. No pedir secretos en el chat. No fabricar tokens ni desactivar Auth/RLS. No afirmar SOLUCIONADA mientras estos puntos sigan pendientes.
