@@ -3,10 +3,10 @@
 2026-10-07. Estado: implementación desplegada en Staging; NO declarar SOLUCIONADA sin prueba autenticada desde la app.
 
 - Referencia preservada: RC1 30037, commit 936ada874eed968abd901e285db2fe7d2e263cc8.
-- Nueva versión: 3.0.0-rc.1.2, build 30038.
+- Nueva versión: 3.0.0-rc.1.3, build 30039.
 - Repositorio autorizado: josemsaavedra-afk/domus-3-staging, main, domus-3/.
 - Supabase autorizado: pmgonotpbmybtwvxbcvf. No tocar producción jiwfpczmffsjpfvsrrvk.
-- Último commit de aplicación desplegado: 2d0bdf92adfbbe0b8839105dc4e573120b008b59. GitHub main actualizado mediante conector tras no disponer de credenciales CLI.
+- Último commit de aplicación desplegado: 84f869c06399847dfad288ff39fc413bd9c9e6c3. GitHub main actualizado mediante conector tras no disponer de credenciales CLI.
 
 ## Cambios
 
@@ -36,10 +36,27 @@ Frontend conectado exclusivamente a Staging: saldos, extractos, confirmaciones y
 - Movimiento ficticio RC1 PRUEBA CONCILIACIÓN, 10 EUR, 2026-10-07, estado done: 3ff14509-2754-44cf-b6c1-d9542dd68904. Guardado UI y comprobación SQL correctos.
 - CSV de prueba creado: fecha 2026-10-07, concepto RC1 PRUEBA CONCILIACIÓN, importe -10.00. Todavía NO importado desde la app.
 
-## Bloqueo actual y pendientes
+## Continuación verificada — 2026-10-07
 
-El runtime de navegador de Work dejó de permitir observación al preparar el CSV. Error literal: “Browser observation is unavailable because native credential state cannot be safely resumed. Start a new browser runtime to continue.” El restablecimiento del REPL y la creación de una pestaña nueva no resolvieron el bloqueo. No es un rechazo de contraseña ni un error de Tesorería. No inspeccionar ni reconstruir credenciales, tokens o cookies. No sustituir la prueba de UI por acceso a su sesión mediante herramientas externas.
+- Recuperado main del repositorio antes de continuar; no se recreó cuenta ni saldo.
+- CSV rc1-treasury-test.csv importado desde el control visible de la app. Una línea: 2026-10-07, RC1 PRUEBA CONCILIACIÓN, -10.00 EUR. Estado Pendiente → Sincronizando → Sincronizado. Historial remoto: 1 saldo, 1 extracto, 0 conciliaciones.
+- Coincidencia revisada y confirmada por UI; guardada mediante cola y HTTP real. Historial: 1 conciliación confirmada.
+- Revocación desde UI con motivo “Prueba RC1: revocación con trazabilidad”; sincronizada y recuperada con estado Revocada. Confirmación original conserva autor/fecha: 2026-10-07T19:46:45.271831+00:00. Revocación: 2026-10-07T19:47:30.98464+00:00. Autor en ambos: 7338a6e5-e131-4c62-a0f2-adb53cd034cf.
+- Recarga completa recuperó saldo 1234.56 del 2026-10-01, extracto y revocación. Saldo calculado 1224.56 (movimiento realizado -10).
+- Reimportación del mismo CSV y sincronización: continúa habiendo un único extracto; no duplicados.
+- Cerrar sesión por UI dejó el formulario de acceso. Reentrada por browserAuth seguro verificada. Historial completo recuperado tras reentrada.
+- Segunda pestaña/instancia de la app recuperó el mismo historial por backend. Comparte perfil del navegador; NO equivale a un segundo dispositivo físico ni perfil limpio.
+- Smoke RC1: listado Todos muestra movimiento realizado de 10 EUR; calendario octubre muestra pagos 10 EUR; informes, documentos y configuración cargan. No se afirma auditoría completa de todas las funciones.
+- Correcciones de presentación desplegadas en build 30039: resumen de revisión deja de afirmar “Nada ha sido guardado”; historial muestra autor, fecha original, fecha de revocación y motivo.
+- npm test después del cambio: 74/74 correctos. HTTP version.json y Configuración autenticada confirman 3.0.0-rc.1.3 / 30039. PWA precisó segunda recarga para activar el nuevo shell.
+- Evidencia visual capturada del historial tras reentrada: rc1-30039-treasury-verified.jpg.
 
-Pendientes: importación CSV por UI, confirmación y revocación por UI, duplicados/conflictos por UI, cerrar sesión/volver a entrar, nuevo contexto/dispositivo, regresión de RC1 autenticado. Aislamiento, conflictos, importación y revocación ya probados en tests SQL/PGlite; falta completar el recorrido del navegador.
+## Pendientes y límite concreto
 
-Siguiente acción concreta: iniciar un runtime de navegador de Work nuevo, recuperar este documento de main, abrir Staging y autenticar de forma segura si hiciera falta. Continuar con el movimiento y cuenta ficticios ya identificados; no recrearlos ni duplicar el saldo. Recrear el CSV si scratch no conserva el archivo. Cargar extracto, sincronizar, consultar historial, volver a seleccionarlo para revisión con bases remotas y confirmar/revocar. No declarar SOLUCIONADA mientras haya criterios pendientes.
+1. Conflicto concurrente por UI y segundo hogar por UI. Ya cubiertos en SQL/PGlite, pero aún no se ha completado esa comprobación de navegador.
+2. Segundo dispositivo o perfil independiente: todavía no probado.
+3. No declarar cierre completo de todos los criterios hasta resolver esos pendientes.
+
+Al preparar el segundo CSV para conflicto concurrente, filechooser falló tras el acceso seguro con BrowserCredentialRecoveryError / retained_data_restricted. Navegación explícita al documento canónico recuperó la lectura y navegación UI, pero filechooser volvió a fallar. No es un error de importación de DOMUS: el archivo de conflicto NO se ha cargado. No inspeccionar ni reconstruir credenciales/tokens/cookies, ni ejecutar la sesión desde herramientas externas.
+
+Siguiente acción: en un runtime de navegador capaz de cargar archivos (o mediante control manual del selector), importar CSV ficticio de conflicto en esta misma cuenta, capturar base de confirmación, modificar el movimiento desde otra instancia antes de sincronizar y verificar conflicto conservado. El CSV temporal preparado contiene 2026-10-07, RC1 PRUEBA CONCILIACIÓN CONFLICTO, -10.00 EUR; puede recrearse. No duplicar la cuenta/saldo ya existentes. Validar además perfil/dispositivo independiente y aislamiento por UI.
