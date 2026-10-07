@@ -165,7 +165,15 @@ export function renderTreasury3(snapshot) {
   };
   bindBalanceCapture(root, { ...snapshot, accounts: sourceAccounts }, vm, generation);
   bindDetails(root, vm);
-  persistencePanel?.render(root); return vm;
+  persistencePanel?.render(root);
+  // Staging currently exposes an authenticated read endpoint only. Prevent
+  // accidental creation of unsendable write proposals in the local outbox.
+  if(window.__domusTreasuryReadAdapter){
+    const status=root.querySelector('[data-persistence-mode]');
+    if(status)status.textContent='Consulta remota disponible. Guardado de Tesorería pendiente de habilitación segura.';
+    root.querySelectorAll('[data-enqueue-checkpoint],[data-enqueue-import],[data-enqueue-confirmations],[data-sync-treasury]').forEach(button=>{button.disabled=true;button.title='Guardado remoto no disponible en RC1 de pruebas';});
+  }
+  return vm;
 }
 window.DOMUSTreasury3 = { render: renderTreasury3, reset: resetTreasury3, snapshot: createTreasurySnapshot, configurePersistence };
 window.dispatchEvent(new CustomEvent('domus-treasury3-ready'));
