@@ -1,0 +1,12 @@
+{
+  "name": "domus-rc1-staging",
+  "private": true,
+  "version": "3.0.0-rc.1.2",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8"
+  }
+}
