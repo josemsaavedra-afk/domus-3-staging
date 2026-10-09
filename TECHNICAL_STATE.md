@@ -182,3 +182,20 @@ Estos puntos fueron pedidos explícitamente en conversaciones previas. Se regist
 ### Disciplina de cierre
 
 Para cualquier mejora futura registrar aquí: estado, build, commit, pantalla afectada, prueba ejecutada y resultado. Eliminar de PENDIENTE solo tras validación real en Staging. Si existe backend sin interfaz utilizable, el estado sigue siendo PENDIENTE.
+
+## Rediseño RC1 — bloque 1 — build 30040
+
+Base: main d5616b7; RC1 30039 preservado. Estado: IMPLEMENTADO, pendiente de comprobación autenticada del despliegue; no se declara terminado el hito completo de interfaz.
+
+- Alta y edición comparten formulario dividido en operación, fechas/dinero, personas/cuenta, clasificación, recurrencia/notas y opciones avanzadas.
+- Naturaleza Gasto/Ingreso y movimiento de dinero Pago/Cobro son controles separados; Pago/Cobro se deriva de la naturaleza para impedir combinaciones incoherentes. Estado pendiente/realizado/cancelado independiente.
+- Fecha económica/documental persistida por ocurrencia en movement_occurrence_states.document_date. Fecha real editable en actual_date; requerida al guardar realizado. Fecha prevista conserva start_date/rescheduled_date y claves de ocurrencia. Botón para copiar la fecha documental a la real.
+- Cambiar periodicidad conserva fechas documentales de excepciones. La fecha documental seleccionada solo afecta a la ocurrencia seleccionada; no se inventan fechas de documentos futuros.
+- Informes, comparación de períodos e impresión usan fecha documental; registros previos sin document_date conservan su fecha original de ocurrencia como referencia histórica. Tesorería conserva su motor y utiliza actual_date para realizados.
+- Ámbito visible para ambos tipos; no se confunde con categoría. Ingresos con factura, actividad o Lyreco/ONLOGIST bloquean ámbito doméstico/mixto. Categorías incompatibles se filtran y validan. Reglas no sugieren Doméstico/Mixto en ingresos y admiten Actividad económica.
+- Migración rc1_movement_model aplicada SOLO a pmgonotpbmybtwvxbcvf: columna documental por ocurrencia; CHECK de ingresos profesionales NOT VALID para no reescribir ni reclasificar históricos. Nuevas escrituras se validan. Sin cambios de RLS/privilegios ni funciones de Tesorería; producción intacta.
+- 79/79 pruebas correctas: las 74 previas más 5 de clasificación, fechas de informe, propuestas y persistencia PostgreSQL/PGlite. verify-staging.sql vuelve a completar saldo, importación, idempotencia, aislamiento, confirmación, revocación y rollback en Staging tras el cambio.
+- Comprobación estática: sintaxis JS, estructura HTML del formulario, IDs únicos y git diff --check correctos.
+- Navegador remoto disponible después de reiniciar el controlador. La página canónica de Staging muestra formulario de acceso; no existe sesión autenticada reutilizable en este navegador. Requiere acceso seguro para comprobar el formulario y guardar/recuperar un movimiento de prueba. No usar contraseñas/tokens en chat ni herramientas externas.
+- Bloques siguientes (Configuración con ejemplos, reglas en lenguaje natural e importador guiado) siguen PENDIENTES. Conforme a la orden, comprobar este bloque en UI antes de continuar. No declarar el rediseño completo terminado.
+- TransportERP localizado mediante conector: josemsaavedra-afk/TransportERP, main d5d603d12177e938d9a227d0247b5c4a86379469. Inventario disponible: bank_import_service.py, content.py, ocr.py, document_interpretation.py, economic_interpretation_service.py, settlement_service.py y reference_extractor.py. No se ha creado ningún parser nuevo ni modificado TransportERP. Lectura detallada/inventario de contratos pendiente antes del bloque de importación.

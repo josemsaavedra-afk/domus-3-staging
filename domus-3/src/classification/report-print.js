@@ -13,7 +13,7 @@
     th{background:#f2f2f2}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}.amount{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
     .movements{font-size:8.5pt}.date{white-space:nowrap}.totals{break-inside:avoid;border-top:.5mm solid #333;padding-top:3mm;font-weight:700}
     @media screen{body{max-width:182mm;margin:14mm auto}}
-    </style></head><body><header><h1>DOMUS 3.0 — Informe financiero</h1><p><strong>Período: ${esc(period.label)}</strong></p><p>Comparación: ${esc(period.previousLabel)}</p><p>Listado y desgloses del período principal · Fechas de ocurrencia.</p></header>
+    </style></head><body><header><h1>DOMUS 3.0 — Informe financiero</h1><p><strong>Período: ${esc(period.label)}</strong></p><p>Comparación: ${esc(period.previousLabel)}</p><p>Listado y desgloses del período principal · Fechas económicas / documentales.</p></header>
     <h2>Filtros del informe</h2><ul class="filters">${filters.map(f=>`<li><strong>${esc(f.label)}:</strong> ${esc(f.value)}</li>`).join('')}</ul>
     <h2>Resumen y comparación</h2><table aria-label="KPI y comparación"><thead><tr><th>Concepto</th><th>Actual</th><th>Anterior</th><th>Diferencia</th><th>Variación</th></tr></thead><tbody>${kpis}</tbody></table>
     ${breakdowns.map(g=>`<h2>${esc(g.title)}</h2><table><thead><tr><th>Desglose</th><th>Importe / totales</th></tr></thead><tbody>${g.entries.map(e=>`<tr><td>${esc(e.label)}</td><td class="amount">${esc(e.value)}</td></tr>`).join('')}</tbody></table>`).join('')}

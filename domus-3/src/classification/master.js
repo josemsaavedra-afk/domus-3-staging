@@ -13,6 +13,10 @@
     return `<option value="">${escape(empty)}</option>` + selectable(rows, currentId, history).map(row => `<option value="${escape(row.id)}"${row.id === currentId ? ' selected' : ''}>${escape(category ? categoryLabel(row) : row.name)}${row.active === false ? ' (inactivo)' : ''}</option>`).join('');
   }
   function validateMovement(row, previous, catalogs) {
+    const professionalIncome=row.type==='income'&&(row.activity_project_id||row.invoice_number||/lyreco|onlogist/i.test(row.counterparty||''));
+    if(professionalIncome&&row.expense_scope!=='business')throw new Error('Un ingreso de actividad económica debe pertenecer a Actividad económica.');
+    const category=(catalogs.categories||[]).find(x=>x.id===row.category_id);
+    if(category?.kind&&category.kind!=='both'&&category.kind!==row.type)throw new Error('La categoría no corresponde a la naturaleza del movimiento.');
     if (previous && row.household_id !== previous.household_id) throw new Error('No se puede trasladar un movimiento a otro hogar.');
     for (const [field, table] of [['person_id','people'],['payer_person_id','people'],['account_id','accounts'],['category_id','categories']]) {
       const value = row[field];
@@ -148,7 +152,7 @@
       for(const rule of matches.filter(r=>Object.hasOwn(r.proposals,field))){
         let value=rule.proposals[field];
         if(ruleRefs[field]){const valid=id=>(own[ruleRefs[field]]||[]).some(x=>x.id===id&&x.active!==false&&(field!=='category_id'||!x.kind||x.kind==='both'||x.kind===row.type));if(field==='tag_ids'){const filtered=value.filter(valid);if(filtered.length!==value.length)warnings.push(rule.name+': etiquetas inactivas no propuestas.');value=filtered;if(!value.length)continue}else if(!valid(value)){warnings.push(rule.name+': '+field+' inactivo o incompatible; no propuesto.');continue}}
-        if(field==='expense_scope'&&row.type!=='expense'){warnings.push(rule.name+': ámbito no aplicable a ingresos.');continue}
+        if(field==='expense_scope'&&row.type==='income'&&value!=='business'){warnings.push(rule.name+': un ingreso no recibe sugerencias de ámbito doméstico o mixto.');continue}
         candidates.push({...rule,value});
       }
       if(!candidates.length)continue;
