@@ -66,6 +66,12 @@ Siguiente acción: en un runtime de navegador capaz de cargar archivos (o median
 
 Regla de trabajo: este bloque es la lista de control persistente. Un punto solo pasa de PENDIENTE a VALIDADO cuando está implementado en la interfaz, desplegado en Staging y comprobado. No basta con que exista en Supabase o en el código.
 
+### BLOQUEO DE PRUEBAS FUNCIONALES POR INTERFAZ
+
+- ESTADO: **BLOQUEANTE** — Se suspenden las pruebas funcionales de usuario sobre altas/ediciones hasta disponer de una interfaz que represente correctamente el modelo económico y de tesorería. Seguir probando sobre la UI actual produciría resultados engañosos y obligaría a repetir pruebas.
+- PRIORIDAD INMEDIATA — Rediseñar primero el flujo de creación/edición de movimientos y su modelo de interacción. Después reanudar pruebas de calendario, informes, tesorería y clasificación sobre esa base.
+- CRITERIO DE DESBLOQUEO — No reanudar pruebas generales hasta validar al menos: naturaleza Ingreso/Gasto, evento de caja Cobro/Pago, fecha económica/documental, fecha real de cobro/pago, persona económica, pagador/cobrador, cuenta/medio, tercero, categoría, ámbito, actividad/proyecto, estado y recurrencia.
+
 ### DECISIÓN FUNCIONAL — REDISEÑO COMPLETO DE INTERFAZ
 
 - PENDIENTE CRÍTICO — La interfaz actual de DOMUS 3.0 RC1 se considera **no válida como base final de producto**. No seguir acumulando parches aislados sobre formularios heredados.
