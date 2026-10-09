@@ -104,6 +104,25 @@ Regla de trabajo: este bloque es la lista de control persistente. Un punto solo 
 - PENDIENTE — Revisión de formularios de alta/edición/recurrentes para que consuman maestros y reglas de Configuración y no permitan valores incompatibles.
 - PENDIENTE — Revisar que Configuración sea realmente editable para todos los maestros relevantes y que sus cambios repercutan en formularios, filtros, informes y clasificación automática.
 
+### VISIBILIDAD INMEDIATA — HOY + TESORERÍA
+
+- PENDIENTE CRÍTICO — La previsión intercobros de ingresos habituales debe mostrarse tanto en **Tesorería** como en la pantalla **Hoy y pendientes**. No debe quedar relegada únicamente a Informes.
+- Objetivo UX: al abrir DOMUS, el usuario debe poder hacerse una idea de la situación financiera en segundos, sin tener que investigar fechas ni ejecutar un informe.
+- La tarjeta/resumen debe priorizar lenguaje útil: «Te quedan aprox. X días para el próximo cobro habitual», ingreso esperado, pagos pendientes hasta entonces y margen estimado.
+- Cuando la fecha habitual sea variable, mostrar rango/ventana estimada y no una fecha rígida falsa. Mantener acceso al detalle del cálculo.
+- La pantalla Hoy debe funcionar como resumen ejecutivo de situación inmediata; Tesorería como vista ampliada del mismo cálculo.
+
+### PRESUPUESTOS / PLANES CON CONVERSIÓN A MOVIMIENTOS
+
+- PENDIENTE FUNCIONAL — Añadir una función de **Presupuestos / Planes** para gastos futuros (ej.: vacaciones, reforma, celebración, viaje, compra importante).
+- Un presupuesto no debe contaminar automáticamente Tesorería ni los movimientos reales mientras siga en fase de planificación.
+- Debe permitir definir: nombre del plan, período/fechas, importe total objetivo, partidas previstas, categoría, ámbito, persona, pagador previsto, cuenta prevista, tercero si se conoce, actividad/proyecto y notas.
+- Debe mostrar total presupuestado, comprometido/asentado, restante y desviación entre previsto y real.
+- Debe existir una acción explícita para **asentar/convertir una partida presupuestada en movimiento real o previsto**, conservando vínculo con el presupuesto de origen.
+- La conversión debe evitar duplicados y permitir: convertir una partida concreta, varias seleccionadas o todo el presupuesto cuando proceda.
+- Tras convertir, el movimiento pasa a los módulos normales (Hoy, Calendario, Movimientos, Tesorería, Informes) y el presupuesto conserva trazabilidad de qué partidas ya fueron asentadas.
+- El diseño debe ser comprensible para usuario básico: «Planifico» primero; «lo paso a movimientos» cuando decido incorporarlo a la economía real.
+
 ### PREVISIÓN INTERCOBROS — INGRESOS HABITUALES
 
 - PENDIENTE CRÍTICO — Recuperar en Tesorería la **previsión intercobros**. No debe limitarse a mostrar una fecha exacta de próximo cobro, porque algunos ingresos habituales (p. ej. Lyreco) pueden adelantarse o retrasarse algunos días.
