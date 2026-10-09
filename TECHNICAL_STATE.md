@@ -1,9 +1,25 @@
+## Ejecución autónoma — 2026-10-09 — datos reales + intercobros + presupuestos
+
+- Producción se ha usado **solo como origen de lectura**. No se ha modificado `jiwfpczmffsjpfvsrrvk`.
+- Antes de sustituir los datos de trabajo de Staging se creó un punto de restauración interno: snapshot `1ab53621-3bd8-4dcb-b6df-fccc4d8bc832`.
+- Se creó además una copia bruta de los datos reales de producción dentro de Staging: snapshot `e235718b-9a76-45af-8edd-5241a696ace9`. Conserva los registros originales antes de las adaptaciones de compatibilidad.
+- Copia real cargada en el hogar Staging `a5c95017-2910-4819-b9d0-9dd8b0f9b23a`: 27 categorías, 3 personas (2 activas), 9 cuentas (7 activas), 1.898 series de movimientos, 1.873 estados, 100 documentos, 73 vínculos documento-movimiento, 75 vínculos entre movimientos y 2 operaciones ONLOGIST.
+- Control de integridad: suma nominal de series de ingreso producción/Staging = 88.419,72 €; suma nominal de series de gasto producción/Staging = 102.351,04 €. Los recuentos de series y estados coinciden exactamente.
+- Adaptaciones de compatibilidad aplicadas **solo en la copia de trabajo**: `new_line`/`other` → `variable`; ingresos profesionales con factura/cliente profesional → ámbito `business`; estados `done` antiguos sin `actual_date` reciben la fecha efectiva/original para cumplir el modelo RC1. La copia bruta conserva el valor original.
+- Los ingresos Lyreco de la copia de trabajo se han normalizado como `Ingreso habitual + Actividad económica`, que es el criterio funcional definido para la previsión intercobros. El histórico original queda intacto en el snapshot bruto.
+- Caso real de validación intercobros disponible: serie habitual Lyreco de 3.000 € con ocurrencia base 25/10/2026 y reprogramación real/predicha a 23/10/2026. La UI debe mostrar ventana estimada y días restantes, no una falsa fecha rígida.
+- Build 30045 añade el resumen intercobros en **Hoy** y **Tesorería**, calculado exclusivamente con `type=income`, `income_source_type=habitual` y `expense_scope=business`; ingresos variables no desplazan el horizonte.
+- Build 30045 añade **Presupuestos / Planes**: creación de plan, partidas, total presupuestado/asentado/restante/desviación, conversión selectiva a movimientos, cancelación de partidas no asentadas y cancelación masiva de movimientos pendientes generados por un plan. Los movimientos ya realizados se conservan por defecto.
+- Nuevas tablas Staging: `budget_plans`, `budget_items`, `budget_item_movements`, con RLS por hogar y trazabilidad de autor. Smoke SQL de creación de presupuesto ejecutado con ROLLBACK correctamente.
+- Commit principal de aplicación build 30045: `aa5a69ac82928cf2a3fd51b7ca621a460da30ecc`. Metadatos/manifest/service worker actualizados después.
+- El JavaScript inline del `index.html` de 30045 ha pasado comprobación de sintaxis. Falta todavía confirmar en navegador real que GitHub Pages sirve 30045 y completar prueba funcional interactiva de intercobros y presupuesto → movimiento → cancelación.
+
 # DOMUS RC1 — Rediseño funcional Staging
 
-2026-10-09. Estado actual: build 30043 desplegada; movimientos y configuración comprobados en sesión web autenticada. Importador guiado implementado y probado automáticamente; carga/guardado del CSV en navegador PENDIENTE por bloqueo del controlador. NO declarar finalizado el primer hito.
+2026-10-09. Estado actual: build 30045 preparado con datos reales en Staging, previsión intercobros y presupuestos/planes. Pendiente comprobación final en navegador del build desplegado.
 
 - Base preservada: Tesorería RC1 build 30039, sin reconstrucción desde Alpha.
-- Versión actual: 3.0.0-rc.1.7, build 30043.
+- Versión actual: 3.0.0-rc.1.9, build 30045.
 - Repositorio: josemsaavedra-afk/domus-3-staging, main, domus-3/.
 - Supabase autorizado: pmgonotpbmybtwvxbcvf. Producción jiwfpczmffsjpfvsrrvk no modificada.
 - Commit de aplicación: 940e26bef1c657c6ced0a158699e4e583395c3fe. GitHub Pages run 37961785483: build y deploy success; HTTP version.json confirma build 30043.
