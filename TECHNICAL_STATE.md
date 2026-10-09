@@ -199,3 +199,22 @@ Base: main d5616b7; RC1 30039 preservado. Estado: IMPLEMENTADO, pendiente de com
 - Navegador remoto disponible después de reiniciar el controlador. La página canónica de Staging muestra formulario de acceso; no existe sesión autenticada reutilizable en este navegador. Requiere acceso seguro para comprobar el formulario y guardar/recuperar un movimiento de prueba. No usar contraseñas/tokens en chat ni herramientas externas.
 - Bloques siguientes (Configuración con ejemplos, reglas en lenguaje natural e importador guiado) siguen PENDIENTES. Conforme a la orden, comprobar este bloque en UI antes de continuar. No declarar el rediseño completo terminado.
 - TransportERP localizado mediante conector: josemsaavedra-afk/TransportERP, main d5d603d12177e938d9a227d0247b5c4a86379469. Inventario disponible: bank_import_service.py, content.py, ocr.py, document_interpretation.py, economic_interpretation_service.py, settlement_service.py y reference_extractor.py. No se ha creado ningún parser nuevo ni modificado TransportERP. Lectura detallada/inventario de contratos pendiente antes del bloque de importación.
+
+### Bloque 1 — comprobación autenticada completada
+
+- Aplicación build 30040, commit d6b34a6b00ea59f2520e943e52d42e381e4bd7c4. GitHub Pages workflow 37958377334: build y deploy success.
+- Acceso por browserAuth seguro correcto. Recarga activó el shell nuevo; sesión recuperada tras recarga.
+- Creado desde UI en casa prueba: RC1 UI 30040 FECHAS · PRUEBA, 0,01 EUR, cuenta RC1 PRUEBA TESORERÍA. ID afc40416-4692-45e3-a58c-6015753cb7bd.
+- Abrir Editar recupera las fechas independientes: documento 2026-09-30, prevista 2026-10-09, real 2026-10-08. Consulta SQL confirma el estado comprometido, no rollback.
+- Cambiar naturaleza a Ingreso muestra Cobro y Quién cobra. Añadir referencia de factura cambia Ámbito a Actividad económica y deshabilita Doméstico/Mixto. Borrador descartado por Cancelar; el gasto original no cambia.
+- En listado se detectó una etiqueta heredada Pago bajo Naturaleza. Corregida a Gasto en build 30041.
+
+## Rediseño RC1 — bloque 2 — build 30041
+
+- Configuración explica qué es Categoría, Ámbito, Tercero, Actividad/Proyecto, Etiqueta y Regla. Ámbitos visibles en bloque independiente; ayuda junto a cada bloque.
+- Ejemplos precargados mediante RPC SECURITY INVOKER con RLS de hogar, transacción y bloqueo concurrente: seis categorías, terceros Mercadona/Vodafone/AEAT/Lyreco/ONLOGIST, dos actividades y tres etiquetas. Nunca crea movimientos ni modifica clasificación histórica.
+- Marcador de inicialización por hogar: no reintroduce ejemplos después de que el usuario los edite/desactive; llamadas repetidas son idempotentes. Hogares ajenos/anon rechazados. Migración aplicada solo a pmgonotpbmybtwvxbcvf.
+- Reglas muestran SI [condiciones] → [clasificación]. Nombre, condiciones principales y resultado en modo normal; prioridad, importes y otras condiciones en Opciones avanzadas. Editar y desactivar mantienen el mismo modelo y auditoría.
+- Regla de protección de ingresos visible, siempre aplicada: nunca sugerir Doméstico. Se permite ámbito doméstico elegido manualmente para ingresos personales sin factura/actividad.
+- Prueba PGlite de inicialización, aislamiento y conservación de edición/desactivación correcta. RPC real en Staging probada dentro de BEGIN/ROLLBACK. Advisors: ningún hallazgo nuevo; permanecen advertencias anteriores.
+- 80/80 pruebas. Comprobación autenticada de Configuración y reglas pendiente después del despliegue de este bloque.
