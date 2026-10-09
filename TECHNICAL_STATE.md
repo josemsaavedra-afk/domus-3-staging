@@ -120,6 +120,11 @@ Regla de trabajo: este bloque es la lista de control persistente. Un punto solo 
 - Debe mostrar total presupuestado, comprometido/asentado, restante y desviación entre previsto y real.
 - Debe existir una acción explícita para **asentar/convertir una partida presupuestada en movimiento real o previsto**, conservando vínculo con el presupuesto de origen.
 - La conversión debe evitar duplicados y permitir: convertir una partida concreta, varias seleccionadas o todo el presupuesto cuando proceda.
+- PENDIENTE FUNCIONAL — Debe existir una acción masiva para **cancelar/revertir de una sola vez** los movimientos creados desde un presupuesto/plan, sin tener que ir movimiento por movimiento.
+- La cancelación masiva debe distinguir entre: movimientos aún previstos/pendientes (se pueden cancelar en bloque) y movimientos ya realizados/conciliados (no borrar silenciosamente; exigir una acción explícita y conservar trazabilidad).
+- Desde el propio presupuesto debe poder verse qué movimientos fueron generados por él y aplicar «Cancelar movimientos del presupuesto» a una selección o al conjunto completo.
+- La cancelación nunca debe eliminar el presupuesto ni perder su histórico: el plan conserva qué partidas se convirtieron, cuáles se cancelaron y por qué.
+
 - Tras convertir, el movimiento pasa a los módulos normales (Hoy, Calendario, Movimientos, Tesorería, Informes) y el presupuesto conserva trazabilidad de qué partidas ya fueron asentadas.
 - El diseño debe ser comprensible para usuario básico: «Planifico» primero; «lo paso a movimientos» cuando decido incorporarlo a la economía real.
 
