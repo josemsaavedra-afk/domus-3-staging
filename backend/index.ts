@@ -29,7 +29,7 @@ Deno.serve(async request=>{
  if(id!==identity(input.idempotencyKey))throw new TreasuryError('DUPLICATE_OPERATION');
  op={id,idempotencyKey:id,type:input.type,payload,baseRevision:input.baseRevision??null};
  if(input.type==='import'){
- const parsed=parseStatementCsv(payload.csv),hash=await createStatementFingerprint(payload.accountId,payload.csv);
+ const parsed=parseStatementCsv(payload.csv,payload.mapping),hash=await createStatementFingerprint(payload.accountId,payload.csv);
  if(!parsed.length||parsed.length>20000)throw new TreasuryError('INVALID_PAYLOAD');
  const lines=await Promise.all(parsed.map(async row=>({ordinal:row.ordinal,date:row.date,concept:row.concept,reference:row.reference,amount:checkpointDecimal(row.signedAmount),hash:(await createStatementFingerprint(payload.accountId,JSON.stringify([row.date,row.concept,row.reference,row.signedAmount]))).contentSha256})));
  op.payload={accountId:payload.accountId,fileName:payload.fileName||'extracto.csv',contentSha256:hash.contentSha256,lines};

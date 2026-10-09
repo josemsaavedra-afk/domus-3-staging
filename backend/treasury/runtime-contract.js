@@ -31,7 +31,7 @@ export const canonical = value => JSON.stringify(sort(value));
 function sort(value) { return Array.isArray(value)?value.map(sort):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,sort(value[key])])):value; }
 export function identity(value) { if(typeof value!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))fail('INVALID_PAYLOAD');return value.toLowerCase(); }
 const fields = {
-  import:['accountId','fileName','csv'], checkpoint:['accountId','amount','date','note'],
+  import:['accountId','fileName','csv','mapping'], checkpoint:['accountId','amount','date','note'],
   confirm:['id','accountId','statementLineId','seriesId','occurrenceDate'], revoke:['id','reason']
 };
 export function validateOperation(type, payload, baseRevision = null) {
@@ -39,7 +39,7 @@ export function validateOperation(type, payload, baseRevision = null) {
   const clean=structuredClone(payload);
   for(const key of ['accountId','id','statementLineId','seriesId'])if(fields[type].includes(key))clean[key]=identity(clean[key]);
   try {
-    if(type==='import') { if(typeof clean.csv!=='string'||new TextEncoder().encode(clean.csv).length>5*1024*1024)fail('INVALID_PAYLOAD');parseStatementCsv(clean.csv);if(clean.fileName!=null&&(typeof clean.fileName!=='string'||clean.fileName.length>255))fail('INVALID_PAYLOAD'); }
+    if(type==='import') { if(typeof clean.csv!=='string'||new TextEncoder().encode(clean.csv).length>5*1024*1024)fail('INVALID_PAYLOAD');parseStatementCsv(clean.csv,clean.mapping);if(clean.fileName!=null&&(typeof clean.fileName!=='string'||clean.fileName.length>255))fail('INVALID_PAYLOAD'); }
     if(type==='checkpoint') { clean.date=parseBankDate(clean.date);checkpointDecimal(clean.amount);if(clean.note!=null&&(typeof clean.note!=='string'||clean.note.length>2000))fail('INVALID_PAYLOAD'); }
     if(type==='confirm') { clean.occurrenceDate=parseBankDate(clean.occurrenceDate);if(!baseRevision||Object.keys(baseRevision).sort().join(',')!=='lineHash,occurrence,series'||![baseRevision.series,baseRevision.occurrence].every(n=>Number.isSafeInteger(n)&&n>0)||!/^[a-f0-9]{64}$/.test(baseRevision.lineHash))fail('INVALID_PAYLOAD'); }
     if(type==='revoke') { if(typeof clean.reason!=='string'||!clean.reason.trim()||clean.reason.length>2000||!Number.isSafeInteger(baseRevision)||baseRevision<1)fail('INVALID_PAYLOAD');clean.reason=clean.reason.trim(); }

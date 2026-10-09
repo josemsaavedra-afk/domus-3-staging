@@ -1,5 +1,5 @@
 const HEADER = {
-  date: ['fecha', 'date', 'fecha operacion', 'fecha valor'],
+  date: ['fecha', 'date', 'fecha operacion', 'fecha valor', 'operation_date', 'operation date', 'fecha de operacion'],
   concept: ['concepto', 'descripcion', 'description', 'detalle', 'movimiento'],
   amount: ['importe', 'amount', 'cantidad'],
   debit: ['cargo', 'debe', 'debit'],
@@ -51,20 +51,41 @@ export function parseBankDate(value) {
   return iso;
 }
 
-export function parseStatementCsv(content) {
+function inspect(content, delimiter, headerRow = 0) {
   const text = String(content || '').replace(/^\uFEFF/, '');
   if (text.length > 5 * 1024 * 1024) throw new Error('El CSV supera 5 MB');
-  // Delimiter counts only outside quoted cells in the first logical record.
-  let quote = false, commas = 0, semicolons = 0;
-  for (const char of text) { if (char === '"') quote = !quote; else if (!quote) { if (char === '\r' || char === '\n') break; if (char === ',') commas++; if (char === ';') semicolons++; } }
-  const rows = records(text, semicolons >= commas ? ';' : ',');
-  if (rows.length < 2) throw new Error('El CSV no contiene movimientos');
-  const headers = rows.shift(), indexes = {};
+  if (!delimiter) {
+    const counts = { ',': 0, ';': 0, '\t': 0 }; let quote = false;
+    for (const char of text) { if (char === '"') quote = !quote; else if (!quote) { if (char === '\r' || char === '\n') break; if (char in counts) counts[char]++; } }
+    delimiter = Object.keys(counts).sort((a,b) => counts[b]-counts[a] || (a===';'?-1:1))[0];
+  }
+  if (![',',';','\t'].includes(delimiter)) throw new Error('Separador no admitido');
+  const all = records(text, delimiter);
+  if (!Number.isSafeInteger(headerRow) || headerRow < 0 || headerRow > 29 || headerRow >= all.length) throw new Error('Fila de encabezados no válida');
+  const headers = all[headerRow], rows = all.slice(headerRow + 1), indexes = {}, ambiguous = [];
   for (const [key, aliases] of Object.entries(HEADER)) {
     const matches = headers.map((value,i) => aliases.includes(norm(value)) ? i : -1).filter(i => i >= 0);
-    if (matches.length > 1) throw new Error('Columnas ambiguas para ' + key);
-    indexes[key] = matches[0] ?? -1;
+    if (matches.length > 1) ambiguous.push(key);
+    indexes[key] = matches.length === 1 ? matches[0] : -1;
   }
+  return { delimiter, headerRow, headers, rows, indexes, ambiguous };
+}
+export function inspectStatementCsv(content, options = {}) {
+  const result = inspect(content, options.delimiter, options.headerRow ?? 0);
+  return { ...result, preview: result.rows.slice(0,8), count: result.rows.length };
+}
+export function parseStatementCsv(content, mapping = null) {
+  const info = inspect(content, mapping?.delimiter, mapping?.headerRow ?? 0);
+  const { headers, rows } = info;
+  if (!rows.length) throw new Error('El CSV no contiene movimientos');
+  let indexes = info.indexes;
+  if (mapping != null) {
+    if (Object.getPrototypeOf(mapping) !== Object.prototype || Object.keys(mapping).some(k => !['delimiter','headerRow',...Object.keys(HEADER)].includes(k))) throw new Error('Mapeo no válido');
+    indexes = Object.fromEntries(Object.keys(HEADER).map(k => [k, mapping[k] ?? -1]));
+    if (Object.values(indexes).some(i => !Number.isSafeInteger(i) || i < -1 || i >= headers.length)) throw new Error('Columna de mapeo no válida');
+    const used = Object.values(indexes).filter(i => i >= 0);
+    if (new Set(used).size !== used.length) throw new Error('Una columna no puede representar dos campos');
+  } else if (info.ambiguous.length) throw new Error('Columnas ambiguas para ' + info.ambiguous[0]);
   if (indexes.date < 0 || indexes.concept < 0 || (indexes.amount < 0 && indexes.debit < 0 && indexes.credit < 0)) throw new Error('Se necesitan columnas de fecha, concepto y un importe (o cargo/abono)');
   if (indexes.amount >= 0 && (indexes.debit >= 0 || indexes.credit >= 0)) throw new Error('Elige importe único o cargo/abono, no ambos');
   return rows.map((cells, offset) => {

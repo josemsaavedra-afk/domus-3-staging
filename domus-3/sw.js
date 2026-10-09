@@ -1,4 +1,4 @@
-const EXPECTED_BUILD=30042;
+const EXPECTED_BUILD=30043;
 importScripts('./asset-manifest.js?build='+EXPECTED_BUILD);
 if(self.DOMUS3_BUILD!==EXPECTED_BUILD)throw new Error('Manifest de otro build; se conserva la versión anterior.');
 const BASE=new URL('./',self.location.href),PREFIX='domus3:'+BASE.pathname+':',CACHE=PREFIX+EXPECTED_BUILD;
