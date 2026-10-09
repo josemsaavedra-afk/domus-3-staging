@@ -66,6 +66,14 @@ Siguiente acción: en un runtime de navegador capaz de cargar archivos (o median
 
 Regla de trabajo: este bloque es la lista de control persistente. Un punto solo pasa de PENDIENTE a VALIDADO cuando está implementado en la interfaz, desplegado en Staging y comprobado. No basta con que exista en Supabase o en el código.
 
+### DECISIÓN FUNCIONAL — REDISEÑO COMPLETO DE INTERFAZ
+
+- PENDIENTE CRÍTICO — La interfaz actual de DOMUS 3.0 RC1 se considera **no válida como base final de producto**. No seguir acumulando parches aislados sobre formularios heredados.
+- PENDIENTE CRÍTICO — Rediseñar de forma coherente toda la interfaz de alta, edición, consulta, configuración, documentos, informes y tesorería alrededor del modelo real de datos y las reglas de negocio ya existentes.
+- PENDIENTE CRÍTICO — Separar explícitamente en UI: **naturaleza económica** (Ingreso/Gasto), **movimiento de caja** (Cobro/Pago), **fecha del documento/operación** y **fecha real de cobro/pago**. Ningún campo genérico «Tipo» o «Fecha» debe mezclar conceptos distintos.
+- PENDIENTE CRÍTICO — Revisar navegación, jerarquía visual, nombres de campos, orden lógico, dependencias entre campos, validaciones, estados y comportamiento móvil/escritorio. La interfaz debe guiar y bloquear incoherencias, no limitarse a exponer columnas del backend.
+- PENDIENTE CRÍTICO — Antes de cerrar cualquier pantalla, validar que todo lo que existe en Supabase/GitHub y es funcionalmente relevante pueda verse, capturarse y editarse correctamente desde la interfaz.
+
 ### PRIORIDAD ALTA — interfaz útil y clasificación lógica
 
 - PENDIENTE — Alta/edición de movimientos: separar claramente **fecha de factura/tique/documento** de **fecha real de pago/cobro**. Tesorería y conciliación deben usar la fecha de pago/cobro; fiscalidad/documentación debe conservar la fecha documental. Si coinciden, se puede proponer/autorrellenar, pero nunca fusionar ambos conceptos en un único campo ambiguo.
