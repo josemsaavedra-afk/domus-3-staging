@@ -1,12 +1,16 @@
-# DOMUS RC1 — Tesorería Staging
+# DOMUS RC1 — Rediseño funcional Staging
 
-2026-10-07. Estado: implementación desplegada en Staging; NO declarar SOLUCIONADA sin prueba autenticada desde la app.
+2026-10-09. Estado actual: build 30043 desplegada; movimientos y configuración comprobados en sesión web autenticada. Importador guiado implementado y probado automáticamente; carga/guardado del CSV en navegador PENDIENTE por bloqueo del controlador. NO declarar finalizado el primer hito.
 
-- Referencia preservada: RC1 30037, commit 936ada874eed968abd901e285db2fe7d2e263cc8.
-- Nueva versión: 3.0.0-rc.1.3, build 30039.
-- Repositorio autorizado: josemsaavedra-afk/domus-3-staging, main, domus-3/.
-- Supabase autorizado: pmgonotpbmybtwvxbcvf. No tocar producción jiwfpczmffsjpfvsrrvk.
-- Último commit de aplicación desplegado: 84f869c06399847dfad288ff39fc413bd9c9e6c3. GitHub main actualizado mediante conector tras no disponer de credenciales CLI.
+- Base preservada: Tesorería RC1 build 30039, sin reconstrucción desde Alpha.
+- Versión actual: 3.0.0-rc.1.7, build 30043.
+- Repositorio: josemsaavedra-afk/domus-3-staging, main, domus-3/.
+- Supabase autorizado: pmgonotpbmybtwvxbcvf. Producción jiwfpczmffsjpfvsrrvk no modificada.
+- Commit de aplicación: 940e26bef1c657c6ced0a158699e4e583395c3fe. GitHub Pages run 37961785483: build y deploy success; HTTP version.json confirma build 30043.
+- Edge Function domus-treasury v2 ACTIVE, verify_jwt=true; POST sin token devuelve 401. RPC y garantías de Tesorería conservados.
+- npm test: 85/85 correctas, incluidas las 74 originales. verify-staging.sql completado nuevamente con ROLLBACK; ningún nuevo hallazgo de advisors.
+
+## Registro histórico de Tesorería — 2026-10-07
 
 ## Cambios
 
@@ -230,4 +234,8 @@ Base: main d5616b7; RC1 30039 preservado. Estado: IMPLEMENTADO, pendiente de com
 - Extractos: cuenta → archivo → detección CSV/TSV → vista previa → mapeo editable → validación completa → revisión y guardado RC1. Separador y fila de encabezados ajustables. Errores concretos «No importado» sin modificar historial previo.
 - Mismo lector compartido cliente/Edge Function; mapeo opcional compatible con clientes anteriores. SHA-256 conserva CSV original; cuenta, idempotencia, ordinales y transacciones RPC existentes no cambian.
 - Inventario TransportERP en docs/DOMUS_TRANSPORTERP_INVENTORY.md: reutilizado contrato financiero neutral; sin nuevo motor profesional PDF/OCR/Excel. Este importador bancario admite CSV/TSV, no archivos Excel binarios.
-- Despliegue y comprobación de build 30043 pendientes de verificación antes de declarar finalizado el hito.
+- Despliegue confirmado: commit 940e26bef1c657c6ced0a158699e4e583395c3fe; Pages build y deploy success. Endpoint version.json devuelve 30043. Navegador autenticado mostró el primer paso del importador nuevo después de activar íntegramente la PWA.
+- 85/85 pruebas: 74 originales + clasificación/fechas/esquema, ejemplos idempotentes, integridad de actualización PWA, mapeo de encabezados libres, TSV/cargo-abono/prefacios, errores y paridad cliente-servidor.
+- Sesión web: saldo previo 1234,56 y calculado 1224,55 recuperados; extracto y revocación previos siguen visibles. El nuevo gasto ficticio de 0,01 explica el céntimo de diferencia; no se cambió saldo inicial.
+- Bloqueo real de QA: al comenzar la selección de cuenta/archivo, el controlador informó retained_data_restricted tras native credential delivery, reinició el kernel y después rechazó recuperar la pestaña con “native credential state cannot be safely resumed”. Un reinicio explícito del runtime tampoco recuperó la pestaña. No se inspeccionaron credenciales ni se evitó la protección.
+- Pendiente para cierre: navegador → archivo de encabezados libres → mapeo → revisión → guardado/sincronización → recuperación; repetir archivo sin duplicar; archivo con fecha inválida sin alterar historial. Son pruebas pendientes, no fallos constatados del importador. Segundo dispositivo físico no repetido en esta sesión; cobertura original preservada.
