@@ -1,3 +1,11 @@
+
+## Incidencia detectada — 2026-10-09 — movimiento genérico Documento
+
+- CONFIRMADO en Staging: serie `5dbe336a-045e-4c8a-81da-1a22ee90c514` vinculada al PDF `G260911-017371-375400-1.pdf`, `source=document`, `type=income`, concepto persistido `Documento`, importe 60,38 €, fecha 09/10/2026, estado pendiente. Actualización de fila posterior al volcado, pero el concepto sigue siendo `Documento`.
+- La foto del usuario muestra simultáneamente comisión ONLOGIST, `Documento`, seguro AXA. Son series distintas, no una duplicación visual del mismo ID. NO borrar, cancelar, renombrar ni cambiar el estado sin validar qué representa el ingreso y la edición deseada.
+- PENDIENTE CRÍTICO: depurar el origen del concepto genérico del lector/importador de documentos; identificar si los cambios guardados en edición persisten por campo y diferenciar edición del documento vs movimiento económico asociado; validar lectura tras escritura y avisar si la actualización remota no coincide. No declarar guardado exitoso sin readback.
+- PENDIENTE UX: no aceptar `Documento` como nombre final por defecto en un ingreso de factura. Exigir una descripción significativa o proponer una reconocible del origen, sin inventar operación ni duplicar el ingreso.
+
 ## Ejecución autónoma — 2026-10-09 — datos reales + intercobros + presupuestos
 
 - Producción se ha usado **solo como origen de lectura**. No se ha modificado `jiwfpczmffsjpfvsrrvk`.
