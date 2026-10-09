@@ -218,3 +218,9 @@ Base: main d5616b7; RC1 30039 preservado. Estado: IMPLEMENTADO, pendiente de com
 - Regla de protección de ingresos visible, siempre aplicada: nunca sugerir Doméstico. Se permite ámbito doméstico elegido manualmente para ingresos personales sin factura/actividad.
 - Prueba PGlite de inicialización, aislamiento y conservación de edición/desactivación correcta. RPC real en Staging probada dentro de BEGIN/ROLLBACK. Advisors: ningún hallazgo nuevo; permanecen advertencias anteriores.
 - 80/80 pruebas. Comprobación autenticada de Configuración y reglas pendiente después del despliegue de este bloque.
+
+### Corrección de actualización PWA — build 30042
+
+- Durante QA autenticada de 30041 apareció shell nuevo con rules-ui.js antiguo; una recarga llegó a recuperar shell 30040. Los ejemplos persistidos eran correctos. NO se dio por validada la pantalla de reglas.
+- Service worker ahora exige manifest del build esperado y descarga cada asset con parámetro de build. Verifica SHA-256 de todos los archivos antes de escribir/activar la nueva caché. Si falta un archivo o llega otro build, conserva el worker anterior; no publica una caché mezclada. Backend/sesiones/datos nunca se cachean.
+- Build 30042 sustituye a 30041 para completar la misma comprobación. Sin cambios de esquema ni de datos adicionales.
