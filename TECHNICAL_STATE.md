@@ -72,6 +72,17 @@ Regla de trabajo: este bloque es la lista de control persistente. Un punto solo 
 - PRIORIDAD INMEDIATA — Rediseñar primero el flujo de creación/edición de movimientos y su modelo de interacción. Después reanudar pruebas de calendario, informes, tesorería y clasificación sobre esa base.
 - CRITERIO DE DESBLOQUEO — No reanudar pruebas generales hasta validar al menos: naturaleza Ingreso/Gasto, evento de caja Cobro/Pago, fecha económica/documental, fecha real de cobro/pago, persona económica, pagador/cobrador, cuenta/medio, tercero, categoría, ámbito, actividad/proyecto, estado y recurrencia.
 
+### PRINCIPIO UX — DOMUS PARA USUARIO BÁSICO
+
+- PENDIENTE CRÍTICO — DOMUS debe poder entenderse sin conocimientos contables, fiscales ni técnicos. Toda pantalla de Configuración debe usar lenguaje cotidiano, ejemplos precargados y ayuda contextual breve.
+- PENDIENTE CRÍTICO — Mantener y ampliar comentarios/instrucciones dentro de la propia interfaz: explicar qué significa cada bloque, para qué sirve, cuándo usarlo y cuándo puede dejarse vacío. La ayuda debe estar junto al campo o bloque, no escondida en documentación externa.
+- PENDIENTE CRÍTICO — Precargar ejemplos visibles en Staging para enseñar el modelo sin obligar al usuario a deducirlo. Ejemplos mínimos: categorías (Vivienda, Transporte, Alimentación, Suministros, Impuestos, Ocio), terceros (Mercadona, Vodafone, Lyreco, ONLOGIST), actividades/proyectos (Lyreco 722, Traslado vehículos 849) y etiquetas (Extraordinario, Cumpleaños, Viaje).
+- PENDIENTE CRÍTICO — Añadir el **Ámbito** como dimensión claramente visible y separada de Categorías: Doméstico / Actividad económica / Mixto, con explicación sencilla y ejemplos.
+- PENDIENTE CRÍTICO — Precargar reglas de clasificación de ejemplo, editables y desactivables, expresadas como frases comprensibles del tipo «Si pasa esto → clasificar así».
+- PENDIENTE CRÍTICO — Ejemplos de reglas a mostrar: Mercadona → Alimentación + Doméstico; Lyreco + Ingreso → Actividad económica + Lyreco 722; ONLOGIST → Actividad económica + Traslado vehículos 849; Vodafone → Suministros; AEAT → Impuestos; Ingreso → nunca sugerir Doméstico.
+- PENDIENTE CRÍTICO — La pantalla de reglas no debe exponer primero prioridades numéricas ni terminología técnica. La prioridad avanzada puede existir, pero detrás de una vista simple con condiciones y resultado en lenguaje natural.
+- PENDIENTE CRÍTICO — Conservar la ayuda ya acordada sobre conceptos como «tercero» y extender el mismo patrón a Categoría, Ámbito, Actividad/Proyecto, Etiquetas y Reglas.
+
 ### DECISIÓN FUNCIONAL — REDISEÑO COMPLETO DE INTERFAZ
 
 - PENDIENTE CRÍTICO — La interfaz actual de DOMUS 3.0 RC1 se considera **no válida como base final de producto**. No seguir acumulando parches aislados sobre formularios heredados.
