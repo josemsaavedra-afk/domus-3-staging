@@ -104,6 +104,16 @@ Regla de trabajo: este bloque es la lista de control persistente. Un punto solo 
 - PENDIENTE — Revisión de formularios de alta/edición/recurrentes para que consuman maestros y reglas de Configuración y no permitan valores incompatibles.
 - PENDIENTE — Revisar que Configuración sea realmente editable para todos los maestros relevantes y que sus cambios repercutan en formularios, filtros, informes y clasificación automática.
 
+### PREVISIÓN INTERCOBROS — INGRESOS HABITUALES
+
+- PENDIENTE CRÍTICO — Recuperar en Tesorería la **previsión intercobros**. No debe limitarse a mostrar una fecha exacta de próximo cobro, porque algunos ingresos habituales (p. ej. Lyreco) pueden adelantarse o retrasarse algunos días.
+- La interfaz debe responder primero a una pregunta de usuario básico: **«¿Cuánto me queda para volver a cobrar mis ingresos habituales?»**.
+- Debe mostrar el tiempo restante en días hasta el siguiente ingreso habitual previsto y, cuando exista variabilidad histórica o por fin de semana/festivo, expresar una **ventana estimada** en vez de una fecha rígida.
+- Debe identificar el siguiente cobro habitual por recurrencia / historial / tercero o actividad, sin hardcodear Lyreco como caso único. Lyreco es el caso de validación principal.
+- La tarjeta intercobros debe mostrar al menos: ingreso habitual siguiente, días restantes, importe esperado, gastos pendientes hasta esa ventana, saldo/necesidad estimada y acceso al detalle de los movimientos que componen el cálculo.
+- Si ya existe un cobro habitual realizado en el ciclo actual, el horizonte debe saltar al siguiente ciclo; no contar ingresos ya cobrados como dinero futuro disponible.
+- No reemplazar esta lógica por «próximo ingreso pendiente» genérico: ingresos variables como ONLOGIST/Driiveme no deben desplazar automáticamente el horizonte principal de los cobros habituales.
+
 ### Tesorería RC1
 
 - VALIDADO — Guardado y recuperación de saldos.
