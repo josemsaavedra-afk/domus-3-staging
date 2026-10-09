@@ -112,6 +112,16 @@ Regla de trabajo: este bloque es la lista de control persistente. Un punto solo 
 - Cuando la fecha habitual sea variable, mostrar rango/ventana estimada y no una fecha rígida falsa. Mantener acceso al detalle del cálculo.
 - La pantalla Hoy debe funcionar como resumen ejecutivo de situación inmediata; Tesorería como vista ampliada del mismo cálculo.
 
+### DATOS REALES EN STAGING — COPIA SEGURA DE TRABAJO
+
+- PRIORIDAD INMEDIATA — Las siguientes pruebas de DOMUS 3 deben hacerse con **datos reales**, no únicamente con ejemplos ficticios. Existe suficiente histórico en producción para validar de verdad previsiones, recurrencias, informes, clasificación y Tesorería.
+- NO trabajar directamente sobre producción para estas pruebas. Antes de copiar nada, crear una **copia de seguridad/exportación verificable** de los datos de producción que vayan a utilizarse.
+- La carga en Staging debe ser una **copia de trabajo independiente**. Producción permanece intacta.
+- Preservar, mediante tabla de correspondencias cuando sea necesario, las relaciones entre hogar, personas, cuentas, categorías, series, ocurrencias, documentos, terceros, actividades, etiquetas, reglas, vínculos y datos de Tesorería. No asumir que los UUID de Auth/hogar son idénticos entre producción y Staging.
+- El proceso debe ser repetible: exportar → validar copia → importar/migrar a Staging → comprobar recuentos y sumas → ejecutar smoke tests. Debe poder restaurarse/repetirse sin duplicar datos.
+- Conservar un manifiesto de la copia con fecha, tablas incluidas, recuentos, importes de control y mapeos de IDs.
+- Tras cargar los datos reales, usar esos datos como base principal para validar la previsión intercobros (Lyreco), presupuestos, informes, clasificación y Tesorería.
+
 ### PRESUPUESTOS / PLANES CON CONVERSIÓN A MOVIMIENTOS
 
 - PENDIENTE FUNCIONAL — Añadir una función de **Presupuestos / Planes** para gastos futuros (ej.: vacaciones, reforma, celebración, viaje, compra importante).
