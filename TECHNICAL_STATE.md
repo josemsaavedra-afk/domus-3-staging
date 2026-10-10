@@ -1,4 +1,11 @@
 
+## Corrección UX — 2026-10-10 — build 30048
+
+- Calendario de escritorio: cada movimiento muestra al pasar el cursor (y al recibir foco de teclado) un globo legible con concepto, importe, naturaleza, estado y fechas prevista/real cuando existe.
+- Los movimientos realizados continúan diferenciados en la celda y aparecen tachados también dentro del globo; el globo no hereda el tachado completo para mantener legibilidad.
+- Cierre de modales unificado: clic en el fondo oscuro cierra dayModal, movementDetailModal, docAnalysisModal, movementModal y masterModal. Movimiento y editor de maestros avisan antes de descartar cambios sin guardar; tras un guardado/eliminación confirmado se cierran sin aviso espurio.
+- Build/version: 3.0.0-rc.1.12 / 30048. JavaScript inline de index.html comprobado sintácticamente después del cambio. Producción no tocada.
+
 ## Incidencia detectada — 2026-10-09 — movimiento genérico Documento
 
 - CONFIRMADO en Staging: serie `5dbe336a-045e-4c8a-81da-1a22ee90c514` vinculada al PDF `G260911-017371-375400-1.pdf`, `source=document`, `type=income`, concepto persistido `Documento`, importe 60,38 €, fecha 09/10/2026, estado pendiente. Actualización de fila posterior al volcado, pero el concepto sigue siendo `Documento`.
