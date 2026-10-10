@@ -1,4 +1,11 @@
 
+## Corrección visual — 2026-10-10 — build 30049
+
+- Corregido el bajo contraste detectado en Calendario: los movimientos realizados ya no aplican opacidad al bloque completo.
+- Los realizados siguen diferenciados con fondo gris, texto más oscuro y tachado, pero permanecen legibles a simple vista.
+- El tooltip mantiene fondo oscuro sólido, texto blanco/gris claro y contraste independiente del estado del movimiento.
+- Build/version: 3.0.0-rc.1.13 / 30049. Producción no tocada.
+
 ## Corrección UX — 2026-10-10 — build 30048
 
 - Calendario de escritorio: cada movimiento muestra al pasar el cursor (y al recibir foco de teclado) un globo legible con concepto, importe, naturaleza, estado y fechas prevista/real cuando existe.
