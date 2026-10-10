@@ -23,7 +23,7 @@ const statementReviews = new Map();
 let activeReviewKey = null;
 let activeContext = null;
 let renderGeneration = 0;
-let currentSnapshot = null, runtime = null, persistencePanel = null;
+let currentSnapshot = null, runtime = null, persistencePanel = null, lastViewModel = null;
 // Explicit host injection + strict feature flag. No automatic network discovery.
 function configurePersistence(backend) {
   if (runtime) throw new Error('El adaptador ya está configurado en esta sesión.');
@@ -47,6 +47,7 @@ function configurePersistence(backend) {
 
 export function resetTreasury3() {
   currentSnapshot = null;
+  lastViewModel = null;
   persistencePanel?.invalidate();
   localCheckpoints.clear();
   savedCheckpoints.clear();
@@ -132,7 +133,28 @@ export function renderTreasury3(snapshot) {
   const generation = ++renderGeneration;
   const sourceAccounts = (snapshot.accounts || []).filter(account => snapshot.householdId && account.household_id === snapshot.householdId), accounts = sourceAccounts.map(account => accountWithLocalCheckpoint(account, checkpointFor(account.id)));
   const vm = createTreasuryViewModel(snapshot.rows || [], accounts, snapshot.asOf || new Date());
-  root.innerHTML = `<div class="treasury3-note"><strong>Tesorería 3.0 · RC1</strong> · Los saldos reales y las previsiones se muestran por separado.<p role="status" data-persistence-mode="${persistence.state()}">${persistence.state() === 'local' ? 'Modo local: persistencia remota desactivada.' : persistence.state() === 'persistent' ? 'Modo persistente: backend explícito habilitado.' : 'Persistencia bloqueada: falta un backend explícito. Continúas en modo borrador.'}</p></div><div class="treasury-status-grid">${statusCards(vm)}</div><div class="grid two treasury3-panels"><div class="card"><h2>Próximo cobro previsto</h2><div class="value">${date(vm.nextIncomeDate)}</div><p>Ingresos: <strong>${euro(vm.nextIncome.income)}</strong> · ${vm.nextIncome.count} movimiento(s)</p><hr><h3>Pagos pendientes hasta entonces</h3><div class="value">${euro(vm.dueBeforeIncomeTotals.expense)}</div><p>${vm.dueBeforeIncomeTotals.count} movimiento(s). Incluye vencidos aún pendientes.</p></div><div class="card"><h2>Saldo calculado por cuenta</h2><p class="muted">Solo se calcula si existe saldo inicial confirmado y fecha. “Flujo real” incluye únicamente movimientos realizados, prefinanciados o liquidados.</p><div class="table-wrap" tabindex="0" role="region" aria-label="Tabla desplazable horizontalmente"><table class="table"><thead><tr><th>Cuenta</th><th>Saldo calculado</th><th>Flujo real</th><th>Mov.</th></tr></thead><tbody>${accountRows(vm)}</tbody></table></div></div></div><div class="card"><h2>Saldos bancarios y cuadre</h2><p class="muted">Usar localmente prepara un borrador. Preparar guardado y Sincronizar pendientes lo envían al servidor. Solo Sincronizado confirma el guardado; los saldos guardados se recuperan al volver a entrar.</p>${balanceCaptureRows(sourceAccounts, vm.today)}</div><div class="card"><h2>Previsión acumulada</h2><div class="table-wrap" tabindex="0" role="region" aria-label="Tabla desplazable horizontalmente"><table class="table"><thead><tr><th>Horizonte</th><th>Ingresos</th><th>Pagos</th><th>Neto</th><th>Mov.</th></tr></thead><tbody>${horizonRows(vm)}</tbody></table></div></div><div class="card"><div class="section-title"><div><h2>Importar extracto · paso a paso</h2><p class="muted">Revisa las coincidencias antes de preparar su guardado. Sincroniza el extracto y consulta el historial antes de preparar las conciliaciones.</p></div><label class="btn">2. Seleccionar archivo<input id="treasuryCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label></div><div id="treasuryCsvResult" class="empty">1. Selecciona la cuenta. Después elige tu archivo CSV o TSV. Verás el formato y las columnas antes de importar.</div></div><div id="treasury3Detail" class="card hidden"><div class="section-title"><h2 id="treasury3DetailTitle">Desglose</h2><button class="btn" type="button" id="treasury3Close">Cerrar</button></div><div class="table-wrap" tabindex="0" role="region" aria-label="Tabla desplazable horizontalmente"><table class="table"><thead><tr><th>Fecha</th><th>Estado</th><th>Concepto</th><th>Tipo</th><th>Importe</th></tr></thead><tbody id="treasury3DetailBody"></tbody></table></div></div>`;
+  lastViewModel = vm;
+  const realAccounts = vm.accountRows.filter(row => row.id), confirmedAccounts = realAccounts.filter(row => row.confirmedBalance != null), available = confirmedAccounts.reduce((sum,row) => sum + Number(row.confirmedBalance || 0), 0), week = vm.horizons.week, month = vm.horizons.month, overdue = vm.byStatus.vencido, todayPending = vm.byStatus.pendiente;
+  const availableText = confirmedAccounts.length ? euro(available) : 'Sin saldo confirmado', availableSub = confirmedAccounts.length ? (confirmedAccounts.length === realAccounts.length ? confirmedAccounts.length+' cuenta(s) calculadas' : confirmedAccounts.length+' de '+realAccounts.length+' cuenta(s) calculadas') : 'Registra o recupera un saldo bancario para ver el disponible real.';
+  root.innerHTML = `<div class="card treasury-explain"><h2 style="margin:0 0 6px">Tu dinero y lo que viene</h2><p class="muted" style="margin:0">Tesorería separa el dinero que ya existe de las previsiones. Lo importante aparece primero; conciliación, importación y ajustes quedan en herramientas.</p></div>
+  <div class="treasury-overview-grid">
+    <div class="card treasury-balance-focus"><div class="label">Disponible calculado</div><div class="value">${availableText}</div><div class="sub">${esc(availableSub)}</div></div>
+    <button class="card kpi clickable" type="button" data-treasury-horizon="week"><span class="label">De hoy a 7 días</span><span class="value">${week.net>=0?'+':''}${euro(week.net)}</span><span class="sub">+${euro(week.income)} · −${euro(week.expense)} · ${week.count} mov.</span></button>
+    <button class="card kpi clickable" type="button" data-treasury-horizon="month"><span class="label">Hasta fin de mes</span><span class="value">${month.net>=0?'+':''}${euro(month.net)}</span><span class="sub">+${euro(month.income)} · −${euro(month.expense)} · ${month.count} mov.</span></button>
+    <button class="card kpi clickable ${overdue.count?'attention':''}" type="button" data-treasury-status="vencido"><span class="label">Necesita atención</span><span class="value">${euro(overdue.expense)}</span><span class="sub">${overdue.count} vencido(s) · hoy ${todayPending.count} pendiente(s)</span></button>
+  </div>
+  <div class="grid two treasury3-panels">
+    <div class="card"><div class="section-title"><div><h2>Saldo por cuenta</h2><p class="muted">Qué dinero tienes calculado en cada cuenta según el último saldo confirmado y los movimientos reales.</p></div></div><div class="table-wrap" tabindex="0" role="region" aria-label="Saldo por cuenta"><table class="table"><thead><tr><th>Cuenta</th><th>Disponible</th><th>Movimiento real</th><th>Mov.</th></tr></thead><tbody>${accountRows(vm)}</tbody></table></div></div>
+    <div class="card"><h2>Próximo movimiento de dinero</h2><p class="muted">Una referencia útil, no el centro de Tesorería.</p><div class="detail-field"><small>Próximo ingreso previsto</small><strong>${date(vm.nextIncomeDate)} · ${euro(vm.nextIncome.income)}</strong></div><div class="detail-field"><small>Pagos pendientes hasta esa fecha</small><strong>${euro(vm.dueBeforeIncomeTotals.expense)}</strong><span class="muted"> · ${vm.dueBeforeIncomeTotals.count} movimiento(s)</span></div></div>
+  </div>
+  <div id="treasury3Detail" class="card hidden"><div class="section-title"><h2 id="treasury3DetailTitle">Desglose</h2><button class="btn" type="button" id="treasury3Close">Cerrar</button></div><div class="table-wrap" tabindex="0" role="region" aria-label="Tabla desplazable horizontalmente"><table class="table"><thead><tr><th>Fecha</th><th>Estado</th><th>Concepto</th><th>Tipo</th><th>Importe</th></tr></thead><tbody id="treasury3DetailBody"></tbody></table></div></div>
+  <details class="card treasury-advanced"><summary><strong>Herramientas de Tesorería</strong><span class="muted"> · saldos, previsión detallada, extractos y conciliación</span></summary>
+    <div class="treasury3-note"><strong>Estado técnico</strong><p role="status" data-persistence-mode="${persistence.state()}">${persistence.state() === 'local' ? 'Modo local: persistencia remota desactivada.' : persistence.state() === 'persistent' ? 'Modo persistente: backend explícito habilitado.' : 'Persistencia bloqueada: falta un backend explícito. Continúas en modo borrador.'}</p></div>
+    <div class="treasury-status-grid">${statusCards(vm)}</div>
+    <div class="card"><h2>Saldos bancarios y cuadre</h2><p class="muted">Registra un saldo confirmado o comprueba que DOMUS coincide con el banco.</p>${balanceCaptureRows(sourceAccounts, vm.today)}</div>
+    <div class="card"><h2>Previsión detallada</h2><div class="table-wrap" tabindex="0" role="region" aria-label="Previsión acumulada"><table class="table"><thead><tr><th>Horizonte</th><th>Ingresos</th><th>Pagos</th><th>Neto</th><th>Mov.</th></tr></thead><tbody>${horizonRows(vm)}</tbody></table></div></div>
+    <div class="card"><div class="section-title"><div><h2>Importar extracto · paso a paso</h2><p class="muted">Revisa las coincidencias antes de preparar su guardado.</p></div><label class="btn">2. Seleccionar archivo<input id="treasuryCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label></div><div id="treasuryCsvResult" class="empty">1. Selecciona la cuenta. Después elige tu archivo CSV o TSV. Verás el formato y las columnas antes de importar.</div></div>
+  </details>`;
   const accountSelect = document.createElement('select');
   accountSelect.id = 'treasuryCsvAccount'; accountSelect.className = 'treasury-review-select'; accountSelect.setAttribute('aria-label', 'Cuenta del extracto');
   accountSelect.innerHTML = '<option value="">1. Cuenta del extracto…</option>'+sourceAccounts.map(account => `<option value="${esc(account.id)}">${esc(account.name || 'Cuenta sin nombre')}</option>`).join('');
@@ -206,5 +228,5 @@ export function renderTreasury3(snapshot) {
   }
   return vm;
 }
-window.DOMUSTreasury3 = { render: renderTreasury3, reset: resetTreasury3, snapshot: createTreasurySnapshot, configurePersistence };
+window.DOMUSTreasury3 = { render: renderTreasury3, reset: resetTreasury3, snapshot: createTreasurySnapshot, configurePersistence, summary: () => lastViewModel };
 window.dispatchEvent(new CustomEvent('domus-treasury3-ready'));
