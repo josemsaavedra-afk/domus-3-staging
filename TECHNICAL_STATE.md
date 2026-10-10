@@ -1,3 +1,15 @@
+## Rediseño Hoy + Tesorería — 2026-10-10 — build 30050
+
+- Nuevo criterio de producto: **Hoy** responde primero a cuatro preguntas normales: cuánto dinero disponible puede calcular DOMUS, qué requiere atención, qué balance se espera de hoy a 7 días y qué balance se espera hasta fin de mes.
+- Se elimina de la portada el protagonismo de «pagos hasta próximo cobro habitual». El cobro habitual pasa a **Hitos próximos**, al mismo nivel que el próximo pago y el próximo ingreso.
+- Hoy queda reorganizado en: situación resumida → resolver hoy → hitos próximos → próximos pagos/ingresos. Las previsiones por persona y por ámbito se conservan, pero dentro de «Ver previsiones detalladas».
+- Tesorería abre ahora con lenguaje cotidiano: disponible calculado, balance a 7 días, balance hasta fin de mes y vencidos. Después muestra saldo por cuenta y una referencia del próximo movimiento de dinero.
+- Saldos, previsiones por estado, cuadre bancario, importación de extractos y conciliación no se eliminan: quedan agrupados dentro de **Herramientas de Tesorería** para evitar que la pantalla principal parezca un panel técnico.
+- Prefinanciación se conserva como herramienta específica plegada; deja de competir visualmente con la situación general.
+- El resumen de Hoy reutiliza el saldo calculado real de Tesorería mediante un resumen de solo lectura expuesto por el módulo RC1. Si no existen saldos confirmados, muestra explícitamente «Sin confirmar» en vez de inventar disponibilidad.
+- Pruebas estáticas: JavaScript inline de index.html válido; ui.js de Tesorería válido tras retirar sintaxis de módulo para parseo; sin IDs duplicados; eliminadas referencias a tarjetas antiguas; integridad SHA-256 de src/treasury/ui.js verificada contra asset-manifest.
+- Versión/build: 3.0.0-rc.1.14 / 30050. Producción no tocada.
+
 
 ## Corrección visual — 2026-10-10 — build 30049
 
