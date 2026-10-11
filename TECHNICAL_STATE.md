@@ -1,3 +1,12 @@
+## Corrección de coherencia PWA — 2026-10-11 — build 30055
+
+- Incidencia observada: el navegador podía cargar index.html nuevo mientras un service worker anterior servía módulos JavaScript viejos. Esto provocó «window.DOMUSReport.financialDay is not a function» tras el build 30054.
+- Causa: index.html no formaba parte del paquete versionado del service worker.
+- Solución inmediata: Informes dispone de fallback local para cálculo y filtrado por fecha financiera aunque temporalmente llegue un report.js anterior.
+- Solución estructural: index.html pasa a formar parte de DOMUS3_ASSETS y se valida/cacha con SHA-256 junto al resto del build. A partir de ahora HTML y módulos se entregan como un paquete coherente por versión.
+- Verificaciones: sintaxis index/sw/report correcta; index incluido en manifest; hash de index validado; build 30055 coherente en index, manifest, service worker y version.json.
+- Versión/build: 3.0.0-rc.1.19 / 30055. Producción no tocada.
+
 ## Corrección de período financiero en Informes — 2026-10-11 — build 30054
 
 - Detectado que Informes filtraba por fecha documental antes que por fecha financiera.
