@@ -1,3 +1,13 @@
+## Corrección de consultas naturales — 2026-10-11 — build 30053
+
+- Informes entiende ahora períodos dinámicos del tipo «desde hoy hasta el próximo ingreso habitual de X».
+- El horizonte se calcula con el siguiente ingreso pendiente clasificado como Ingresos habituales + Actividad económica, reutilizando la misma lógica económica de DOMUS.
+- Se admiten iniciales personales inequívocas, por ejemplo «JM» → «José Manuel» cuando solo existe una coincidencia.
+- La consulta «ingresos y gastos desde hoy hasta el próximo ingreso habitual de JM» se transforma en un informe previsto desde hoy hasta la fecha de ese cobro y filtrado por José Manuel.
+- Si las iniciales son ambiguas o no existe un ingreso habitual pendiente en los próximos 370 días, DOMUS explica el problema y no altera el informe anterior.
+- Pruebas: sintaxis correcta de index/report-language/report-question; consulta transformada validada; alias JM validado; hashes de integridad actualizados en asset-manifest.
+- Versión/build: 3.0.0-rc.1.17 / 30053. Producción no tocada.
+
 ## Corrección de navegación — 2026-10-11 — build 30052
 
 - Al cambiar de sección principal, DOMUS vuelve ahora a la cabecera de la vista en lugar de conservar el scroll de la pantalla anterior.
