@@ -1,3 +1,13 @@
+## Claridad de cifras de Tesorería — 2026-10-11 — build 30062
+
+- Las tarjetas de estado de Herramientas de Tesorería mostraban importes netos sin explicar su origen ni período.
+- Aclarado que no son saldos bancarios: cada tarjeta muestra neto = ingresos − pagos de los movimientos de ese estado.
+- Cada tarjeta muestra ahora ingresos, pagos, número de movimientos y rango de fechas real que está sumando.
+- «Previsto» pasa a «Previsto futuro» y «Realizado» a «Realizado histórico» para evitar confundirlos con saldos o con períodos cortos.
+- Se añade aviso explicativo y se mantiene el desglose clicable movimiento a movimiento.
+- Importante: el snapshot de Tesorería genera previsiones recurrentes hasta el 31/12 de dos años después del año de corte; por eso la tarjeta de previsto puede ser muy grande. El histórico realizado incluye todo el histórico cargado.
+- Versión/build: 3.0.0-rc.1.26 / 30062. Producción no tocada.
+
 ## Corrección Movimientos — Ir a hoy — 2026-10-11 — build 30061
 
 - Corregido «Ir a hoy» en la vista Movimientos.
