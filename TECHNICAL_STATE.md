@@ -1,3 +1,13 @@
+## Corrección de período financiero en Informes — 2026-10-11 — build 30054
+
+- Detectado que Informes filtraba por fecha documental antes que por fecha financiera.
+- Nueva regla temporal: movimiento realizado → fecha real de pago/cobro; movimiento pendiente → fecha prevista.
+- La fecha documental se conserva como dato económico/documental, pero deja de decidir si un movimiento entra en un informe financiero.
+- La tabla y la impresión muestran ahora la misma fecha financiera usada por el filtro, evitando que el listado contradiga los KPI.
+- El encabezado del período explica explícitamente el criterio temporal aplicado.
+- Prueba sintética validada: un realizado con documento dentro pero pago fuera del período queda excluido; un realizado pagado dentro y un pendiente previsto dentro quedan incluidos.
+- Versión/build: 3.0.0-rc.1.18 / 30054. Producción no tocada.
+
 ## Corrección de consultas naturales — 2026-10-11 — build 30053
 
 - Informes entiende ahora períodos dinámicos del tipo «desde hoy hasta el próximo ingreso habitual de X».
