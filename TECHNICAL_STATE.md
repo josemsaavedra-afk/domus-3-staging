@@ -1,3 +1,13 @@
+## Tesorería útil — 2026-10-11 — build 30063
+
+- Se retiran del primer plano los acumulados globales por estado que mezclaban histórico completo y previsiones hasta 2028.
+- La vista principal de Tesorería pasa a priorizar datos operativos: disponible calculado hoy, pagos vencidos, próximos 7 días y saldo proyectado a fin de mes.
+- Se añade un resumen operativo con: vencido por resolver, próximos 7 días, realizado del mes actual y pendiente hasta fin de mes.
+- El saldo proyectado fin de mes se calcula como saldo disponible confirmado + flujo pendiente hasta fin de mes. Si faltan cuentas confirmadas se etiqueta como proyección parcial; si no hay saldo base no se inventa.
+- Cada bloque operativo es clicable y muestra los movimientos concretos que forman la cifra.
+- Los acumulados por estado (previsto futuro, realizado histórico, reprogramado, prefinanciado, etc.) se conservan únicamente en «Diagnóstico por estados», plegados y fuera del flujo principal.
+- Build/version: 3.0.0-rc.1.27 / 30063. Producción no tocada.
+
 ## Claridad de cifras de Tesorería — 2026-10-11 — build 30062
 
 - Las tarjetas de estado de Herramientas de Tesorería mostraban importes netos sin explicar su origen ni período.
