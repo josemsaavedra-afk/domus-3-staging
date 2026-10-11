@@ -1,3 +1,13 @@
+## Navegación móvil iPhone — build 30067
+
+- La barra inferior móvil deja de mostrar 8 pestañas comprimidas.
+- En iPhone quedan 5 accesos principales: Inicio, Dinero, Agenda, Movimientos y Más.
+- Más abre un menú con Planes, Informes, Documentos y Ajustes.
+- Se sustituyen las etiquetas antiguas Hoy / Calendario / Tesorería / Stats / Docs.
+- La barra respeta safe-area de iPhone y usa fondo translúcido con desenfoque.
+- Las secciones secundarias activan visualmente Más.
+- Versión 3.0.0-rc.1.31, build 30067. Producción no tocada.
+
 ## Interfaz doméstica simplificada — build 30066
 
 - Navegación: Inicio, Dinero, Agenda, Movimientos, Planes, Informes, Documentos y Ajustes.
