@@ -2,9 +2,10 @@
 (() => {
   const match = (value, selected) => !selected || selected === 'all' || (selected === 'none' ? value == null || value === '' : value === selected);
   const day = value => typeof value === 'string' ? value.slice(0,10) : `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}-${String(value.getDate()).padStart(2,'0')}`;
+  const financialDay = r => r.status === 'done' && r.state?.actual_date ? day(r.state.actual_date) : day(r.occurrenceDate || r.baseOccurrenceDate || r.documentDate);
   function filter(rows, f = {}, search = () => []) {
     if (f.from && f.to && f.from > f.to) return [];
-    return rows.filter(r => (!f.from || day(r.documentDate || r.baseOccurrenceDate || r.occurrenceDate) >= f.from) && (!f.to || day(r.documentDate || r.baseOccurrenceDate || r.occurrenceDate) <= f.to)
+    return rows.filter(r => (!f.from || financialDay(r) >= f.from) && (!f.to || financialDay(r) <= f.to)
       && match(r.person_id,f.person) && match(r.payer_person_id,f.payer) && match(r.account_id,f.account)
       && match(r.activity_project_id,f.activity) && (!f.tag || f.tag==='all' || (f.tag==='none' ? !(r.tag_ids||[]).length : (r.tag_ids||[]).includes(f.tag))) && match(r.counterparty_id,f.counterparty) && match(r.category_id,f.category) && match(r.type,f.type) && match(r.status,f.mode)
       && match(r.expense_scope || 'unclassified',f.scope) && match(r.movement_role || 'standard',f.component)
@@ -55,5 +56,5 @@
     }
     return {currentRows,previousRows,current,previous,changes};
   }
-  window.DOMUSReport={filter,totals,groups,day,period,compare};
+  window.DOMUSReport={filter,totals,groups,day,financialDay,period,compare};
 })();
