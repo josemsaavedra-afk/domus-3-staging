@@ -101,8 +101,8 @@ function bindDetails(root, vm) {
   const show = (label, rows) => { title.textContent = label; body.innerHTML = movementRows(rows); detail.classList.remove('hidden'); detail.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   root.querySelectorAll('[data-treasury-status]').forEach(button => button.onclick = () => show(LABEL[button.dataset.treasuryStatus], vm.all.filter(row => row.status === button.dataset.treasuryStatus)));
   root.querySelectorAll('button[data-treasury-horizon]').forEach(button => button.onclick = () => { const horizon = vm.horizons[button.dataset.treasuryHorizon]; show(`Previsión hasta ${date(horizon.end)}`, vm.open.filter(row => row.date <= horizon.end)); });
-  const op=operationalTreasury(vm,0,0,0),opRows={overdue:op.overdueRows,week:op.weekRows,month:op.commitmentRows,monthReal:op.realMonthRows};
-  const opLabels={overdue:'Vencidos por resolver',week:'Próximos 7 días',month:'Pendiente hasta fin de mes',monthReal:'Realizado este mes'};
+  const op=operationalTreasury(vm,0,0,0),opRows={overdue:op.overdueRows,week:op.weekRows,month:op.commitmentRows,monthExpense:op.commitmentRows.filter(row=>row.type==='expense'),monthIncome:op.commitmentRows.filter(row=>row.type==='income'),monthReal:op.realMonthRows};
+  const opLabels={overdue:'Vencidos por resolver',week:'Próximos 7 días',month:'Pendiente hasta fin de mes',monthExpense:'Pagos que quedan este mes',monthIncome:'Cobros que quedan este mes',monthReal:'Realizado este mes'};
   root.querySelectorAll('[data-treasury-operational]').forEach(button=>button.onclick=()=>show(opLabels[button.dataset.treasuryOperational],opRows[button.dataset.treasuryOperational]||[]));
 }
 
@@ -172,8 +172,8 @@ export function renderTreasury3(snapshot) {
   root.innerHTML = `<div class="card treasury-explain"><h2 style="margin:0 0 6px">Tu dinero este mes</h2><p class="muted" style="margin:0">Lo esencial: cuánto tienes, cuánto queda por pagar, cuánto esperas cobrar y cómo terminarías el mes.</p></div>
   <div class="treasury-overview-grid">
     <div class="card treasury-balance-focus"><div class="label">Dinero disponible hoy</div><div class="value">${availableText}</div><div class="sub">${esc(availableSub)}</div></div>
-    <button class="card kpi clickable" type="button" data-treasury-operational="month"><span class="label">Por pagar este mes</span><span class="value">${euro(op.commitment.expense)}</span><span class="sub">${op.commitment.count} movimientos pendientes en total</span></button>
-    <button class="card kpi clickable" type="button" data-treasury-operational="month"><span class="label">Por cobrar este mes</span><span class="value">${euro(op.commitment.income)}</span><span class="sub">Cobros previstos hasta final de mes</span></button>
+    <button class="card kpi clickable" type="button" data-treasury-operational="monthExpense"><span class="label">Por pagar este mes</span><span class="value">${euro(op.commitment.expense)}</span><span class="sub">${op.commitment.count} movimientos pendientes en total</span></button>
+    <button class="card kpi clickable" type="button" data-treasury-operational="monthIncome"><span class="label">Por cobrar este mes</span><span class="value">${euro(op.commitment.income)}</span><span class="sub">Cobros previstos hasta final de mes</span></button>
     <div class="card kpi treasury-balance-focus"><span class="label">Previsión al acabar el mes</span><span class="value">${op.projected==null?'Sin saldo base':euro(op.projected)}</span><span class="sub">${op.projected==null?'Confirma algún saldo para calcularla':(op.projectedComplete?'Si se cumplen los cobros y pagos previstos':'Proyección parcial: faltan cuentas por confirmar')}</span></div>
   </div>
   <div class="grid two treasury3-panels">
