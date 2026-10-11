@@ -1,3 +1,11 @@
+## Corrección de navegación — 2026-10-11 — build 30052
+
+- Al cambiar de sección principal, DOMUS vuelve ahora a la cabecera de la vista en lugar de conservar el scroll de la pantalla anterior.
+- Corrige específicamente el caso de Estadísticas e informes, que podía abrirse a mitad de página.
+- Se mantiene la preservación de posición únicamente dentro de componentes que gestionan su propio scroll; la navegación principal siempre empieza arriba.
+- Actualizada también la versión visible en Configuración a build 30052.
+- JavaScript inline comprobado sintácticamente. Producción no tocada.
+
 ## Decisión de explotación — 2026-10-11 — DOMUS 3 pasa a ser fuente de verdad
 
 - A partir de este punto **DOMUS 3.0 Staging se usa con datos reales y como aplicación operativa principal**.
