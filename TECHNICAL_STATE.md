@@ -1,3 +1,14 @@
+## Lector documental — 2026-10-11 — build 30056
+
+- Cambio de enfoque del lector de documentos: las imágenes ya no se envían crudas a OCR.
+- Preprocesado previo: reescala, fondo blanco, escala de grises, normalización de rango y aumento de contraste antes de Tesseract.
+- PDFs con texto embebido siguen usando extracción nativa; si no hay texto suficiente, la primera página se renderiza a mayor resolución y pasa por OCR mejorado.
+- El parser tolera errores habituales de OCR en etiquetas de total (por ejemplo T0TAL) y amplía la búsqueda de fecha y comercio.
+- Cada propuesta lleva ahora calidad de extracción (alta/media/baja) y, cuando existe, porcentaje de confianza OCR.
+- Si la lectura es baja, DOMUS lo dice explícitamente y obliga a revisar comercio, fecha e importe; deja de presentar campos dudosos como si fueran fiables.
+- El texto OCR completo se conserva temporalmente dentro de la propuesta cuando la calidad es baja para facilitar la revisión.
+- Build/version: 3.0.0-rc.1.20 / 30056. Producción no tocada.
+
 ## Corrección de coherencia PWA — 2026-10-11 — build 30055
 
 - Incidencia observada: el navegador podía cargar index.html nuevo mientras un service worker anterior servía módulos JavaScript viejos. Esto provocó «window.DOMUSReport.financialDay is not a function» tras el build 30054.
