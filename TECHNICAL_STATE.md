@@ -1,3 +1,13 @@
+## Decisión de explotación — 2026-10-11 — DOMUS 3 pasa a ser fuente de verdad
+
+- A partir de este punto **DOMUS 3.0 Staging se usa con datos reales y como aplicación operativa principal**.
+- **DOMUS 2.5.8 queda congelado como histórico/consulta**. No se realizarán nuevas cargas masivas, sincronizaciones ni migraciones periódicas desde 2.5.8 hacia DOMUS 3.
+- Todo movimiento nuevo, corrección, cambio de estado, recurrencia, clasificación, documento y dato de tesorería debe registrarse directamente en DOMUS 3.
+- Los usuarios reales del hogar (incluida Jeni) deben trabajar directamente en DOMUS 3 para que las pruebas sean uso real, multiusuario y con persistencia efectiva.
+- 2.5.8 solo podrá consultarse de forma excepcional para recuperar un dato histórico concreto o resolver una discrepancia de auditoría solicitada expresamente. Cualquier dato recuperado se incorporará manualmente y con trazabilidad, no mediante reimportación general.
+- No borrar todavía 2.5.8 ni sus datos: se conserva como respaldo histórico hasta que DOMUS 3 complete su fase de estabilización.
+- Queda prohibido usar 2.5.8 como origen habitual para corregir DOMUS 3; desde ahora las inconsistencias se corrigen en DOMUS 3, que es la fuente de verdad operativa.
+
 ## Corrección de interacción — 2026-10-11 — build 30051
 
 - Corregido el fallo por el que al pulsar «Marcar pagado/cobrado» dentro de una ventana de resumen el movimiento sí se guardaba, pero permanecía visible y parecía que no había ocurrido nada.
