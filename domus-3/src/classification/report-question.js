@@ -17,7 +17,7 @@
   const today=startOfDay(new Date()),horizon=addDays(today,370),future=occurrencesBetween(today,horizon).filter(x=>x.status==='pending'&&habitualBusinessIncome(x)&&x.occurrenceDate>=today&&(!person||x.person_id===person.id)).sort((a,b)=>a.occurrenceDate-b.occurrenceDate);
   if(!future.length)throw Error('No hay un ingreso habitual pendiente'+(person?' de '+person.name:'')+' en los próximos 370 días.');
   const target=future[0],date=dateKey(target.occurrenceDate),personClause=person?' titular '+person.name:'';
-  const stripped=normalized.replace(match[0],'').trim();
+  const stripped=normalized.replace(match[0],'').replace(/\bdesde\s+hoy\b/g,' ').replace(/\s+/g,' ').trim();
   return {question:(stripped+' previstos hasta '+date+personClause).trim(),note:'Horizonte dinámico: hasta '+fmt(target.occurrenceDate)+' ('+target.concept+(person?' · '+person.name:'')+').'};
  }
  function query(){
