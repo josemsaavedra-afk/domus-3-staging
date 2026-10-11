@@ -1,3 +1,14 @@
+## Conciliación bancaria segura — 2026-10-11 — build 30064
+
+- Regla operativa fijada: cargar o conciliar un extracto **no crea movimientos**.
+- Una línea bancaria solo puede enlazarse con un movimiento DOMUS ya existente.
+- Las líneas sin coincidencia quedan pendientes de revisión y se muestran explícitamente como «Sin coincidencia · No se crea movimiento».
+- Se mantiene la protección existente que impide confirmar un mismo movimiento DOMUS contra dos líneas distintas del mismo proceso de revisión.
+- El extracto completo ya dispone de huella SHA-256 por cuenta; reabrir el mismo archivo reutiliza la revisión local en vez de crear una nueva.
+- Los botones y textos se renombraron para distinguir «Conciliar» de «Crear».
+- Si en el futuro se permite crear un movimiento desde una línea bancaria, deberá ser una acción separada, explícita y sometida a control anti-duplicado antes de guardar.
+- Versión/build: 3.0.0-rc.1.28 / 30064. Producción no tocada.
+
 ## Tesorería útil — 2026-10-11 — build 30063
 
 - Se retiran del primer plano los acumulados globales por estado que mezclaban histórico completo y previsiones hasta 2028.
