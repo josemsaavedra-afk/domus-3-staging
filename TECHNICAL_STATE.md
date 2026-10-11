@@ -1,3 +1,14 @@
+## Interfaz doméstica simplificada — build 30066
+
+- Navegación: Inicio, Dinero, Agenda, Movimientos, Planes, Informes, Documentos y Ajustes.
+- Inicio prioriza: dinero disponible hoy, pagos pendientes del mes, cobros pendientes del mes y previsión al final de mes.
+- Los vencidos quedan como aviso separado.
+- Los importes principales abren su desglose real.
+- La pantalla Dinero usa el mismo lenguaje doméstico y deja conciliación, diagnósticos y previsiones detalladas en opciones secundarias.
+- La previsión de fin de mes no se inventa si falta saldo base.
+- Versión 3.0.0-rc.1.30, build 30066.
+- Producción no tocada.
+
 ## Rediseño conceptual de interfaz — 2026-10-11 — build 30065
 
 - DOMUS deja de organizar la navegación principal por módulos técnicos y pasa a hacerlo por tareas domésticas reales.
