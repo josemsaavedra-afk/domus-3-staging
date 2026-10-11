@@ -15,7 +15,8 @@
    const candidates=[];
    for(const [table,field] of Object.entries(dimensions))for(const row of catalogs[table]||[]){
     if(row.household_id!==householdId)continue;
-    const names=[row.name,...(table==='counterparties'?row.aliases||[]:[]),...(table==='categories'?[window.DOMUSClassification.categoryLabel(row)]:[])];
+    const initials=table==='people'?norm(row.name).split(' ').filter(Boolean).map(part=>part[0]).join(''):'';
+    const names=[row.name,...(initials.length>1?[initials]:[]),...(table==='counterparties'?row.aliases||[]:[]),...(table==='categories'?[window.DOMUSClassification.categoryLabel(row)]:[])];
     for(const name of new Set(names.map(norm).filter(Boolean))){const re=new RegExp('(?<![a-z0-9])'+escape(name)+'(?![a-z0-9])','g');for(const match of text.matchAll(re))candidates.push({start:match.index,end:match.index+name.length,term:name,field,id:row.id,name:table==='categories'?window.DOMUSClassification.categoryLabel(row):row.name});}
    }
    candidates.sort((a,b)=>a.start-b.start||(b.end-b.start)-(a.end-a.start));let consumed=-1;
