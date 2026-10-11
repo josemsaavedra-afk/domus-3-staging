@@ -1,3 +1,12 @@
+## Lector documental — segunda lectura dirigida — 2026-10-11 — build 30057
+
+- Caso real validado: el ticket Mercadona leía correctamente el total 94,56 €, pero fallaba en comercio/fecha. Ese importe fiable debe preservarse.
+- Inspirado en el enfoque de TransportERP, DOMUS añade una segunda lectura selectiva cuando la primera OCR es incompleta: cabecera, zona media/fecha y zona inferior/totales se releen por separado a mayor resolución.
+- La recuperación es evidencia adicional: no sustituye indiscriminadamente la primera lectura.
+- Si la primera pasada ya obtuvo un importe, la segunda no lo sobrescribe. Se usa principalmente para recuperar comercio, concepto y fecha faltantes/dañados.
+- La revisión muestra «segunda lectura dirigida» cuando se ha ejecutado.
+- Build/version: 3.0.0-rc.1.21 / 30057. Producción no tocada.
+
 ## Lector documental — 2026-10-11 — build 30056
 
 - Cambio de enfoque del lector de documentos: las imágenes ya no se envían crudas a OCR.
