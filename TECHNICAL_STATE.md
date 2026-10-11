@@ -1,3 +1,12 @@
+## Corrección de interacción — 2026-10-11 — build 30051
+
+- Corregido el fallo por el que al pulsar «Marcar pagado/cobrado» dentro de una ventana de resumen el movimiento sí se guardaba, pero permanecía visible y parecía que no había ocurrido nada.
+- El botón de estado muestra ahora «Guardando…»/«Actualizando…», queda bloqueado durante la operación y evita clics repetidos.
+- Tras confirmar el cambio, el modal abierto se reconstruye con el estado actual. En resúmenes de pendientes, el movimiento realizado desaparece inmediatamente de la lista; el resumen mensual superior también se recalcula.
+- El calendario/día abierto se refresca igualmente si la acción se ejecuta desde su modal.
+- En caso de error, el botón recupera su estado anterior y se muestra el error; no se deja la interfaz bloqueada.
+- Prueba estática: JavaScript inline de index.html parseado correctamente. Build/version: 3.0.0-rc.1.15 / 30051. Producción no tocada.
+
 ## Rediseño Hoy + Tesorería — 2026-10-10 — build 30050
 
 - Nuevo criterio de producto: **Hoy** responde primero a cuatro preguntas normales: cuánto dinero disponible puede calcular DOMUS, qué requiere atención, qué balance se espera de hoy a 7 días y qué balance se espera hasta fin de mes.
