@@ -1,3 +1,13 @@
+## Motor documental compartido TransportERP → DOMUS — 2026-10-11 — build 30060
+
+- DOMUS incorpora ya un módulo separado `src/documents/transporterp-engine.js` inspirado directamente en el motor conservador de interpretación de TransportERP.
+- Se adoptan desde ahora sus principios: varias lecturas como evidencia adicional, no como sustitución; preservación de datos fiables; estados interpretado / pendiente de revisión; no inventar campos; trazabilidad del origen de cada dato.
+- El OCR sigue ejecutándose en navegador porque TransportERP no expone actualmente una API HTTP y su OCR Python usa Tesseract/Poppler del sistema, que no puede ejecutarse literalmente dentro de GitHub Pages.
+- El motor nuevo arbitra importe, fecha y emisor a partir de primera lectura, relecturas dirigidas y nombre de archivo.
+- Caso real de aceptación: `Mercadona 20261010.pdf` + OCR defectuoso `"B10IN4 A."` + importe leído 94,56 € produce: emisor Mercadona, fecha 2026-10-10, importe 94,56 €, con procedencia explícita (importe = primera lectura; emisor/fecha = nombre del archivo).
+- El motor está empaquetado dentro de la PWA y validado por hash junto con index.html.
+- Versión/build: 3.0.0-rc.1.24 / 30060. Producción no tocada.
+
 ## Lector documental — segunda lectura dirigida — 2026-10-11 — build 30057
 
 - Caso real validado: el ticket Mercadona leía correctamente el total 94,56 €, pero fallaba en comercio/fecha. Ese importe fiable debe preservarse.
