@@ -14,7 +14,16 @@ import { buildReconciliationReport, createStatementFingerprint, movementsForStat
 const euro = value => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(Number(value || 0));
 const date = value => value ? new Intl.DateTimeFormat('es-ES').format(new Date(`${value}T12:00:00`)) : 'Sin fecha prevista';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-const LABEL = { previsto: 'Previsto', pendiente: 'Pendiente hoy', vencido: 'Vencido', realizado: 'Realizado', reprogramado: 'Reprogramado', prefinanciado: 'Prefinanciado', liquidado: 'Liquidado' };
+const LABEL = { previsto: 'Previsto futuro', pendiente: 'Pendiente hoy', vencido: 'Vencido', realizado: 'Realizado histórico', reprogramado: 'Reprogramado', prefinanciado: 'Prefinanciado', liquidado: 'Liquidado' };
+const STATUS_HELP = {
+  previsto:'Movimientos pendientes con fecha posterior a hoy.',
+  pendiente:'Movimientos pendientes cuya fecha es hoy.',
+  vencido:'Movimientos cuya fecha ya pasó y siguen pendientes.',
+  realizado:'Movimientos ya pagados o cobrados; incluye todo el histórico cargado.',
+  reprogramado:'Movimientos pendientes cuya fecha fue cambiada.',
+  prefinanciado:'Ingresos cobrados anticipadamente mediante prefinanciación.',
+  liquidado:'Movimientos cerrados mediante liquidación.'
+};
 let persistence = createTreasuryPersistence({ enabled: window.DOMUS_CONFIG?.treasuryPersistence === true });
 const localCheckpoints = new Map();
 const savedCheckpoints = new Map();
@@ -59,7 +68,10 @@ export function resetTreasury3() {
   if (root) root.replaceChildren();
 }
 
-function statusCards(vm) { return Object.entries(LABEL).map(([status, label]) => { const row = vm.byStatus[status]; return `<button class="card kpi treasury-status-card" type="button" data-treasury-status="${status}"><span class="label">${label}</span><span class="value">${euro(row.net)}</span><span class="sub">${row.count} mov. · +${euro(row.income)} · −${euro(row.expense)}</span></button>`; }).join(''); }
+function statusCards(vm) { return Object.entries(LABEL).map(([status, label]) => {
+  const row=vm.byStatus[status],items=vm.all.filter(item=>item.status===status),dates=items.map(item=>item.date).filter(Boolean).sort(),range=dates.length?(dates[0]===dates.at(-1)?date(dates[0]):date(dates[0])+' → '+date(dates.at(-1))):'Sin movimientos';
+  return `<button class="card kpi treasury-status-card" type="button" data-treasury-status="${status}" title="${esc(STATUS_HELP[status]||'')}"><span class="label">${label}</span><span class="value">${euro(row.net)}</span><span class="sub"><strong>Neto</strong> = ingresos − pagos</span><span class="sub">${row.count} mov. · ingresos ${euro(row.income)} · pagos ${euro(row.expense)}</span><span class="sub">${esc(range)}</span></button>`;
+ }).join(''); }
 function horizonRows(vm) { const labels = { week: '7 días', month: 'Fin de mes', days30: '30 días', year: 'Fin de año' }; return Object.entries(vm.horizons).map(([key, row]) => `<tr><td><button class="link-button" type="button" data-treasury-horizon="${key}">${labels[key]}</button><small class="muted"> · hasta ${date(row.end)}</small></td><td class="amount income">${euro(row.income)}</td><td class="amount expense">${euro(row.expense)}</td><td class="amount ${row.net < 0 ? 'expense' : 'income'}">${euro(row.net)}</td><td>${row.count}</td></tr>`).join(''); }
 function accountRows(vm) { if (!vm.accountRows.length) return '<tr><td colspan="4" class="empty">No hay cuentas configuradas.</td></tr>'; return vm.accountRows.map(row => `<tr><td>${esc(row.name)}</td><td>${row.confirmedBalance == null ? `<span class="muted">${esc(row.balanceReason)}</span>` : `<strong>${euro(row.confirmedBalance)}</strong>`}</td><td class="amount ${row.realFlow < 0 ? 'expense' : 'income'}">${euro(row.realFlow)}</td><td>${row.movements}</td></tr>`).join(''); }
 function movementRows(rows) { if (!rows.length) return '<tr><td colspan="5" class="empty">Sin movimientos en este desglose.</td></tr>'; return rows.slice(0, 100).map(row => `<tr><td>${date(row.date)}</td><td><span class="pill">${esc(LABEL[row.status] || row.status)}</span></td><td>${esc(row.concept)}</td><td>${row.type === 'income' ? 'Ingreso' : 'Pago'}</td><td class="amount ${row.type}">${row.type === 'income' ? '+' : '−'}${euro(row.amount)}</td></tr>`).join(''); }
@@ -150,6 +162,7 @@ export function renderTreasury3(snapshot) {
   <div id="treasury3Detail" class="card hidden"><div class="section-title"><h2 id="treasury3DetailTitle">Desglose</h2><button class="btn" type="button" id="treasury3Close">Cerrar</button></div><div class="table-wrap" tabindex="0" role="region" aria-label="Tabla desplazable horizontalmente"><table class="table"><thead><tr><th>Fecha</th><th>Estado</th><th>Concepto</th><th>Tipo</th><th>Importe</th></tr></thead><tbody id="treasury3DetailBody"></tbody></table></div></div>
   <details class="card treasury-advanced"><summary><strong>Herramientas de Tesorería</strong><span class="muted"> · saldos, previsión detallada, extractos y conciliación</span></summary>
     <div class="treasury3-note"><strong>Estado técnico</strong><p role="status" data-persistence-mode="${persistence.state()}">${persistence.state() === 'local' ? 'Modo local: persistencia remota desactivada.' : persistence.state() === 'persistent' ? 'Modo persistente: backend explícito habilitado.' : 'Persistencia bloqueada: falta un backend explícito. Continúas en modo borrador.'}</p></div>
+    <div class="msg info treasury-status-explain"><strong>Estas cifras no son saldos bancarios.</strong> Cada tarjeta agrupa movimientos por estado y muestra su <strong>neto (ingresos − pagos)</strong>. El período aparece dentro de cada tarjeta; pulsa una para ver los movimientos que forman la cantidad.</div>
     <div class="treasury-status-grid">${statusCards(vm)}</div>
     <div class="card"><h2>Saldos bancarios y cuadre</h2><p class="muted">Registra un saldo confirmado o comprueba que DOMUS coincide con el banco.</p>${balanceCaptureRows(sourceAccounts, vm.today)}</div>
     <div class="card"><h2>Previsión detallada</h2><div class="table-wrap" tabindex="0" role="region" aria-label="Previsión acumulada"><table class="table"><thead><tr><th>Horizonte</th><th>Ingresos</th><th>Pagos</th><th>Neto</th><th>Mov.</th></tr></thead><tbody>${horizonRows(vm)}</tbody></table></div></div>
