@@ -1,3 +1,15 @@
+## Rediseño conceptual de interfaz — 2026-10-11 — build 30065
+
+- DOMUS deja de organizar la navegación principal por módulos técnicos y pasa a hacerlo por tareas domésticas reales.
+- Nueva navegación: Inicio → Flujo y liquidez → Agenda → Movimientos → Planes → Informes → Documentos → Ajustes.
+- Se agrupa visualmente el menú en Día a día, Planificar y revisar y Sistema.
+- «Tesorería» se renombra a «Flujo y liquidez» para reflejar que el foco del producto es la capacidad de afrontar pagos y anticipar entradas/salidas, no la contabilidad técnica.
+- «Calendario» pasa a «Agenda»; «Presupuestos» a «Planes»; «Estadísticas e informes» a «Informes»; «Configuración» a «Ajustes».
+- La portada pasa a «Inicio» con el concepto «Liquidez del hogar» y acceso directo al flujo completo.
+- Se rehace la jerarquía visual de los KPI de liquidez: tarjetas con más aire, tamaños coherentes, importes con prioridad clara, estados de atención diferenciados y diseño responsivo.
+- El objetivo de producto queda fijado: responder primero cuánto dinero hay, qué vence, qué entra, qué sale y cómo queda la liquidez; el histórico y diagnóstico quedan secundarios.
+- Build/version: 3.0.0-rc.1.29 / 30065. Producción no tocada.
+
 ## Conciliación bancaria segura — 2026-10-11 — build 30064
 
 - Regla operativa fijada: cargar o conciliar un extracto **no crea movimientos**.
