@@ -1,3 +1,11 @@
+## Corrección Movimientos — Ir a hoy — 2026-10-11 — build 30061
+
+- Corregido «Ir a hoy» en la vista Movimientos.
+- El botón ya no se limita a seleccionar la página de 60 filas que contiene la fecha actual; ahora también desplaza la vista hasta el primer movimiento de hoy.
+- Si no existe ningún movimiento exactamente hoy, se posiciona en el primer movimiento posterior; si tampoco existe, en el último disponible.
+- La fila destino se resalta brevemente para que el usuario identifique dónde ha aterrizado.
+- Build/version: 3.0.0-rc.1.25 / 30061. Producción no tocada.
+
 ## Motor documental compartido TransportERP → DOMUS — 2026-10-11 — build 30060
 
 - DOMUS incorpora ya un módulo separado `src/documents/transporterp-engine.js` inspirado directamente en el motor conservador de interpretación de TransportERP.
