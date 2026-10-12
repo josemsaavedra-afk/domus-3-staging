@@ -1,3 +1,16 @@
+## Inicio sincronizado con saldos + histórico sin cuenta — build 30074
+
+- Incidencia 1: Dinero mostraba saldos confirmados mientras Inicio seguía mostrando «Sin confirmar».
+- Causa: los checkpoints remotos llegan de forma asíncrona; Dinero se re-renderizaba al recibirlos, pero Inicio no.
+- Corrección: cada actualización del ViewModel de Tesorería provoca ahora refresco de Inicio, por lo que ambos consumen el mismo estado confirmado.
+- Incidencia 2: «Sin cuenta asignada» aparecía como si fuera una cuenta con 540 €.
+- Origen real: 7 movimientos históricos realizados «Tren ()» de JM, importados del Excel original, sin account_id: 5×60 € + 2×120 € = 540 €.
+- Ese histórico deja de aparecer como cuenta principal de Dinero. Se conserva como diagnóstico dentro de «Más opciones», con acceso al desglose exacto.
+- No se reasignan automáticamente esos 7 movimientos porque no existe evidencia suficiente sobre qué cuenta bancaria los pagó.
+- En iPhone, «Dinero por cuenta» deja de ser tabla y pasa a tarjetas con cuenta + disponible.
+- Build/version: 3.0.0-rc.1.38 / 30074.
+- Producción no tocada.
+
 ## Auditoría responsive global iPhone — build 30073
 
 - Se inicia la revisión móvil completa de DOMUS 3, no limitada a pantallas aisladas.
