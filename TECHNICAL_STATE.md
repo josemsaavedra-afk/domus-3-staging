@@ -1,3 +1,12 @@
+## Edición de categorías con duplicado histórico — build 30071
+
+- Incidencia: editar una categoría activa podía fallar con «Esta categoría ya existe» aunque solo se estuviera cambiando su tipo.
+- Caso real: existen dos registros «Impuestos»: uno activo con 70 movimientos y uno histórico inactivo sin movimientos.
+- Causa: la validación de duplicados comprobaba cualquier otro registro con el mismo nombre, aunque el nombre de la categoría editada no hubiese cambiado.
+- Corrección: al editar una categoría se permite conservar su mismo nombre; la comprobación de duplicado solo se aplica si realmente se renombra.
+- Crear una categoría nueva o renombrarla al nombre de otra existente sigue bloqueado.
+- Build/version: 3.0.0-rc.1.35 / 30071. Producción no tocada.
+
 ## Cuentas y formas de pago configurables — build 30070
 
 - Se elimina de la interfaz el concepto técnico «Orden» en cuentas. El orden interno puede seguir existiendo, pero deja de ser un dato que tenga que entender o editar una familia.
