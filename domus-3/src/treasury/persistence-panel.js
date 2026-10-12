@@ -46,8 +46,8 @@ export function createPersistencePanel({runtime,getSnapshot,esc,onRemoteState=()
   }
   function bindCheckpoint(box,account,asOf){
     const boundContext=context();
-    const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='Preparar guardado del saldo';button.disabled=runtime.mode()!=='persistent';button.setAttribute('data-enqueue-checkpoint','');box.appendChild(button);
-    button.onclick=async()=>{if(button.disabled||context()!==boundContext)return;button.disabled=true;try{const value={accountId:account.id,amount:box.querySelector('[data-opening-amount]').value,date:box.querySelector('[data-opening-date]').value};if(value.date>asOf)throw Error('Revisa la fecha del saldo.');await submit('checkpoint',value);message(box.querySelector('[data-balance-result]'),'Saldo pendiente de sincronización.');}catch(error){message(box.querySelector('[data-balance-result]'),error.message);}finally{button.disabled=false;}};
+    const button=document.createElement('button');button.type='button';button.className='btn primary';button.textContent='Guardar saldo';button.disabled=runtime.mode()!=='persistent';button.setAttribute('data-enqueue-checkpoint','');box.appendChild(button);
+    button.onclick=async()=>{if(button.disabled||context()!==boundContext)return;button.disabled=true;const output=box.querySelector('[data-balance-result]');try{const value={accountId:account.id,amount:box.querySelector('[data-opening-amount]').value,date:box.querySelector('[data-opening-date]').value};if(value.date>asOf)throw Error('Revisa la fecha del saldo.');message(output,'Guardando saldo…');await submit('checkpoint',value);await runtime.syncPendingOperations();const state=await runtime.loadTreasuryState();if(context()!==boundContext)return;remote=state;contextKey=boundContext;onRemoteState(state);message(output,'Saldo guardado y sincronizado.');}catch(error){message(output,classifyError(error).message||error.message);}finally{button.disabled=false;}};
   }
   function bindReview(output,entry){
     const boundContext=context();
