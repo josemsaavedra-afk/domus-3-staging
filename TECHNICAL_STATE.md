@@ -1,3 +1,13 @@
+## Correcciones móviles y clasificación — build 30072
+
+- Se elimina el bloqueo especial que impedía renombrar la categoría «Variables». Las categorías se editan con las mismas reglas generales.
+- La verificación de `domus3_classification_version()` deja de comparar de forma rígida el tipo devuelto y muestra el error real si falla la RPC. Staging devuelve actualmente versión 20 correctamente.
+- El desglose de Dinero en móvil deja de depender de una tabla horizontal: se añade vista de tarjetas con concepto, fecha, estado e importe completo.
+- El bloque «Guardado y sincronización» se mueve dentro de «Más opciones», evitando que ocupe espacio principal en iPhone.
+- Los modales móviles se adaptan a `100dvh`, safe-area y cabecera sticky para que el título y el botón cerrar no queden cortados al abrir/editar recurrencias.
+- Formularios y filas de Ajustes reciben layout móvil de una columna y botones compactos.
+- Build/version: 3.0.0-rc.1.36 / 30072. Producción no tocada.
+
 ## Edición de categorías con duplicado histórico — build 30071
 
 - Incidencia: editar una categoría activa podía fallar con «Esta categoría ya existe» aunque solo se estuviera cambiando su tipo.
