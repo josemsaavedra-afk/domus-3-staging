@@ -1,3 +1,19 @@
+## Cuentas y formas de pago configurables — build 30070
+
+- Se elimina de la interfaz el concepto técnico «Orden» en cuentas. El orden interno puede seguir existiendo, pero deja de ser un dato que tenga que entender o editar una familia.
+- Las cuentas siguen siendo ilimitadas y representan únicamente lugares donde existe dinero: bancos o caja.
+- Se crea el maestro `payment_methods` para formas de pago/cobro configurables por hogar.
+- Formas iniciales creadas: Tarjeta, Bizum, Transferencia, Domiciliación, Efectivo y Otra.
+- El usuario puede añadir, renombrar, desactivar y reactivar tantas formas como quiera; por ejemplo, un futuro «Trizum».
+- `movement_series` incorpora `payment_method_id` con FK al maestro. El campo anterior `payment_method` queda solo como compatibilidad histórica.
+- El movimiento «Gasoil (BS)» migrado previamente a Sabadell queda vinculado ahora al registro configurable «Transferencia».
+- La función `domus3_save_labeled_movement` admite `payment_method_id`.
+- Se verificó RLS y alta temporal de una forma personalizada mediante transacción con rollback.
+- La pantalla de Ajustes separa claramente «Cuentas y caja» de «Formas de pago y cobro».
+- El formulario de movimientos carga las formas activas del maestro en vez de una lista cerrada.
+- Build/version: 3.0.0-rc.1.34 / 30070.
+- Producción no tocada.
+
 ## Cuenta bancaria vs forma de pago — build 30069
 
 - Se separa conceptualmente y técnicamente dónde está el dinero de cómo se paga/cobra.
