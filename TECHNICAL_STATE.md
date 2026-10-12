@@ -1,3 +1,20 @@
+## Cuenta bancaria vs forma de pago — build 30069
+
+- Se separa conceptualmente y técnicamente dónde está el dinero de cómo se paga/cobra.
+- `movement_series` incorpora `payment_method` con valores: card, bizum, transfer, direct_debit, cash, other.
+- `account_id` queda reservado para la cuenta/caja real que soporta el saldo.
+- En Configuración, «Cuentas / medios» pasa a «Cuentas y caja».
+- Tarjeta y Transferencia quedan inactivas como cuentas. Se conservan para histórico.
+- El único movimiento que usaba «Transferencia» como cuenta, «Gasoil (BS)» 631,84 €, se reasigna a B. Sabadell y conserva `payment_method=transfer`.
+- Cuentas activas actuales: B. Sabadell, ING, Bankinter, CaixaBank y Efectivo.
+- El formulario de movimiento muestra dos campos distintos: Cuenta de origen/destino y Forma de pago/cobro.
+- La forma de pago no modifica saldos por sí misma.
+- La función `domus3_save_labeled_movement` admite el nuevo campo y se verificó mediante transacción con rollback.
+- Tesorería excluye cuentas inactivas del cálculo/configuración de saldos.
+- «Poner los saldos de hoy» queda visible en Dinero: el usuario puede introducir el saldo actual de cada banco con fecha de hoy; no necesita reconstruir años anteriores.
+- Guardar saldo pasa a ser una acción única que prepara y sincroniza el checkpoint.
+- Versión 3.0.0-rc.1.33, build 30069. Producción no tocada.
+
 ## Corrección permisos al mover fechas desde Agenda — 2026-10-12
 
 - Incidencia: al editar desde Agenda un movimiento no recurrente y cambiar su fecha prevista/documental/real, el formulario podía mostrar `permission denied for table movement_occurrence_states`.
