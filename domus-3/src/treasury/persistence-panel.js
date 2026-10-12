@@ -24,8 +24,9 @@ export function createPersistencePanel({runtime,getSnapshot,esc,onRemoteState=()
   }
   async function render(root) {
     const start=context();if(!start)return;
+    const host=root.querySelector('.treasury-advanced')||root;
     let panel=root.querySelector('[data-treasury-outbox]');
-    if(!panel){panel=document.createElement('section');panel.setAttribute('data-treasury-outbox','');panel.className='card';root.appendChild(panel);}
+    if(!panel){panel=document.createElement('section');panel.setAttribute('data-treasury-outbox','');panel.className='card treasury-technical-panel';host.appendChild(panel);}else if(panel.parentElement!==host)host.appendChild(panel);
     try {
       if(contextKey!==start){const state=await runtime.loadTreasuryState();if(context()!==start||!panel.isConnected)return;remote=state;contextKey=start;onRemoteState(state);}
       const rows=await runtime.list();if(context()!==start||!panel.isConnected)return;
