@@ -1,3 +1,34 @@
+## Auditoría responsive global iPhone — build 30073
+
+- Se inicia la revisión móvil completa de DOMUS 3, no limitada a pantallas aisladas.
+- Base móvil común:
+  - padding lateral y fondo útil ajustados para iPhone;
+  - topbar más compacta;
+  - tarjetas con una columna en Inicio, Planes, Documentos, Informes y Ajustes;
+  - formularios de Planes e Informes en una columna;
+  - acciones y controles táctiles adaptados.
+- Informes:
+  - la tabla de 13 columnas queda oculta en móvil;
+  - resultados pasan a tarjetas con fecha, estado, concepto, importe, titular, cuenta y categoría;
+  - atajos de período se desplazan horizontalmente sin romper el ancho;
+  - KPIs en una columna.
+- Documentos:
+  - botones Cámara / Fototeca / Archivos se apilan;
+  - archivo de referencias y acciones dejan de forzar anchos de escritorio.
+- Ajustes:
+  - rejilla completa pasa a una columna;
+  - formularios de alta ocupan el ancho disponible;
+  - filas y botones se compactan para uso táctil.
+- Planes:
+  - formularios a una columna;
+  - tabla de partidas sustituida en móvil por tarjetas seleccionables;
+  - acciones de plan apiladas y KPIs en 2 columnas.
+- Previsiones detalladas:
+  - se elimina la rejilla de escritorio en móvil y se convierten los bloques a flujo vertical.
+- Escritorio conserva tablas y rejillas completas.
+- Build/version: 3.0.0-rc.1.37 / 30073.
+- Producción no tocada.
+
 ## Correcciones móviles y clasificación — build 30072
 
 - Se elimina el bloqueo especial que impedía renombrar la categoría «Variables». Las categorías se editan con las mismas reglas generales.
