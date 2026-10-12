@@ -1,3 +1,15 @@
+## Movimientos móvil iPhone — build 30068
+
+- En pantallas <=700 px, Movimientos deja de renderizarse como tabla comprimida y pasa a lista de tarjetas.
+- Cada tarjeta prioriza importe completo, concepto y fecha; persona, cuenta, categoría y estado quedan como metadatos secundarios.
+- El importe nunca depende del ancho de una columna y usa cifras tabulares.
+- Conceptos limitados visualmente a dos líneas; referencias/facturas van en línea secundaria.
+- Filtros en chips horizontales con desplazamiento.
+- Paginación móvil simplificada: se ocultan primera/última y las etiquetas largas, manteniendo anterior, siguiente e Ir a hoy.
+- Tocar una tarjeta abre el detalle existente; edición y cambio de estado siguen en el detalle.
+- Escritorio conserva la tabla completa.
+- Versión 3.0.0-rc.1.32, build 30068. Producción no tocada.
+
 ## Navegación móvil iPhone — build 30067
 
 - La barra inferior móvil deja de mostrar 8 pestañas comprimidas.
