@@ -43,7 +43,8 @@
     if (table === 'categories') {
       name = categoryLabel({name});
       if (current && categoryLabel(current) === 'Variables' && name !== 'Variables') throw new Error('Variables conserva su identidad y nombre maestro.');
-      if (equivalentCategory(rows, name, currentId)) throw new Error('Esta categoría ya existe. Edítala o reactívala en la lista.');
+      const renamed = !current || key(categoryLabel(current)) !== key(categoryLabel({name}));
+      if (renamed && equivalentCategory(rows, name, currentId)) throw new Error('Esta categoría ya existe. Edítala o reactívala en la lista.');
       if (!['income','expense','both'].includes(input.kind)) throw new Error('Selecciona el tipo de categoría.');
     }
     const payload = {name};
