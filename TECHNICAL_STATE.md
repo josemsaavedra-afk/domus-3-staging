@@ -1,3 +1,11 @@
+## Corrección permisos al mover fechas desde Agenda — 2026-10-12
+
+- Incidencia: al editar desde Agenda un movimiento no recurrente y cambiar su fecha prevista/documental/real, el formulario podía mostrar `permission denied for table movement_occurrence_states`.
+- Causa: el flujo seguro de cambio de fecha elimina el estado de la fecha antigua antes de crear/actualizar el de la nueva, pero `authenticated` tenía SELECT/INSERT/UPDATE y no DELETE sobre `movement_occurrence_states`.
+- Corrección en Supabase Staging `pmgonotpbmybtwvxbcvf`: concedido DELETE a `authenticated` y añadida política RLS `base_delete` limitada por `private.can_access_series(series_id)`.
+- Verificado en transacción con rollback para los dos usuarios del hogar: José Manuel y Jeni. El flujo update serie → delete estado antiguo → upsert estado nuevo funciona para ambos.
+- Producción no tocada.
+
 ## Movimientos móvil iPhone — build 30068
 
 - En pantallas <=700 px, Movimientos deja de renderizarse como tabla comprimida y pasa a lista de tarjetas.
