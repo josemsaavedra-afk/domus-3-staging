@@ -1,3 +1,17 @@
+## Lector documental prioritario — build 30076 (2026-10-13)
+
+- Prioridad de producto confirmada: reconocimiento de documentos para DOMUS 3.0.
+- Motor de interpretación de tickets/facturas mejorado para:
+  - fechas en nombre de archivo YYYYMMDD, YYYY-MM-DD y DD-MM-YYYY;
+  - preferir fecha de factura/ticket/emisión frente a vencimientos;
+  - selección de total con puntuación contextual, evitando base, IVA, subtotal, cambio y descuentos;
+  - detección explícita de proveedor/comercio/emisor/razón social;
+  - descarte de emisores claramente espurios.
+- Pruebas sintéticas verificadas con Mercadona, Repsol y factura con fecha de vencimiento: fecha, emisor e importe correctos.
+- Build 30076 / 3.0.0-rc.1.40 publicado en Staging; SW y manifiesto de integridad actualizados.
+- Pagos/cobros parciales descartados como funcionalidad específica por decisión de producto.
+- Producción no tocada.
+
 ## Inicio: previsiones familiares legibles — build 30075 (2026-10-13)
 
 - Filtrado de personas inactivas y fichas ficticias de pruebas en la vista de previsiones por persona; no se borran datos históricos.
