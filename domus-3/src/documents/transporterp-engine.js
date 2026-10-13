@@ -1,3 +1,8 @@
+/* TransportERP browser document engine.
+   Source of truth for browser consumers (DOMUS 3).
+   Semantics aligned with transporterp/document_interpretation.py and OCR recovery strategy in transporterp/ocr.py.
+   DOMUS must vendor this file unchanged apart from this provenance header.
+*/
 (function(){
  const STATUS={INTERPRETED:'interpreted',NEEDS_REVIEW:'needs_review',PENDING_REVIEW:'pending_review'};
  const money=function(s){if(s==null)return null;var t=String(s).replace(/[^0-9,.-]/g,'').trim();if(!t)return null;if(t.indexOf(',')>=0&&t.indexOf('.')>=0)t=t.lastIndexOf(',')>t.lastIndexOf('.')?t.replaceAll('.','').replace(',','.'):t.replaceAll(',','');else if(t.indexOf(',')>=0)t=t.replace(',','.');var n=Number(t);return Number.isFinite(n)?Math.abs(n):null};
