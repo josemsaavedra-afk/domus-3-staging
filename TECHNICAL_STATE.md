@@ -1,3 +1,15 @@
+## Lector documental: sustitución, lotes y reglas — build 30079 (2026-10-13)
+
+- Un nº de factura/referencia idéntico pasa a ser duplicado fuerte aunque se hayan corregido importe, cuenta u otros campos.
+- Desde el lector, un duplicado fuerte ofrece actualizar/sustituir el movimiento existente; cancelar no crea otro movimiento.
+- Si ya existen varios movimientos con el mismo nº de factura, se bloquea la sustitución automática para revisión manual.
+- Los lotes se ordenan antes de la revisión: primero documentos interpretados como ingreso/autofactura; después documentos normales; al final comisión/seguro/prefinanciación.
+- Se extraen referencias G... y números de transporte del lote para preseleccionar facturas de ingreso relacionadas cuando ya están disponibles.
+- Reglas deterministas del documento: V26/comisión => gasto, Actividad económica, Comisión; VS/seguro => gasto, Actividad económica, Seguro; RHD/prefinanciación => coste de prefinanciación.
+- Las autofacturas/referencias G... se proponen como ingreso.
+- Para persona, pagador, cuenta, categoría y actividad se aprovecha el patrón histórico dominante de movimientos similares; no se inventa un valor si no hay historial.
+- Build 30079 / 3.0.0-rc.1.42. Producción no tocada.
+
 ## Motor documental compartido con TransportERP — build 30077 (2026-10-13)
 
 - TransportERP pasa a ser la fuente de verdad del motor documental para navegador en `browser/document_engine.js`.
