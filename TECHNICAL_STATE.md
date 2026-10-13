@@ -1,3 +1,12 @@
+## Motor documental compartido con TransportERP — build 30077 (2026-10-13)
+
+- TransportERP pasa a ser la fuente de verdad del motor documental para navegador en `browser/document_engine.js`.
+- DOMUS 3 consume una copia vendorizada idéntica en `domus-3/src/documents/transporterp-engine.js`.
+- El adaptador browser está alineado con la semántica conservadora de `transporterp/document_interpretation.py` y con la estrategia de OCR/relectura de `transporterp/ocr.py`.
+- Se evita seguir evolucionando un motor documental independiente dentro de DOMUS.
+- Build 30077 / 3.0.0-rc.1.41 publicado en Staging; SW y hashes actualizados.
+- Producción no tocada.
+
 ## Lector documental prioritario — build 30076 (2026-10-13)
 
 - Prioridad de producto confirmada: reconocimiento de documentos para DOMUS 3.0.
