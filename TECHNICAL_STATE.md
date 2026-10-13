@@ -1,3 +1,14 @@
+## Inicio: previsiones familiares legibles — build 30075 (2026-10-13)
+
+- Filtrado de personas inactivas y fichas ficticias de pruebas en la vista de previsiones por persona; no se borran datos históricos.
+- Ocultación de fichas individuales sin pendientes; total del hogar permanece visible.
+- Etiquetas «Por cobrar» y «Por pagar», plazos descriptivos y explicación de acumulados/solapamiento.
+- Conservado acceso a detalle de movimientos.
+- JavaScript inline validado; manifest de integridad, SW y version.json actualizados a 3.0.0-rc.1.39 / 30075.
+- No se han tocado los siete movimientos de tren; usuario los corregirá.
+- Pendiente independiente: diseño, persistencia, pruebas y despliegue de pagos y cobros parciales con varias fechas y cuentas. No implementado en 30075.
+- Producción no tocada.
+
 ## Inicio sincronizado con saldos + histórico sin cuenta — build 30074
 
 - Incidencia 1: Dinero mostraba saldos confirmados mientras Inicio seguía mostrando «Sin confirmar».
