@@ -1,3 +1,11 @@
+## Build visible en Inicio + actualización PWA atómica — build 30082 (2026-10-14)
+
+- La cabecera lateral muestra «DOMUS · 3.0 · RC1 · Build 30082», dejando el build visible junto a la versión desde Inicio.
+- Ajustes mantiene también «Ajustes · 3.0 RC1 · Build 30082».
+- Cambio de build realizado de forma atómica: index.html, version.json, sw.js, asset-manifest.js y estado técnico entran en un único commit para evitar mezclas temporales entre builds.
+- Hash SHA-256 de index.html recalculado antes del commit: 5ef4a707942e146f074560bb94fc2c1629a7c67838040d3c240529b82273d11b.
+- Build 30082 / 3.0.0-rc.1.45. Producción no tocada.
+
 ## Cabecera de Ajustes — build 30081 (2026-10-14)
 
 ### Hotfix 30081 — PWA (2026-10-14)
