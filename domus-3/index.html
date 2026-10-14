@@ -181,7 +181,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0 · RC1 · Build 30082<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0 · RC1 · Build 30083<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -395,17 +395,10 @@ async function deleteWhereSafely(table,filters){
 }
 async function deleteMovementSeriesSafely(id){
  const m=series.find(x=>x.id===id);if(!m)throw new Error('El movimiento ya no existe.');
- const {data:budgetRefs,error:budgetError}=await sb.from('budget_item_movements').select('item_id').eq('movement_series_id',id).limit(1);if(budgetError)throw budgetError;
- if(budgetRefs?.length)throw new Error('Este movimiento está incluido en un presupuesto. Quítalo primero del presupuesto; no se ha borrado nada.');
- const {data:reconciliations,error:reconciliationError}=await sb.from('treasury_reconciliations').select('id,status').eq('movement_series_id',id).limit(1);if(reconciliationError)throw reconciliationError;
- if(reconciliations?.length)throw new Error('Este movimiento tiene una conciliación bancaria asociada. Revócala antes de eliminarlo; no se ha borrado nada.');
- const {error:docResetError}=await sb.from('documents').update({series_id:null,analysis_status:'review'}).eq('series_id',id);if(docResetError)throw docResetError;
- await deleteWhereSafely('document_movements',{series_id:id});
- const {error:fromLinkError}=await sb.from('movement_links').delete().eq('from_series_id',id);if(fromLinkError)throw fromLinkError;
- const {error:toLinkError}=await sb.from('movement_links').delete().eq('to_series_id',id);if(toLinkError)throw toLinkError;
- await deleteWhereSafely('movement_occurrence_states',{series_id:id});
- await deleteWhereSafely('movement_tags',{series_id:id});
- await deleteWhereSafely('movement_series',{id});
+ if(!navigator.onLine)throw new Error('Necesitas conexión para eliminar un movimiento de forma segura.');
+ const {data,error}=await sb.rpc('domus3_delete_movement_series',{p_series_id:id});
+ if(error)throw error;
+ if(!data?.deleted)throw new Error('DOMUS no ha podido confirmar el borrado. No se ha aplicado ningún cambio.');
  return true;
 }
 async function upsertState(row){
@@ -1129,13 +1122,13 @@ function renderBudgets(){
   }).join(''):'<div class="card empty">Todavía no hay presupuestos. Crea uno arriba, por ejemplo «Vacaciones».</div>';
 }
 
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30082'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30083'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30082';
+const APP_BUILD='30083';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{

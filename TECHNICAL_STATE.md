@@ -1,3 +1,12 @@
+## Borrado transaccional de movimientos — build 30083 (2026-10-14)
+
+- Sustituido el borrado secuencial desde navegador por RPC transaccional `domus3_delete_movement_series(uuid)` en Staging.
+- La RPC es SECURITY INVOKER, exige sesión y pertenencia al hogar y respeta RLS; no usa SECURITY DEFINER.
+- En una sola transacción: desvincula documentos, elimina enlaces documentales, relaciones entre movimientos, estados y etiquetas, y finalmente la serie.
+- Si existe presupuesto o conciliación bancaria, bloquea el borrado con motivo explícito y revierte toda la operación.
+- La interfaz exige confirmación del resultado `deleted=true`; ya no acepta silenciosamente borrados de cero filas.
+- Build 30083 / 3.0.0-rc.1.46; versión visible en Inicio y Ajustes. Producción no tocada.
+
 ## Build visible en Inicio + actualización PWA atómica — build 30082 (2026-10-14)
 
 - La cabecera lateral muestra «DOMUS · 3.0 · RC1 · Build 30082», dejando el build visible junto a la versión desde Inicio.
