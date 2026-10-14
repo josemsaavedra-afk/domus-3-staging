@@ -1,3 +1,9 @@
+## Cabecera de Ajustes — build 30081 (2026-10-14)
+
+- La versión pasa a mostrarse directamente en la cabecera de Ajustes: «Ajustes · 3.0 RC1 · Build 30081».
+- Eliminada la tarjeta redundante de Información al final de Ajustes.
+- Build 30081 / 3.0.0-rc.1.44; caché PWA y manifest sincronizados.
+
 ## Duplicados, borrado y lotes documentales — build 30080 (2026-10-14)
 
 - Corregido el borrado de movimientos duplicados en Staging: DOMUS desvincula documentos, relaciones, estados y etiquetas antes de eliminar la serie.
