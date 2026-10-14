@@ -1,3 +1,13 @@
+## Duplicados, borrado y lotes documentales — build 30080 (2026-10-14)
+
+- Corregido el borrado de movimientos duplicados en Staging: DOMUS desvincula documentos, relaciones, estados y etiquetas antes de eliminar la serie.
+- El borrado se bloquea con mensaje claro si el movimiento pertenece a un presupuesto o tiene conciliación bancaria.
+- Añadidos permisos/políticas RLS DELETE de hogar para document_movements y movement_links; producción no tocada.
+- Duplicado exacto por nº de factura: el lector ofrece actualizar/sustituir el movimiento existente en lugar de crear otro.
+- Lotes: ingresos se revisan primero; al crear/vincular/actualizar se avanza al siguiente documento. Se guarda referencia de transporte y las comisiones/seguros pueden preseleccionar la factura de ingreso por nº de factura o transporte.
+- Reglas documentales continúan autocompletando Actividad económica, clase Comisión/Seguro/Prefinanciación y valores históricos dominantes de persona, pagador, cuenta, categoría y actividad.
+- Build 30080 / 3.0.0-rc.1.43; JS inline validado, SW/version/manifest sincronizados.
+
 ## Lector documental: sustitución, lotes y reglas — build 30079 (2026-10-13)
 
 - Un nº de factura/referencia idéntico pasa a ser duplicado fuerte aunque se hayan corregido importe, cuenta u otros campos.
