@@ -1,5 +1,12 @@
 ## Cabecera de Ajustes — build 30081 (2026-10-14)
 
+### Hotfix 30081 — PWA (2026-10-14)
+
+- Corregido el SHA-256 de `domus-3/index.html` en `asset-manifest.js`.
+- Causa de que 30081 no cargara: el service worker detectaba hash de 30080 y rechazaba la instalación, conservando correctamente la versión anterior.
+- Build visible se mantiene en 30081 / 3.0.0-rc.1.44.
+
+
 - La versión pasa a mostrarse directamente en la cabecera de Ajustes: «Ajustes · 3.0 RC1 · Build 30081».
 - Eliminada la tarjeta redundante de Información al final de Ajustes.
 - Build 30081 / 3.0.0-rc.1.44; caché PWA y manifest sincronizados.
