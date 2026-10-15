@@ -1,3 +1,10 @@
+## Hotfix borrado real — 30083 (2026-10-15)
+
+- Causa raíz: movement_series tenía una política ALL RESTRICTIVE pero ninguna política PERMISSIVE aplicable a DELETE; PostgreSQL aplicaba default-deny y el borrado devolvía 0 filas.
+- Añadida en Supabase Staging una política base_delete para usuarios autenticados miembros del hogar.
+- Verificación real con el duplicado ONLOGIST de 6,74 € dentro de transacción con ROLLBACK: domus3_delete_movement_series devolvió deleted=true.
+- No se borró ningún dato durante la prueba y producción sigue intacta.
+
 ## Borrado transaccional de movimientos — build 30083 (2026-10-14)
 
 - Sustituido el borrado secuencial desde navegador por RPC transaccional `domus3_delete_movement_series(uuid)` en Staging.
