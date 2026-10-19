@@ -1,3 +1,16 @@
+## Validación final real sobre 30099 — 2026-10-19
+
+- Código main 453ab489039d912ce1cd436c4d78d53f8b481236, versión 3.0.0-rc.1.62 / build 30099. version.json y cabecera autenticada coinciden; publicación comprobada.
+- Suite completa 114/114, 0 fallos; scripts inline compilan e integridad PWA validada. Los fallos iniciales se resolvieron según entrada 30095, sin relajar la protección de sesión ni cambiar el criterio financiero vigente.
+- Arranque inmediato: lectura autorizada de VS-26-154071 mostró Preparando personas y cuentas y continuó al recibir maestros; titular económico identificado de forma concordante con la ficha, pagador vacío. Total 9,44 €, fecha 2026-10-08, insurance; referencia pendiente solo 2624000. No aparece el número de registro espurio.
+- V26-162583 leído también sobre 30099: titular concordante, total/base neta 14,25 €, fecha 2026-10-14, sin cuota IVA inventada. Referencia G261014-017735-375400-1 pendiente de asociar y no forzada.
+- Ambos resultados verificados mediante controles DOM y cerrados usando Cerrar sin crear movimiento. No se pulsaron Crear, Sustituir, Vincular, pagos/cobros, saldos ni conciliaciones.
+- Total de referencias de prueba creadas durante la ejecución: 7 lecturas reales autorizadas de esos dos PDF y 3 sintéticas; todas review sin contabilizar. La tentativa bloqueada en 30098 no creó referencia. Se conservaron las pruebas para trazabilidad, no se borraron documentos ni movimientos anteriores.
+- Estado por alcance: A auditada; B VS antiguo en regresión y Baloise real en navegador; C/D asociaciones/detección reforzadas y sustitución limitada, sin ejecutar reemplazo real; E/F evidencia explícita e histórico confirmado, preparación fiable de maestros; G revisión simplificada, recuperación y avance sin contabilizar; H suite verde y despliegue verificado.
+- No es cierre integral del producto: faltan casos reales adicionales G26/RHD/combustible, prueba de sustitución transaccional en entorno aislado, pagador/tarjetas por evidencia estructurada, aprendizaje de reglas nuevas y revisión móvil completa. No declarar esas partes completadas.
+- Reanudar desde este commit/build sin repetir la auditoría. Los dos PDF ya autorizados no requieren una nueva autorización para esta misma finalidad. No extender autorización de transferencia a otros documentos privados sin verificar su alcance.
+- Producción y TransportERP no modificados. Cambios de esta ejecución confinados a DOMUS Staging; contrato backend solo recibió el mensaje de error compatible, sin migración ni despliegue backend.
+
 ## Espera de carga concurrente antes de interpretar — build 30099 (2026-10-19)
 
 - Suite completa 114/114, 0 fallos. Dos controles adicionales: una lectura de datos reemplazada por otra no se interpreta como fallo definitivo; cambio de usuario/hogar durante espera bloquea interpretación.
