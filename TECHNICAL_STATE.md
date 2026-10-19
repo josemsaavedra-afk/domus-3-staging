@@ -1,3 +1,15 @@
+## Lector RHD / prefinanciación — build 30086 (2026-10-19)
+
+- Añadida familia determinista `rhd_prefinance` para liquidaciones de RHD Rechnungsstelle AG.
+- El importe del gasto de prefinanciación se toma exclusivamente de `Costa de compra` → `Factura emitida nº X` → `Importe neto`.
+- Se evita confundir el coste RHD con las comisiones V26, seguros VS-26 o el pago neto final recibido.
+- Se genera una referencia estable de documento `RHD-<año>-<nº factura emitida>` solo cuando el nº aparece expresamente en la liquidación; sirve para control de duplicados.
+- Se extraen todas las autofacturas G26 relacionadas para preseleccionar los ingresos a los que corresponde el coste de prefinanciación.
+- También se conservan referencias V26/VS-26 y el neto de liquidación como metadatos de trazabilidad, sin convertirlos en el importe del gasto RHD.
+- La familia se clasifica como gasto de actividad económica, rol `prefinance_fee`, IVA 0%.
+- Validación de referencia realizada contra liquidaciones reales RHD de 06/08/2026 (21,85 €) y 31/08/2026 (79,34 €).
+- Producción no tocada.
+
 ## Lector documental determinista por familias — build 30085 (2026-10-19)
 
 - Prioridad funcional: reducir la introducción manual de movimientos; el lector documental pasa a ser el camino principal de entrada.
