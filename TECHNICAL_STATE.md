@@ -1,3 +1,19 @@
+## Auditoría y correcciones documentales — build 30088 (2026-10-19)
+
+Estado: IMPLEMENTADO Y PROBADO EN AISLAMIENTO; pendiente verificación del despliegue y flujo autenticado con PDF reales. No se declara cerrado el 30087 ni las fases A–H completas.
+
+- Base auditada: main 027b5ec7758d258943f1b5a06d356cf15dde9502, build 30087.
+- Defecto crítico preexistente: faltaba un paréntesis en escapeHtml de la familia documental en renderDocDrafts. El script principal del 30087 no compilaba. Corregido y añadido control de compilación de todos los scripts inline y prueba de render del formulario.
+- Combustible: ni producto ni estación fuerzan ámbito profesional; se conserva evidencia explícita de ámbito del lector de clasificación. No se reclasifica histórico.
+- La interpretación determinista conserva naturaleza/clase aunque el texto mencione comisiones o seguros como deducciones.
+- Asociaciones: coincidencia por referencia completa, sin prefijos; números de transporte de 7 u 8 dígitos. Conservadas referencias explícitas de RHD.
+- Duplicados: mismo número con emisores diferentes no bloquea. Emisor desconocido conserva candidato para revisión pero no habilita sustitución. Sustituir sigue requiriendo confirmación expresa en interfaz.
+- Histórico: solo mismo emisor y clase; datos contradictorios quedan sin propuesta. Campo previamente extraído prevalece y se registra procedencia histórica de cada propuesta.
+- Validación: 9 pruebas documentales nuevas + 2 PWA = 11/11. Suite completa: 94 pruebas, 92 correctas, 2 fallos ya presentes en baseline (fechas documentales vs fecha financiera de informes; mensaje al cambiar sesión durante cálculo de identidad). No modificadas expectativas ni lógica ajena al lector para ocultarlos.
+- Navegador: página canónica Staging abre pantalla de acceso; sin sesión autenticada reutilizable. No se subieron documentos ni se crearon/modificaron movimientos, saldos o conciliaciones. No se accedió a producción ni se modificó TransportERP.
+- PWA: index, version, SW y hash actualizados conjuntamente a 30088 / 3.0.0-rc.1.51.
+- Reanudación: comprobar commit/despliegue y build activo; autenticar de forma segura; ejecutar PDFs VS antiguos/Baloise, G26, V26, RHD y combustible sin confirmar movimientos reales; probar lote y sustitución en entorno aislado. Después completar clasificación de titular/pagador, UX simplificada y aprendizaje confirmado. No considerar el histórico por sí solo una corrección confirmada.
+
 ## Lector VS-26 Baloise — build 30087 (2026-10-19)
 
 - El lector DOMUS Staging reconoce «Monto total» en el «Resumen de facturas» de Baloise; extrae un único importe y evita sumar filas de anexos.
