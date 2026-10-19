@@ -1,3 +1,13 @@
+## Fecha documental y límites de sustitución — build 30096 (2026-10-19)
+
+- Suite completa 108/108, 0 fallos. Tres regresiones nuevas de fecha/metadatos y sustitución, sin ejecutar escrituras económicas reales.
+- Eliminado valor automático de hoy en fecha alternativa de carga; se presenta como Fecha alternativa si no se puede leer. Se usa únicamente si no hay fecha extraída válida.
+- Tras lectura, documents.document_date refleja una fecha única válida extraída, en vez de conservar silenciosamente el día de carga. Fechas contradictorias/imposibles no se inventan. Documentos antiguos no se han corregido en bloque.
+- Sustitución desde lector preserva start_date del movimiento existente. Movimientos ya realizados o recurrentes se bloquean y remiten a Editar movimiento, evitando alterar sus calendarios desde una factura.
+- Base 30095 commit ced41c2a42952693795599da99990a69070dddca, con 105/105 pruebas. Continúa vigente el criterio financiero documentado en 30054 y el mensaje preciso de cambio de sesión.
+- Pendiente verificación de publicación 30096 y nueva lectura de los dos PDF autorizados para confirmar metadatos y avisos. Mantener sin pulsar Crear/Sustituir/Vincular. No se ha probado transacción real de sustitución ni conciliaciones.
+- Alcance pendiente general: casos G26/RHD/combustible adicionales, pagador/tarjetas por evidencia estructurada y aprendizaje de nuevas reglas. No declarar cierre total del encargo. Producción y TransportERP intactos.
+
 ## Cierre de fallos previos de regresión — build 30095 (2026-10-19)
 
 - Suite completa: 105/105, 0 fallos. No equivale al cierre integral de todas las fases del encargo.
