@@ -15,10 +15,17 @@ test('Professional invoice cannot be domestic; personal income is still possible
 test('Incompatible category rejected on both create and edit',()=>{
  for(const previous of [null,{category_id:'c'}])assert.throws(()=>C.validateMovement({type:'income',category_id:'c'},previous,{categories:[{id:'c',kind:'expense'}]}),/categoría/);
 });
-test('Documentary report month is independent of bank payment month',()=>{
- const row={type:'expense',amount:10,occurrenceDate:'2026-10-05',documentDate:'2026-09-30'};
- assert.equal(R.filter([row],{from:'2026-09-01',to:'2026-09-30'}).length,1);
- assert.equal(R.filter([row],{from:'2026-10-01',to:'2026-10-31'}).length,0);
+test('Financial report uses planned date for pending rows and preserves documentary date',()=>{
+ const row={type:'expense',amount:10,status:'pending',occurrenceDate:'2026-10-05',documentDate:'2026-09-30'};
+ assert.equal(R.filter([row],{from:'2026-09-01',to:'2026-09-30'}).length,0);
+ assert.equal(R.filter([row],{from:'2026-10-01',to:'2026-10-31'}).length,1);
+ assert.equal(row.documentDate,'2026-09-30');
+});
+test('Financial report uses actual payment month independently of planned and document month',()=>{
+ const row={type:'expense',amount:10,status:'done',occurrenceDate:'2026-10-05',documentDate:'2026-09-30',state:{actual_date:'2026-11-02'}};
+ assert.equal(R.filter([row],{from:'2026-09-01',to:'2026-10-31'}).length,0);
+ assert.equal(R.filter([row],{from:'2026-11-01',to:'2026-11-30'}).length,1);
+ assert.equal(row.documentDate,'2026-09-30');
 });
 test('Income rules cannot suggest domestic, but can suggest business',()=>{
  const base={id:'r',household_id:'h',priority:1,name:'Test',conditions:{type:'income'}};

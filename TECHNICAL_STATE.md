@@ -1,3 +1,12 @@
+## Cierre de fallos previos de regresión — build 30095 (2026-10-19)
+
+- Suite completa: 105/105, 0 fallos. No equivale al cierre integral de todas las fases del encargo.
+- Fallo 1 era expectativa obsoleta: test documental previo a la decisión registrada en 30054. Actualizado a criterio financiero vigente: pendiente por prevista, realizado por actual_date; conserva documentDate independiente. Añadido caso de tres meses distintos. No se ha modificado la lógica de cálculo ni el criterio de informes para satisfacer el test.
+- Fallo 2 era mensaje erróneo: protección de cambio de sesión bloqueaba correctamente pero el Error genérico se traducía a integridad del historial. Ahora usa TreasuryError SESSION_CHANGED y conserva el bloqueo antes de enqueue. La prueba original de cambio de usuario pasa sin relajar sus aserciones.
+- Mensaje agregado también en copia backend del contrato para preservar paridad exacta; ninguna migración, operación de tesorería, cambio RLS ni despliegue backend. Hashes de módulos cliente e index recalculados; SW/version/manifest 30095 / 3.0.0-rc.1.58.
+- Incluye mejoras documentales de 30094 (commit 8976a053d7c56e85bd047b2469d4dab06a9db8a1). Pendiente comprobar publicación de 30095 y repetir lectura de los dos PDF reales ya autorizados; no confirmar movimientos.
+- Permisos/seguridad: autorización específica recibida para los dos PDF; no pedirla de nuevo para la misma transferencia. G26/RHD/combustible real adicional no se ha cargado. Producción y TransportERP intactos.
+
 ## PDF reales autorizados y asociaciones seguras — build 30094 (2026-10-19)
 
 - Usuario autorizó expresamente la carga de VS-26-154071.pdf y V26-162583.pdf desde Library a DOMUS Staging y el guardado de referencias/propuestas, sin movimientos económicos. Bloqueo de transferencia anterior resuelto por esa autorización.

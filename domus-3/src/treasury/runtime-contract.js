@@ -11,6 +11,7 @@ const messages = Object.freeze({
   DUPLICATE_OPERATION: 'Esta identidad de operación ya corresponde a otros datos.',
   SOURCE_CHANGED: 'El extracto ha cambiado. Conservamos tu propuesta para revisarla.',
   BACKEND_UNAVAILABLE: 'No se pudo confirmar la respuesta. Se conserva la operación para reintentar.',
+  SESSION_CHANGED: 'La sesión ha cambiado. Vuelve a revisar la operación con tu usuario.',
   UNAUTHORIZED: 'Inicia sesión con el usuario que preparó la operación.',
   INVALID_PAYLOAD: 'La operación está incompleta o contiene datos no admitidos.',
   INTEGRITY_VIOLATION: 'No se puede guardar sin romper la coherencia del historial.',

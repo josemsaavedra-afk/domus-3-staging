@@ -1,4 +1,4 @@
-import {queueLabels,canonical,classifyError} from './runtime-contract.js';
+import {queueLabels,canonical,classifyError,TreasuryError} from './runtime-contract.js';
 import {sha256Hex} from './reconciliation-report.js';
 
 async function stableIdentity(value){const hash=await sha256Hex(value);return hash.slice(0,8)+'-'+hash.slice(8,12)+'-8'+hash.slice(13,16)+'-8'+hash.slice(17,20)+'-'+hash.slice(20,32);}
@@ -15,10 +15,10 @@ export function createPersistencePanel({runtime,getSnapshot,esc,onRemoteState=()
     if(pending.has(key))return pending.get(key);
     const task=(async()=>{
       const old=(await runtime.list()).find(row=>!row.resolution&&canonical([type,payload,baseRevision])===canonical([row.type,row.payload,row.baseRevision]));
-      if(context()!==start)throw Error('La sesión ha cambiado.');
+      if(context()!==start)throw new TreasuryError('SESSION_CHANGED');
       if(old)return old;
       const operationId=await stableIdentity(key);
-      if(context()!==start)throw Error('La sesión ha cambiado.');
+      if(context()!==start)throw new TreasuryError('SESSION_CHANGED');
       return runtime.enqueue(type,payload,{baseRevision,operationId});
     })();pending.set(key,task);try{return await task;}finally{pending.delete(key);}
   }
@@ -73,11 +73,11 @@ export function createPersistencePanel({runtime,getSnapshot,esc,onRemoteState=()
       });
       for(const command of commands){
         const previous=(await runtime.list()).find(op=>op.type==='confirm'&&op.payload.statementLineId===command.line.id&&op.payload.seriesId===command.seriesId&&op.payload.occurrenceDate===command.occurrenceDate&&!op.resolution);
-        if(context()!==boundContext)throw Error('La sesión ha cambiado.');
+        if(context()!==boundContext)throw new TreasuryError('SESSION_CHANGED');
         if(previous)continue;
         const base={series:command.source.series,occurrence:command.source.occurrence,lineHash:command.source.lineHash};
         const confirmationId=await stableIdentity(canonical([boundContext,command.line.id,command.seriesId,command.occurrenceDate,base]));
-        if(context()!==boundContext)throw Error('La sesión ha cambiado.');
+        if(context()!==boundContext)throw new TreasuryError('SESSION_CHANGED');
         await submit('confirm',{id:confirmationId,accountId:entry.metadata.account.id,statementLineId:command.line.id,seriesId:command.seriesId,occurrenceDate:command.occurrenceDate},base);
       }message(note,'Conciliaciones pendientes de sincronización.');
     }catch(error){message(note,error.message);}finally{confirm.disabled=false;}};
