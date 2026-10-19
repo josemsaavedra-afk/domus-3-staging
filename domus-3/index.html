@@ -181,7 +181,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0 · RC1 · Build 30086<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0 · RC1 · Build 30087<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -851,12 +851,16 @@ function knownDocumentDraft(text,doc){
  }
  // ONLOGIST/AXA insurance: final contribution is the actual insurance invoice amount.
  if(/^VS-26-/i.test(invoice)||/factura de contribuci[oó]n|confirmaci[oó]n de su seguro/i.test(src)){
-  const block=src.match(/Contribuci[oó]n total([\s\S]{0,180}?)(?:Le rogamos|\* Las bases|$)/i)?.[1]||'';
-  const vals=[...block.matchAll(/(\d{1,4}[,.]\d{2})\s*€/g)].map(m=>moneyFrom(m[1])).filter(v=>v!=null);
-  const amount=vals.length?vals[vals.length-1]:null;
+  // New Baloise invoices: take ONE summary "Monto total", never add annex rows.
+  const summary=src.split(/(?:^|\n)\s*(?:Anexo|Detalle de operaciones|Lista de transportes)\b/i)[0];
+  const baloise=/(?:Resumen de facturas|Baloise)/i.test(summary);
+  const totalBlock=baloise?summary.match(/\bMonto\s+total\s*:?\s*([\d .]+[,\.]\d{2})\s*€?/i):null;
+  const legacyBlock=src.match(/Contribuci[oó]n total([\s\S]{0,180}?)(?:Le rogamos|\* Las bases|$)/i)?.[1]||'';
+  const legacyValues=[...legacyBlock.matchAll(/(\d{1,4}[,.]\d{2})\s*€/g)].map(m=>moneyFrom(m[1])).filter(v=>v!=null);
+  const amount=totalBlock?moneyFrom(totalBlock[1]):(legacyValues.length?legacyValues[legacyValues.length-1]:null);
   if(amount!=null){
-   sources.amount='ONLOGIST seguro · Contribución total';sources.concept='familia ONLOGIST seguro';
-   return {type:'expense',concept:'Seguro ONLOGIST',supplier:'AXA / Ascentiel',counterparty:'AXA / Ascentiel',invoice_number:invoice,date,amount,person_id,expense_scope:'business',movement_role:'insurance',extraction_quality:'high',field_sources:sources,document_family:'onlogist_insurance',deterministic_reader:true};
+   sources.amount=totalBlock?'Baloise · Monto total del resumen':'ONLOGIST seguro · Contribución total';sources.concept='familia ONLOGIST seguro';
+   return {type:'expense',concept:'Seguro ONLOGIST',supplier:totalBlock?'Baloise':'AXA / Ascentiel',counterparty:totalBlock?'Baloise':'AXA / Ascentiel',invoice_number:invoice,date,amount,person_id,expense_scope:'business',movement_role:'insurance',extraction_quality:'high',field_sources:sources,document_family:'onlogist_insurance',deterministic_reader:true};
   }
  }
 
@@ -1201,7 +1205,7 @@ function renderBudgets(){
   }).join(''):'<div class="card empty">Todavía no hay presupuestos. Crea uno arriba, por ejemplo «Vacaciones».</div>';
 }
 
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30086'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30087'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
