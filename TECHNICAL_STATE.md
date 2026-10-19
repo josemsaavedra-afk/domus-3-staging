@@ -1,3 +1,11 @@
+## Lector VS-26 Baloise — build 30087 (2026-10-19)
+
+- El lector DOMUS Staging reconoce «Monto total» en el «Resumen de facturas» de Baloise; extrae un único importe y evita sumar filas de anexos.
+- Conserva la extracción anterior «Contribución total» para documentos antiguos.
+- Solo DOMUS modificado; TransportERP permanece intacto.
+- Actualizados versión, service worker y SHA-256 de index.html en el manifiesto.
+- Pendiente validación funcional con documentos reales y verificación del despliegue.
+
 ## Lector RHD / prefinanciación — build 30086 (2026-10-19)
 
 - Añadida familia determinista `rhd_prefinance` para liquidaciones de RHD Rechnungsstelle AG.
