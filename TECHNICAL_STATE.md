@@ -1,3 +1,15 @@
+## Fecha del resumen y QA UI confirmada — build 30091 (2026-10-19)
+
+- Build 30090 commit 9ce21f45200f368df33680fe26c79d1f7cca9bfd publicado: version.json y cabecera de aplicación confirmados en navegador. Sesión persistió tras recarga.
+- Recuperados desde servidor los tres documentos QA tras recarga. Revisar propuesta funciona y abre copia del borrador sin crear movimientos.
+- Comisión QA: 14,25 €, invoice V26-999991, expense/business, selector commission. Seguro QA: 9,44 €, invoice VS-26-999991, expense/business, selector insurance. Confirmados mediante controles DOM visibles.
+- Detalles secundarios plegados, total primero, Cerrar sin crear movimiento probado: modal cerrado. No pulsado Crear movimiento, Vincular ni Sustituir.
+- Corregida prioridad de fecha en ONLOGIST/VS: la fecha junto al número propio del resumen prevalece frente a fechas distintas en anexos. Prueba con estructura VS-26-154071 devuelve 08/10/2026, no 05/10 ni 02/10. Procedencia registrada.
+- Controles focalizados: 15/15 (13 documentales + 2 PWA). Suite completa final: 98 pruebas, 96 correctas y 2 fallos preexistentes. No se han cambiado expectativas para ocultar los dos fallos preexistentes.
+- Estado de alcance: A auditada; B comprobada con texto real y PDF sintético en UI, pendiente PDF real completo; C/D/E/F/G mejoradas parcialmente; H validación parcial y despliegues. No declarar todo el encargo terminado.
+- Bloqueo pendiente específico: autorización explícita para transferir PDFs privados de Library a DOMUS Staging y guardar referencias/extracción de prueba. Auto-review lo rechazó; no se sorteó la protección. La alternativa sintética sí se ejecutó y verificó.
+- Próximo paso: probar PDFs reales VS-26-154071 y V26-162583 sin confirmar movimientos si se autoriza; ampliar G26/RHD/combustible; completar aprendizaje de correcciones confirmadas, pagador/cuenta y pruebas seguras de sustitución. Producción y TransportERP intactos.
+
 ## QA autenticada y revisión recuperable — build 30090 (2026-10-19)
 
 - Sesión autenticada confirmada en navegador build 30089. Bloqueo de acceso anterior resuelto por el usuario.
