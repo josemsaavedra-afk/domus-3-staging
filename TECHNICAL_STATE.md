@@ -1,3 +1,16 @@
+## QA autenticada y revisión recuperable — build 30090 (2026-10-19)
+
+- Sesión autenticada confirmada en navegador build 30089. Bloqueo de acceso anterior resuelto por el usuario.
+- La revisión automática rechazó trasladar PDFs privados desde Library a DOMUS Staging por falta de autorización específica origen/destino. No se cargaron esos PDFs ni se intentó una ruta alternativa para esos documentos. Pendiente autorización explícita para la prueba real.
+- Alternativa sin datos privados: creados tres PDFs sintéticos identificados QA, con ingreso, comisión y seguro. Seleccionados juntos en navegador; lectura real cliente/PDF completada; tres registros documentales QA guardados como review sin movimiento vinculado. Sin escrituras en movement_series, saldos ni conciliaciones.
+- Primer documento mostrado por el lote: ingreso G261019-999999-999999-1, 114,95 €, 19/10/2026, business; titular y pagador en blanco sin inventarlos. Se seleccionó en último lugar y se revisó primero correctamente.
+- Atascos constatados en UI: no había avanzar sin crear y el archivo no permitía reabrir propuestas. Corregidos con Siguiente sin guardar y Revisar propuesta (copia de borrador, sin mutar el original ni escribir movimientos).
+- Revisión simplificada: total primero; impuestos, tercero del maestro, actividad y etiquetas plegados; cuenta denominada banco/caja; asociaciones y clase ocultas en ingresos y reactivas al cambiar naturaleza.
+- Corregido selector de clase para recuperar commission/insurance/prefinance_fee; antes mostraba standard aunque el lector hubiese identificado la familia. Conservado ámbito profesional del ingreso en revisión y payload, sin forzarlo a null.
+- Compilación de scripts y controles PWA/documentales focalizados: 14/14. Suite previa al último ajuste visual: 97 pruebas, 95 correctas y los mismos 2 fallos preexistentes. Pendiente verificación UI tras despliegue 30090, reapertura de los tres QA y clase/total de comisión y seguro.
+- Los registros QA no tienen valor económico y no se han borrado (no existe eliminación reversible documental implementada). No confirmar ni vincular esos registros a movimientos reales.
+- Producción y TransportERP intactos. Fases generales continúan parcialmente pendientes; aprendizaje confirmado y evidencia contextual de pagador/tarjetas/combustible no completos.
+
 ## Comprobación de publicación 30089 — 2026-10-19
 
 - Commit de implementación: fb952b758b3084e9b470a7a1ebef06234aa3ccdc (main).
