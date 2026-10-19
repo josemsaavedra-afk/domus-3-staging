@@ -1,3 +1,17 @@
+## PDF reales autorizados y asociaciones seguras — build 30094 (2026-10-19)
+
+- Usuario autorizó expresamente la carga de VS-26-154071.pdf y V26-162583.pdf desde Library a DOMUS Staging y el guardado de referencias/propuestas, sin movimientos económicos. Bloqueo de transferencia anterior resuelto por esa autorización.
+- Ambos PDF seleccionados juntos y procesados desde UI autenticada de 30093. Seguro: número VS-26-154071, total 9,44, fecha 2026-10-08, expense/business/insurance. Comisión: V26-162583, 14,25, 2026-10-14, expense/business/commission. Titular identificado; pagador en blanco. Comprobado con controles DOM. Pasar al siguiente sin guardar funciona y cierre sin crear completado.
+- No se confirmaron ni sustituyeron movimientos; se guardaron únicamente dos nuevas referencias/propuestas documentales en review. Los tres documentos QA sintéticos anteriores siguen review.
+- La autofactura relacionada de la comisión no aparecía en el selector; no se forzó ningún vínculo. Añadido aviso de referencia pendiente cuando no existe un ingreso coincidente en los datos cargados.
+- Corregida sugerencia bestPendingMatch: fecha/importe parecidos no bastan para ofrecer vinculación. Exige un único candidato con mismo número y emisor, no recurrente. En duplicados múltiples/ambiguos no propone enlace automático.
+- La tarjeta ahora muestra el aviso de duplicado antes de pulsar Crear; acción se etiqueta Revisar duplicado / sustitución. Sustitución continúa requiriendo confirmación explícita y no se ha ejecutado sobre datos reales.
+- Selector de ingresos conserva las coincidencias exactas aunque queden fuera de las 200 facturas más recientes.
+- G26 conserva desglose fiscal coherente del lector genérico. V26 con reverse charge explícito conserva base neta indicada sin inventar cuota IVA.
+- Ámbito de compras habituales puede proponerse desde documentos confirmados concordantes; combustible no hereda ámbito por estación.
+- Pruebas focalizadas: 21/21 (19 documentales + 2 PWA), incluida referencia pendiente, rechazo de vínculo solo por fecha/importe y factura coincidente más antigua. Suite final: 104 pruebas, 102 correctas y 2 fallos previos. Pendiente verificación UI de 30094 tras desplegar.
+- Pendientes generales: ampliar G26/RHD/combustible reales (la autorización recibida cubre estos dos PDF concretos), aprendizaje de nuevas reglas a partir de correcciones, identificación contextual de pagador/tarjetas y sustitución transaccional en aislamiento; resolver dos fallos previos de suite con criterio funcional. No declarar cerrado todo A–H. Producción y TransportERP intactos.
+
 ## Comprobación final de esta ejecución — 30093 (2026-10-19)
 
 - Implementación en main: 44d745d0597ac3985cae4e19db7fce289a800e03. version.json sirve 3.0.0-rc.1.56 / 30093; cabecera de aplicación autenticada coincide.
