@@ -35,3 +35,7 @@ test('document review renders family and preserves a suggested payer separately'
  c.renderDocDrafts([{document_family:'onlogist_insurance',extraction_quality:'high',amount:12,person_id:'owner',payer_person_id:'payer'}],{id:'test',file_name:'test.pdf'});
  assert.match(node('docDrafts').innerHTML,/ONLOGIST seguro/);assert.match(node('docDrafts').innerHTML,/ddPerson0/);assert.match(node('docDrafts').innerHTML,/ddPayer0/);
 });
+test('real V26 layout keeps own invoice, commission total and wrapped G reference',()=>{
+ const c=setup();const text='ONLOGIST GmbH\nNúmero de factura                 fecha\nV26-162583                      14/10/2026\nPrecio de transporte 95,00 € G261014-017735-\n375400-1\n total (neto) 14,25 €\nTotal 14,25 €\nSu derecho total (bruto) 114,95 €\nCantidad 100,70 €';const d=c.enrichDocumentDraft(read(c,text,'V26-162583.pdf'),text);assert.equal(d.invoice_number,'V26-162583');assert.equal(d.amount,14.25);assert.ok(d.document_reference_keys.includes('G261014-017735-375400-1'));assert.equal(d.movement_role,'commission');
+});
+test('real VS summary layout reads 9.44 once despite annex premiums',()=>{const c=setup();const text='Resumen de facturas                         fecha\nVS-26-154071                              08/10/2026\nTransporte número 2624000\nINV-ES-2624000 7,64 €\nINV-ADA-ONL-26-2624000 1,80 €\nMonto total 9,44 €\nN.º de factura INV-ES-2624000 Fecha 05.10.2026\nBaloise\nPrima de seguro 7,64 EUR\nPrima total 1,80 €';assert.equal(read(c,text,'VS-26-154071.pdf').amount,9.44);});

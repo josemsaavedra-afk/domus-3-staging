@@ -1,3 +1,13 @@
+## Referencias partidas y contraste documental — build 30089 (2026-10-19)
+
+- Build anterior 30088 registrado en main: 68d8102e5f398e5c77628ad10dae10afbad4193e. Publicación verificada en navegador mediante version.json: 3.0.0-rc.1.51 / 30088.
+- Contrastado texto completo de documentos reales VS-26-154071 (6 páginas) y V26-162583 (1 página), sin subirlos a DOMUS ni crear movimientos.
+- VS: total del resumen 9,44 €, sin sumar primas/anexos. V26: comisión 14,25 €, sin tomar 95,00 / 114,95 / 100,70 como total.
+- Corregida reconstrucción de referencias G26 partidas entre líneas en PDF y preservado el primer número documental frente a referencias secundarias. La referencia G261014-017735-375400-1 se conserva en la propuesta de V26-162583.
+- Pruebas derivadas de estructura real sin nombres, NIF, direcciones ni datos bancarios. 13/13 controles focalizados (11 documentales/render/sintaxis + 2 PWA). No equivalen a probar selección de PDF/OCR desde navegador autenticado.
+- Build 30089 / 3.0.0-rc.1.52, archivos PWA y hash sincronizados. Pendiente comprobar publicación de este build y flujo autenticado. Se mantienen dos fallos preexistentes de suite descritos en 30088.
+- Punto de reanudación y fases incompletas: ver entrada 30088. No se han completado clasificación contextual de combustible, identificación fiable de pagador/tarjeta ni rediseño integral de tarjetas. No se modifica TransportERP ni producción.
+
 ## Auditoría y correcciones documentales — build 30088 (2026-10-19)
 
 Estado: IMPLEMENTADO Y PROBADO EN AISLAMIENTO; pendiente verificación del despliegue y flujo autenticado con PDF reales. No se declara cerrado el 30087 ni las fases A–H completas.
