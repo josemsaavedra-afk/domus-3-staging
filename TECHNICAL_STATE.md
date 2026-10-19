@@ -1,3 +1,14 @@
+## Preparación de maestros antes de lectura — build 30098 (2026-10-19)
+
+- Suite completa 112/112, 0 fallos. Regresión nueva: preparar maestros una vez y rechazar lectura si no se pueden cargar, en vez de interpretar con listas iniciales vacías.
+- Build 30097 a1dc12081b0a49778237a67ba5ab112408260f2e publicado, cabecera/version.json verificadas. Relectura autorizada de VS real en 30097 mantiene 9,44 y 2026-10-08; aviso contiene solo transporte 2624000 y excluye número de registro espurio. Cierre sin crear pendiente al redactar esta entrada.
+- Revisión visual detectó titular sin especificar al importar inmediatamente tras apertura, frente a identificación correcta anterior cuando maestros ya estaban cargados. importSelectedDocuments no esperaba a la carga inicial y podía analizar con people/accounts vacíos.
+- Corregido: prepareDocumentCatalogs espera datos cargados antes de crear referencias y analizar PDFs; flag se reinicia al cambiar hogar. No obliga a crear ni configurar personas/cuentas y un catálogo vacío cargado correctamente es válido.
+- Si la carga falla, mensaje claro y no comienza el bucle de inserción documental. Sin cambios de permisos, esquema o datos económicos.
+- Pendiente despliegue 30098 y comprobación de titular leyendo uno de los dos PDF ya autorizados después de recargar. No confirmar Crear/Sustituir/Vincular.
+- Las pruebas han creado hasta esta entrada cinco referencias reales en review (dos pares + seguro 30097), además de tres sintéticas. No se han creado/modificado movimientos económicos ni saldos/conciliaciones. Producción y TransportERP intactos.
+- Pendientes de producto y validación general siguen en entradas anteriores; no se declara terminado todo A–H.
+
 ## Referencias de transporte con contexto — build 30097 (2026-10-19)
 
 - Suite completa: 111/111, 0 fallos. Añadidos controles RHD (coste frente a neto transferido; liquidación incompleta con revisión obligatoria) y rechazo de números de registro como referencias de transporte.
