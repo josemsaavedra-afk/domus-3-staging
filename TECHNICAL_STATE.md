@@ -1,3 +1,12 @@
+## Carga documental sin falso listado vacío — build 30093 (2026-10-19)
+
+- Publicación 30092 commit 16edbb57f92d7f0d0ab76486f07185b7b6d124cf verificada en version.json y cabecera; sesión activa.
+- QA detectó listado vacío al entrar inmediatamente después de recargar. No había pérdida de documentos: volver a Inicio y Documentos recuperó los tres QA. Seguro reabierto en 30092 con total 9,44 y clase insurance.
+- Causa identificada en refreshAll: documents se asignaba antes de consultas de presupuestos, pero renderDocuments esperaba al renderAll posterior a esas consultas. Entrar antes podía dejar un falso vacío visible durante esa espera.
+- Corrección: renderDocuments inmediatamente después de recibir/asignar documentos; estado Cargando referencias antes de primera carga, error específico si falla, vacío solo tras carga correcta. Sin cambios de consultas, esquema ni datos económicos.
+- Los 3 registros QA permanecen review sin movimiento vinculado. Se comprobó reapertura/cierre sin crear. PDF privados no transferidos por bloqueo de revisión automática pendiente de autorización específica.
+- Estado de alcance y pendientes: entradas 30091/30092. Pendiente verificación UI del arranque de 30093 tras publicar. No se declara terminado el conjunto de fases.
+
 ## Aprendizaje desde documentos confirmados — build 30092 (2026-10-19)
 
 - La reutilización histórica de persona/pagador/cuenta/categoría/actividad exige ahora documento confirmado y vínculo series_id; borradores review/processing y movimientos sin respaldo confirmado quedan fuera.
