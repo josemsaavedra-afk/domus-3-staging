@@ -1,3 +1,12 @@
+## Comprobación de publicación 30089 — 2026-10-19
+
+- Commit de implementación: fb952b758b3084e9b470a7a1ebef06234aa3ccdc (main).
+- Verificado en navegador: version.json sirve 3.0.0-rc.1.52 / 30089; el DOM de la aplicación muestra Build 30089. No se observó error de sintaxis del script en la pestaña nueva.
+- Suite final: 96 pruebas, 94 correctas y 2 fallos preexistentes descritos en 30088. Controles focalizados 13/13.
+- Acceso seguro intentado: la herramienta confirmó envío, pero la página y una pestaña nueva siguieron en pantalla de acceso, sin mensaje de error visible. Estado de autenticación NO confirmado. No atribuirlo a contraseña incorrecta ni afirmar sesión iniciada.
+- Bloqueo concreto: falta sesión autenticada en navegador para validar selección de PDF, extracción, tarjetas, lote y confirmación aislada. No se realizaron escrituras económicas. Reanudar desde acceso seguro del build 30089; no repetir auditoría ya documentada.
+- Alcance completado: auditoría inicial, reparación de sintaxis, correcciones parciales de asociaciones/duplicados/clasificación, pruebas aisladas y publicación. NO cerradas fases B–H completas: quedan PDFs/OCR en UI autenticada, casos G26/RHD reales adicionales, aprendizaje de correcciones confirmadas, titular/pagador/cuentas y simplificación integral de revisión.
+
 ## Referencias partidas y contraste documental — build 30089 (2026-10-19)
 
 - Build anterior 30088 registrado en main: 68d8102e5f398e5c77628ad10dae10afbad4193e. Publicación verificada en navegador mediante version.json: 3.0.0-rc.1.51 / 30088.
