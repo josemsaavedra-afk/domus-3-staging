@@ -1,3 +1,14 @@
+## Referencias de transporte con contexto — build 30097 (2026-10-19)
+
+- Suite completa: 111/111, 0 fallos. Añadidos controles RHD (coste frente a neto transferido; liquidación incompleta con revisión obligatoria) y rechazo de números de registro como referencias de transporte.
+- 30096 publicado/verificado en navegador, cabecera y version.json; carga inicial muestra Cargando referencias y fecha alternativa queda vacía.
+- Relectura autorizada de los mismos dos PDF en 30096: seguro 9,44 / 08-10 / insurance; comisión 14,25 / 14-10 / commission, base neta 14,25, cuota IVA vacía con reverse charge. Pagador no inventado. Archivo de referencias confirma fechas 08/10 y 14/10, no día de carga. Se cerró sin crear ni vincular movimientos.
+- QA real reveló que el regex genérico de 7/8 cifras trataba un número de registro del asegurador como transporte. Corregido: solo números acompañados por transporte/viaje o referencias INV-ES/ON-ES. No se reclasifican registros históricos ni se corrigen propuestas antiguas automáticamente.
+- Referencia G26 de la comisión permanece explícita y se muestra pendiente cuando no hay ingreso coincidente disponible. No se fuerza relación ni se crea ingreso.
+- Base: 30096 b81ec59391e90c657872d445bc34bb25ebec2917. Pendiente verificación de publicación y aviso corregido sobre PDF real en 30097. Autorización de esos dos PDF sigue vigente; no pedirla otra vez.
+- Se han creado en esta sesión dos pares de referencias/propuestas de los dos PDF (primera lectura 30093 y relectura 30096), además de tres QA sintéticos. Todos permanecen review, sin contabilizar. No eliminados por falta de borrado documental reversible. No confundir referencias de prueba repetidas con movimientos económicos duplicados.
+- No se han probado sustituciones sobre movimientos reales. Fases A–H siguen parcialmente pendientes según entradas anteriores; no declarar cierre total. Producción y TransportERP intactos.
+
 ## Fecha documental y límites de sustitución — build 30096 (2026-10-19)
 
 - Suite completa 108/108, 0 fallos. Tres regresiones nuevas de fecha/metadatos y sustitución, sin ejecutar escrituras económicas reales.

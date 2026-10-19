@@ -181,7 +181,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0 · RC1 · Build 30096<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0 · RC1 · Build 30097<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -831,6 +831,7 @@ function personFromDocumentText(text){
  }
  return bestScore>=35?best?.id||null:null;
 }
+function referencedTransportNumbers(text){const src=normDocText(text),out=new Set();for(const re of [/\b(?:transporte|viaje|transport)(?:\s*(?:n(?:[.º°o]+|umero)|#|:))*\s*(\d{7,8})\b/gi,/\b(?:INV|ON)-ES-(\d{7,8})\b/gi])for(const m of src.matchAll(re))out.add(m[1]);return [...out]}
 function normalizeDocumentReferences(text){return String(text||'').replace(/G\d{6}-\s*\d{6}-\s*\d{6}-\s*\d+/gi,m=>m.replace(/\s+/g,''))}
 function knownDocumentDraft(text,doc){
  const src=normalizeDocumentReferences(text),hay=normDocText(src),filename=String(doc?.file_name||''),fn=filename.toUpperCase(),person_id=personFromDocumentText(src),sources={};
@@ -938,7 +939,7 @@ function enrichDocumentDraft(d,text=''){
  if(/^VS-?26/.test(inv)||/seguro|insurance/.test(hay)){out.type='expense';out.expense_scope='business';out.movement_role='insurance'}
  if(/prefinanc|financiaci[oó]n|rhd/.test(hay)&&out.type==='expense'){out.expense_scope='business';out.movement_role='prefinance_fee'}
  }
- const refs=[...new Set((String(text||'')+' '+String(out.concept||'')+' '+String(out.invoice_number||'')).toUpperCase().match(/G\d{6}(?:-\d+){2,}|\b\d{7,8}\b/g)||[])];out.document_reference_keys=[...new Set([...(out.document_reference_keys||[]),...refs])];
+ const referenceText=String(text||'')+' '+String(out.concept||'')+' '+String(out.invoice_number||'');const refs=[...new Set([...(referenceText.toUpperCase().match(/G\d{6}(?:-\d+){2,}/g)||[]),...referencedTransportNumbers(referenceText)])];out.document_reference_keys=[...new Set([...(out.document_reference_keys||[]),...refs])];
  const role=out.movement_role||'standard',name=String(out.counterparty||out.supplier||out.concept||'').toLowerCase();
  const confirmedDocumentSeries=new Set((typeof documents==='undefined'?[]:documents).filter(doc=>doc.analysis_status==='confirmed'&&doc.series_id).map(doc=>doc.series_id));
  const similar=series.filter(s=>confirmedDocumentSeries.has(s.id)&&s.type===out.type&&name&&normDocText(s.counterparty||s.concept||'').trim()===normDocText(name).trim()&&(role==='standard'||s.movement_role===role));
@@ -1233,7 +1234,7 @@ function renderBudgets(){
   }).join(''):'<div class="card empty">Todavía no hay presupuestos. Crea uno arriba, por ejemplo «Vacaciones».</div>';
 }
 
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30096'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30097'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
