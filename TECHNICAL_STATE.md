@@ -1,3 +1,12 @@
+## Espera de carga concurrente antes de interpretar — build 30099 (2026-10-19)
+
+- Suite completa 114/114, 0 fallos. Dos controles adicionales: una lectura de datos reemplazada por otra no se interpreta como fallo definitivo; cambio de usuario/hogar durante espera bloquea interpretación.
+- 30098 60ac0f13a76b651a04dd74780cc52a62a34906b8 publicado y verificado. Prueba inmediata ejerció Preparando personas y cuentas, pero guard detectó aún catálogos no disponibles al retornar refreshAll y bloqueó antes de crear referencia.
+- refreshAll puede retornar anticipadamente si otra actualización lo reemplaza. prepareDocumentCatalogs ahora espera evento de datos listos de la carga vigente, no solo el retorno de su llamada; espera acotada a 30 s y verifica actor/hogar. Rechazo/timeout muestra causa clara.
+- No se inició lectura del PDF en esa prueba fallida ni se creó otra referencia. Archivo seleccionado quedó preparado para reintento. No hay escrituras económicas.
+- Mantener pendientes los controles de titular en arranque hasta verificarlos sobre 30099; no dar por superada esa prueba a partir de los tests aislados. Total/importes/fechas/clases y exclusión de registro como transporte ya verificados en 30096/30097.
+- Pendiente comprobar despliegue 30099 y reintentar un PDF autorizado; si falla carga de catálogos, investigar sin inventar titular ni crear movimientos. Producción y TransportERP intactos.
+
 ## Preparación de maestros antes de lectura — build 30098 (2026-10-19)
 
 - Suite completa 112/112, 0 fallos. Regresión nueva: preparar maestros una vez y rechazar lectura si no se pueden cargar, en vez de interpretar con listas iniciales vacías.
