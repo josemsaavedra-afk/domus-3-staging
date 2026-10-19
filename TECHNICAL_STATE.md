@@ -1,3 +1,15 @@
+## Lector documental determinista por familias — build 30085 (2026-10-19)
+
+- Prioridad funcional: reducir la introducción manual de movimientos; el lector documental pasa a ser el camino principal de entrada.
+- Añadido reconocimiento determinista previo al OCR genérico para familias ONLOGIST y combustible.
+- Autofactura G26: usa `total (IVA incluido)` como importe del ingreso y la clasifica como ingreso variable de actividad económica.
+- Comisión V26: usa `total (neto)` / `Total` como importe de comisión, evitando confundirlo con `Cantidad` o con el bruto del transporte.
+- Seguro VS-26: usa el último importe del bloque `Contribución total`, evitando contribución base e impuestos intermedios.
+- Titular económico: intenta identificar automáticamente la persona por nombre y, cuando esté disponible en el maestro, por NIF/IVA.
+- Combustible: detecta familia por términos/proveedores habituales y fuerza ámbito actividad económica, reutilizando la lectura fiscal genérica para total/IVA.
+- Los resultados deterministas no son sobreescritos después por el intérprete genérico TransportERP.
+- Producción no tocada.
+
 ## Simplificación de movimientos y recurrencias — build 30084 (2026-10-19)
 
 - «Eliminar serie» pasa a «Eliminar movimiento» en la interfaz.
