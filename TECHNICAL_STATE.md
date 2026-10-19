@@ -1,3 +1,12 @@
+## Aprendizaje desde documentos confirmados — build 30092 (2026-10-19)
+
+- La reutilización histórica de persona/pagador/cuenta/categoría/actividad exige ahora documento confirmado y vínculo series_id; borradores review/processing y movimientos sin respaldo confirmado quedan fuera.
+- Conservados filtros de mismo emisor, naturaleza y clase; valores contradictorios no generan propuesta y evidencia documental explícita nunca se sustituye.
+- field_sources identifica por campo que la sugerencia procede de documentos confirmados y cuántos registros la respaldan. No genera reglas ni modifica documentos/movimientos anteriores.
+- Prueba de regresión: descarta historial pendiente, acepta confirmado, respeta evidencia explícita y no propone sin confirmados. 16/16 controles focalizados, incluida PWA y compilación/render. Suite completa: 99 pruebas, 97 correctas y los mismos 2 fallos previos. Pendiente comprobación de publicación 30092.
+- Base: 30091 commit 62bbae48abc152b15d39893b4bb8664a8828cf0d. QA UI de propuestas, importes y clases ya descrita en 30091 (ejecutada sobre 30090).
+- La carga de PDF privados sigue esperando autorización específica por rechazo automático. No se ha probado ni declarado completada. Aprendizaje de reglas nuevas, tarjetas/pagador por evidencia bancaria y clasificación contextual completa de combustible siguen pendientes.
+
 ## Fecha del resumen y QA UI confirmada — build 30091 (2026-10-19)
 
 - Build 30090 commit 9ce21f45200f368df33680fe26c79d1f7cca9bfd publicado: version.json y cabecera de aplicación confirmados en navegador. Sesión persistió tras recarga.

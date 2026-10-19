@@ -181,7 +181,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0 · RC1 · Build 30091<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0 · RC1 · Build 30092<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -935,8 +935,9 @@ function enrichDocumentDraft(d,text=''){
  }
  const refs=[...new Set((String(text||'')+' '+String(out.concept||'')+' '+String(out.invoice_number||'')).toUpperCase().match(/G\d{6}(?:-\d+){2,}|\b\d{7,8}\b/g)||[])];out.document_reference_keys=[...new Set([...(out.document_reference_keys||[]),...refs])];
  const role=out.movement_role||'standard',name=String(out.counterparty||out.supplier||out.concept||'').toLowerCase();
- const similar=series.filter(s=>s.type===out.type&&name&&normDocText(s.counterparty||s.concept||'').trim()===normDocText(name).trim()&&(role==='standard'||s.movement_role===role));
- if(similar.length){out.field_sources={...(out.field_sources||{})};for(const field of ['person_id','payer_person_id','account_id','category_id','activity_project_id']){if(out[field])continue;const value=dominantHistoricalValue(similar,field);if(value){out[field]=value;out.field_sources[field]='histórico concordante del mismo emisor y clase · '+similar.length+' movimiento(s)'}}}
+ const confirmedDocumentSeries=new Set((typeof documents==='undefined'?[]:documents).filter(doc=>doc.analysis_status==='confirmed'&&doc.series_id).map(doc=>doc.series_id));
+ const similar=series.filter(s=>confirmedDocumentSeries.has(s.id)&&s.type===out.type&&name&&normDocText(s.counterparty||s.concept||'').trim()===normDocText(name).trim()&&(role==='standard'||s.movement_role===role));
+ if(similar.length){out.field_sources={...(out.field_sources||{})};for(const field of ['person_id','payer_person_id','account_id','category_id','activity_project_id']){if(out[field])continue;const value=dominantHistoricalValue(similar,field);if(value){out[field]=value;out.field_sources[field]='documentos confirmados del mismo emisor y clase · '+similar.length+' movimiento(s)'}}}
  return out;
 }
 function draftTransportReference(d){return (d.document_reference_keys||[]).map(normalizedRef).find(ref=>/^\d{7,8}$/.test(ref))||null}
@@ -1224,7 +1225,7 @@ function renderBudgets(){
   }).join(''):'<div class="card empty">Todavía no hay presupuestos. Crea uno arriba, por ejemplo «Vacaciones».</div>';
 }
 
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30091'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30092'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
