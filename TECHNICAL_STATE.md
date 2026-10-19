@@ -1,3 +1,13 @@
+## Comprobación final de esta ejecución — 30093 (2026-10-19)
+
+- Implementación en main: 44d745d0597ac3985cae4e19db7fce289a800e03. version.json sirve 3.0.0-rc.1.56 / 30093; cabecera de aplicación autenticada coincide.
+- Tras recargar, Documentos recupera las referencias, incluidos los tres QA. Comisión QA reabierta en 30093: 14,25 y commission; cierre sin crear movimiento completado.
+- Una interacción automatizada inmediatamente posterior a reload agotó plazo; inspección posterior y click sobre control visible permitieron continuar. No se atribuye a pérdida de datos ni se oculta la limitación.
+- Suite final 30093: 99 pruebas, 97 correctas, 2 fallos previos (mes documental vs financiero de informe; mensaje de cambio de sesión). Focalizadas lector/PWA: 16/16. No se han cambiado expectativas para marcar falsamente suite verde.
+- No se pulsaron Crear movimiento, Sustituir, Vincular ni acciones de saldo/conciliación. Solo se crearon tres referencias documentales sintéticas identificadas QA durante la lectura; siguen review. Ningún PDF privado transferido a Staging.
+- Reanudación concreta: obtener autorización explícita para trasladar desde Library VS-26-154071.pdf y V26-162583.pdf a DOMUS Staging, guardar referencias y propuestas extraídas, sin confirmar movimientos. Auto-review rechazó esa transferencia por datos privados y persistencia; no se reintentó por otra vía.
+- Después: ampliar casos reales G26/RHD/combustible, terminar evidencia de titular/pagador/tarjetas, probar asociaciones/sustitución en aislamiento y resolver los dos fallos de suite con criterio funcional. Las fases A–H no están cerradas en conjunto. Producción y TransportERP no modificados.
+
 ## Carga documental sin falso listado vacío — build 30093 (2026-10-19)
 
 - Publicación 30092 commit 16edbb57f92d7f0d0ab76486f07185b7b6d124cf verificada en version.json y cabecera; sesión activa.
