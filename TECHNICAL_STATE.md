@@ -1,3 +1,14 @@
+## Simplificación de movimientos y recurrencias — build 30084 (2026-10-19)
+
+- «Eliminar serie» pasa a «Eliminar movimiento» en la interfaz.
+- Un movimiento no recurrente se edita y elimina directamente.
+- En movimientos recurrentes solo se ofrecen «Solo este movimiento» y «Este y los siguientes»; desaparece «Toda la serie (incluye anteriores)».
+- La edición recurrente abre por defecto en «Solo este movimiento», evitando cambios futuros involuntarios.
+- Al eliminar una recurrencia, se puede quitar únicamente la fecha abierta o cortar desde esa fecha hacia adelante conservando lo anterior.
+- La detección de duplicados manuales se basa en número de factura idéntico. Importe, fecha o concepto parecidos ya no bloquean correcciones.
+- Se conservan las salvaguardas de presupuesto y conciliación bancaria para borrados completos.
+- Producción no se modifica.
+
 ## Hotfix borrado real — 30083 (2026-10-15)
 
 - Causa raíz: movement_series tenía una política ALL RESTRICTIVE pero ninguna política PERMISSIVE aplicable a DELETE; PostgreSQL aplicaba default-deny y el borrado devolvía 0 filas.
