@@ -4,7 +4,9 @@
 - El aprendizaje histórico no rellena pagador/cuenta mientras exista contradicción documental. Tarjeta e IBAN concordantes conservan la pareja; las instrucciones bancarias del emisor de una factura emitida siguen excluidas. No modifica movimientos existentes ni guarda reglas nuevas.
 - Regresiones con datos ficticios: contradicción tarjeta/IBAN pese a tres antecedentes unánimes, concordancia, exclusión bancaria del emisor, conservación de selección explícita y ambigüedad de cuentas. Dos fallos reproducidos antes de corregir; archivo de familias 54/54 tras la corrección.
 - Navegador bloqueado por native credential state cannot be safely resumed incluso tras reinicio y apertura canónica. Sin intentos de extraer credenciales ni otro canal de autenticación. QA específica de 30107 y 30108 en pantalla pendiente.
-- Suite completa 142/142, cero fallos, incluida integridad PWA y sintaxis inline. Pendientes al redactar: publicación y verificación de assets. Producción y TransportERP intactos; sin escrituras económicas.
+- Suite completa 142/142, cero fallos, incluida integridad PWA y sintaxis inline. Código 98a1c08b30c244aedd1bfc5fb8eb15ae96682b0c; Pages 39489989082 completed/success. version.json, index.html, asset-manifest.js y sw.js servidos idénticos byte a byte a los probados. Cabecera autenticada y prueba funcional de esta build no verificadas por bloqueo del navegador.
+- Comprobación SQL posterior: 1952 filas en movement_series y digest bacb94d48c45d6d3eae876d8bb5bb051, idénticos al control anterior de 30107. Sin escrituras económicas, nuevas referencias documentales ni cambios de esquema en esta ejecución. Producción y TransportERP intactos.
+- Reanudar por la QA específica de anotación de titular y conflicto tarjeta/IBAN cuando exista un navegador utilizable. El cotejo de originales anterior permanece documentado; no afirmar cierre integral del lector, sustitución transaccional ni QA móvil.
 
 ## Anotación explícita de titular — build 30107 (2026-10-20)
 
