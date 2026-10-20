@@ -1,3 +1,12 @@
+## Cotejo de nueve originales y referencia partida — build 30104 (2026-10-20)
+
+- Releídos los nueve PDF originales del lote adicional, extracción local con pdftotext -layout y OCR del escaneo de combustible; sin transferencia a DOMUS ni escrituras económicas. Originales, textos y resultados privados fuera del repositorio.
+- Cotejo del lector de 30103 con catálogos ficticios representativos: cuatro RHD generan cinco costes (uno tiene dos grupos), dos autofacturas G26 con total y fiscalidad coherentes, una factura emitida como ingreso, un justificante TGSS de revisión/vinculación obligatoria y un escaneo de combustible con discrepancia de número señalada. El usuario confirma que el número es el nombre del archivo: se prioriza el nombre numérico serie:número, normalizado a serie/número, conservando OCR como trazabilidad y sin confirmación adicional. Fechas e importes contrastados con originales. El harness usa dateKey local de la aplicación, no ISO/UTC del stub unitario.
+- Hallazgo corregido: etiqueta Transporte al final de columna, IVA/precio a su derecha y número # en la línea siguiente. Se recupera exclusivamente la referencia explícita tras ese contexto, sin aceptar números de registro aislados. Nueva regresión anonimizada.
+- Suite completa final tras sellar build: 127/127, incluida integridad PWA. Publicación pendiente al redactar.
+- Pendiente auténtico: repetir en UI autenticada con los nueve PDF originales y comprobar duplicados contra datos de Staging. Navegador actual muestra login; ninguna sesión autenticada recuperada. Autorización específica de transferencia anterior solo cubría los otros dos PDF VS/V26, según 30102; no dar esta comprobación por terminada.
+- El cotejo local no es QA autenticada ni prueba del OCR de navegador. No se han creado movimientos, subido originales, modificado saldos/conciliaciones, producción o TransportERP.
+
 ## Aprendizaje documental conservador — build 30103 (2026-10-20)
 
 - Versión 3.0.0-rc.1.66. Retoma 30102 sin repetir auditoría ni transferir documentos privados.
