@@ -1,3 +1,10 @@
+## Publicación 30100 confirmada; QA autenticada bloqueada — 2026-10-20
+
+- Código publicado: 3f2123d0a431ea384e10a6685965eed009db2797. Endpoint público version.json devuelve 3.0.0-rc.1.63 / build 30100. Suite completa previa al commit: 121/121.
+- La sesión anterior no existía. Se abrió la URL canónica, que mostró login. Solicitud browserAuth de correo/contraseña agotó tiempo de espera; al intentar navegación de recuperación el runtime había perdido verifyTab. Estado de acceso desconocido; no se infirió éxito ni se reintentaron credenciales por otro canal.
+- Pendiente: nueva sesión segura y QA en pantalla de RHD múltiple, factura emitida, prueba TGSS y OCR de combustible. La lectura local y los tests aislados sí están verificados. No se subieron los nueve originales ni se modificaron movimientos económicos.
+- No dar por completada esta QA ni el cierre general del producto. Producción y TransportERP intactos.
+
 ## Lector documental y revisión múltiple — build 30100 (2026-10-20)
 
 - Versión 3.0.0-rc.1.63. Suite completa 121/121, 0 fallos. Publicación y comprobación autenticada pendientes al redactar esta entrada.
