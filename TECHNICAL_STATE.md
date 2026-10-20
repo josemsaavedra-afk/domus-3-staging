@@ -1,3 +1,16 @@
+## Reconocimiento por alias y pago explícito — build 30106 (2026-10-20)
+
+- Versión 3.0.0-rc.1.69; suite completa 137/137. Publicación y QA autenticada de este bloque pendientes al redactar.
+- Usuario confirma JM = José Manuel. People/accounts incorporan aliases text[] editables en el mismo editor de maestros; nombres visibles e identificadores económicos se conservan. Reconocimiento ignora inactivos y no decide ante empates. No se codifican personas, NIF, IBAN o UUID privados en frontend ni migración.
+- Reglas de tarjetas editables/desactivables en Ajustes, separando titular económico de pagador/cuenta. Terminación se usa solo cuando acompaña etiqueta de tarjeta, y debe corresponder a una regla y maestros activos. IBAN explícito puede proponer cuenta única por alias, sin inferir pagador; no usa instrucciones bancarias del emisor de una factura emitida. Evidencia contradictoria se señala.
+- Clasificación por familias hacia categoría única activa: combustible, RHD, ingresos variables y supermercados. No infiere ámbito profesional por combustible/persona. Respeta clasificación explícita y anotaciones DOMUS.
+- Proveedor histórico genérico Documento/factura/ticket se considera desconocido al buscar duplicados. Mismo número aparece para revisión, sin autorizar sustitución. Crear desde documento se bloquea si hay candidato con emisor desconocido, evitando duplicación.
+- Relectura sin filtro en inglés solo si falta fecha OCR. Prueba local del escaneo recupera 02/10/2026; no se corrigen dígitos ni fechas por inferencia. Fecha existente conserva prioridad; fechas inválidas/ambiguas/futuras lejanas no se adoptan. Validación real de navegador pendiente.
+- Esquema aditivo aplicado por SQL solo a pmgonotpbmybtwvxbcvf. Script idempotente generado con CLI en supabase/migrations/20261020061015_rc1_document_recognition_aliases.sql; no se ha anotado como aplicada en migration history por CLI. RLS y políticas existentes intactas; advisors sin hallazgos nuevos.
+- Intento de poblar aliases y reglas mediante SQL rechazado por stamp_base_audit: Sesión requerida. Transacción íntegramente revertida, comprobado aliases y reglas vacíos. No se desactivó trigger ni se suplantó sesión; se guardarán desde UI autenticada.
+- Pruebas nuevas cubren alias/inactivos/ambigüedad, tarjeta de pagador distinto al titular, IBAN único, exclusión de datos bancarios del emisor, clasificación, bloqueo de duplicado desconocido, fecha alternativa y migración aditiva idempotente/RLS.
+- Pendientes inmediatos: publicar, configurar alias y tarjetas ya confirmados desde UI, releer originales autorizados para JM/RHD/Moeve/G26, verificar persistencia de ajustes. Producción/TransportERP y movimientos económicos intactos.
+
 ## Cotejo real finalizado y TGSS verificado — 30105 (2026-10-20)
 
 - Código 8a1ebc9a2f01ba15605d8cafc057d4d4b1f67cfc; Pages 39378186252 completed/success. version.json y cabecera autenticada coinciden en 30105 / 3.0.0-rc.1.68. Suite completa 128/128.

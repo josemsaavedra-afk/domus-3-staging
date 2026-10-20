@@ -53,8 +53,8 @@
       if (!Number.isSafeInteger(order) || order < -2147483648 || order > 2147483647) throw new Error('El orden debe ser un número entero.');
       payload.sort_order = order;
     }
-    if (table === 'counterparties') {
-      if (rows.some(row => row.id !== currentId && key(row.name) === key(name))) throw new Error('Este tercero ya existe; edítalo o reactívalo.');
+    if (['counterparties','people','accounts'].includes(table) && Object.hasOwn(input,'aliases')) {
+      if (table==='counterparties' && rows.some(row => row.id !== currentId && key(row.name) === key(name))) throw new Error('Este tercero ya existe; edítalo o reactívalo.');
       payload.aliases = [...new Set(String(input.aliases || '').split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];
     }
     if (['activity_projects','tags'].includes(table) && rows.some(row=>row.id!==currentId && key(row.name)===key(name))) throw new Error('Este nombre ya existe; edítalo o reactívalo.');
