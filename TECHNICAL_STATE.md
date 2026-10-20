@@ -1,3 +1,9 @@
+## Anotación explícita de titular — build 30107 (2026-10-20)
+
+- Versión 3.0.0-rc.1.70. DOMUS ACTIVIDAD seguido del nombre corto o alias exacto de una única persona activa prevalece sobre el titular leído del documento. El ámbito se marca actividad. No cambia movimientos ya guardados, pagador ni cuenta por esa anotación.
+- Ante empate, nombre inactivo, ausencia de nombre o coincidencia parcial conserva el titular documental. Pruebas con identidades ficticias; sin datos privados en código.
+- Suite completa 139/139, sintaxis inline e integridad PWA correctas. Pendientes al redactar: publicación y comprobación del despliegue. GitHub Pages mostró error del servicio al intentar abrir la aplicación; no equivale a QA autenticada.
+
 ## Cierre de QA autenticada — build 30106 (2026-10-20)
 
 - Código ef95625d7799797504db38d148b4aaff495b50ca, versión 3.0.0-rc.1.69. Pages 39379684705 completed/success; cabecera autenticada 30106 comprobada tras activar la PWA. Suite completa 137/137.
