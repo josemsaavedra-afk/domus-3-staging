@@ -181,7 +181,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0 · RC1 · Build 30102<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0 · RC1 · Build 30103<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -951,7 +951,20 @@ function applyFilenameEvidence(drafts,doc){
   if(meta.merchant&&suspiciousDocumentMerchant(out.supplier||out.counterparty||out.concept)){out.supplier=meta.merchant;out.counterparty=meta.merchant;out.concept=meta.merchant;out.counterparty_id=window.DOMUSClassification.matchCounterparty(meta.merchant);sources.supplier='nombre del archivo';sources.concept='nombre del archivo'}
   out.field_sources=sources;return out;});
 }
-function dominantHistoricalValue(rows,field){const values=[...new Set(rows.map(r=>r?.[field]).filter(Boolean))];return values.length===1?values[0]:null}
+function dominantHistoricalValue(rows,field){
+ const counts=new Map();for(const row of rows){const value=row?.[field];if(value)counts.set(value,(counts.get(value)||0)+1)}
+ const ranked=[...counts].sort((a,b)=>b[1]-a[1]);if(!ranked.length||ranked[0][1]<3)return null;
+ const tolerant=['category_id','expense_scope'].includes(field);
+ return ranked[0][1]/rows.length>=(tolerant?0.9:1)?ranked[0][0]:null;
+}
+function historicalPaymentPair(rows,draft){
+ const eligible=rows.filter(r=>(!draft.person_id||r.person_id===draft.person_id)&&(!draft.payer_person_id||r.payer_person_id===draft.payer_person_id)&&(!draft.account_id||r.account_id===draft.account_id));
+ const complete=eligible.filter(r=>r.payer_person_id&&r.account_id);
+ const pairs=complete.map(r=>({pair:JSON.stringify([r.payer_person_id,r.account_id])}));
+ const pair=dominantHistoricalValue(pairs,'pair');
+ // Missing payment evidence cannot increase confidence in the remaining records.
+ return pair&&complete.length===eligible.length?JSON.parse(pair):null;
+}
 function enrichDocumentDraft(d,text=''){
  text=normalizeDocumentReferences(text);
  const out={...d},hay=(String(out.concept||'')+' '+String(out.counterparty||'')+' '+String(out.invoice_number||'')+' '+String(text||'')).toLowerCase(),inv=String(out.invoice_number||'').trim().toUpperCase();
@@ -964,8 +977,17 @@ function enrichDocumentDraft(d,text=''){
  const referenceText=String(text||'')+' '+String(out.concept||'')+' '+String(out.invoice_number||'');const refs=out.reference_scope==='invoice_group'?[]:[...new Set([...(referenceText.toUpperCase().match(/G\d{6}(?:-\d+){2,}/g)||[]),...referencedTransportNumbers(referenceText)])];out.document_reference_keys=[...new Set([...(out.document_reference_keys||[]),...refs])];
  const role=out.movement_role||'standard',name=String(out.counterparty||out.supplier||out.concept||'').toLowerCase();
  const confirmedDocumentSeries=new Set((typeof documents==='undefined'?[]:documents).flatMap(doc=>[...(doc.analysis_status==='confirmed'&&doc.series_id?[doc.series_id]:[]),...(doc.extracted_data?.drafts||[]).filter(d=>d.review_status==='confirmed'&&d.confirmed_series_id).map(d=>d.confirmed_series_id)]));
- const similar=series.filter(s=>confirmedDocumentSeries.has(s.id)&&s.type===out.type&&name&&normDocText(s.counterparty||s.concept||'').trim()===normDocText(name).trim()&&(role==='standard'||s.movement_role===role));
- if(similar.length){out.field_sources={...(out.field_sources||{})};for(const field of ['person_id','payer_person_id','account_id','category_id','activity_project_id',...(out.document_family==='fuel'?[]:['expense_scope'])]){if(out[field])continue;const value=dominantHistoricalValue(similar,field);if(value){out[field]=value;out.field_sources[field]='documentos confirmados del mismo emisor y clase · '+similar.length+' movimiento(s)'}}}
+ const similar=series.filter(s=>confirmedDocumentSeries.has(s.id)&&s.type===out.type&&name&&normDocText(s.counterparty||s.concept||'').trim()===normDocText(name).trim()&&(s.movement_role||'standard')===role);
+ if(similar.length){
+ out.field_sources={...(out.field_sources||{})};
+ const ownerRows=out.person_id?similar.filter(r=>r.person_id===out.person_id):similar;
+ for(const field of ['person_id','category_id','activity_project_id',...(out.document_family==='fuel'?[]:['expense_scope'])]){
+ if(out[field])continue;const value=dominantHistoricalValue(ownerRows,field);
+ if(value){out[field]=value;out.field_sources[field]='documentos confirmados del mismo emisor y clase · '+ownerRows.filter(r=>r[field]===value).length+'/'+ownerRows.length+' antecedentes'}
+ }
+ const pair=historicalPaymentPair(similar,out);
+ if(pair)for(const [field,value] of [['payer_person_id',pair[0]],['account_id',pair[1]]])if(!out[field]){out[field]=value;out.field_sources[field]='pareja pagador/cuenta de documentos confirmados del mismo titular'}
+ }
  return out;
 }
 function draftTransportReference(d){return (d.document_reference_keys||[]).map(normalizedRef).find(ref=>/^\d{7,8}$/.test(ref))||null}
@@ -1280,7 +1302,7 @@ function renderBudgets(){
   }).join(''):'<div class="card empty">Todavía no hay presupuestos. Crea uno arriba, por ejemplo «Vacaciones».</div>';
 }
 
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30102'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30103'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}

@@ -1,3 +1,12 @@
+## Aprendizaje documental conservador — build 30103 (2026-10-20)
+
+- Versión 3.0.0-rc.1.66. Retoma 30102 sin repetir auditoría ni transferir documentos privados.
+- Las sugerencias históricas requieren al menos tres antecedentes confirmados. Categoría/ámbito admiten mayoría >=90%; titular y actividad exigen unanimidad. Campos ausentes cuentan contra la confianza. No altera movimientos existentes.
+- Con titular explícito, las sugerencias se limitan a sus antecedentes. Pagador y cuenta se aprenden juntos de una pareja consistente, respetando los campos explícitos y sin mezclar titulares. Roles de gasto separados: un gasto normal no aprende de comisiones/seguros del mismo emisor.
+- Regresiones nuevas: mayoría 9/10 frente a identidad contradictoria; pareja pagador/cuenta con faltantes/contradicciones; enriquecimiento completo con dos titulares y roles distintos. Conserva precedencia documental y exclusión de ámbito por estación de combustible.
+- Suite completa 126/126, cero fallos; sintaxis inline e integridad PWA verificadas. Publicación y comprobación del endpoint pendientes al redactar. No hay escrituras económicas, cambios backend, migraciones ni acceso a producción/TransportERP.
+- Continúan pendientes: reglas de tarjetas por evidencia estructurada, sustitución transaccional aislada, aprendizaje persistente de reglas nuevas y QA móvil completa. No declarar cierre integral.
+
 ## Comprobación autenticada completada del bloque 30102 — 2026-10-20
 
 - Commit de código bcdd56c9576d59a665723e8a7112d1b2acf24993; Pages workflow 39373608252 completed/success. Endpoint y cabecera autenticada coinciden en 30102 / 3.0.0-rc.1.65. Suite completa 123/123.
