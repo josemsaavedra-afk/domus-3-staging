@@ -1,3 +1,11 @@
+## Evidencia de pago contradictoria — build 30108 (2026-10-20)
+
+- Versión 3.0.0-rc.1.71. Corregido fallo reproducido: una tarjeta reconocida omitía el contraste con IBAN porque el bloque solo se ejecutaba sin cuenta propuesta. Ahora contrasta ambas evidencias, avisa ante cuentas distintas o varios alias coincidentes y retira sugerencias automáticas de pagador/cuenta. Conserva valores explícitos y titular económico.
+- El aprendizaje histórico no rellena pagador/cuenta mientras exista contradicción documental. Tarjeta e IBAN concordantes conservan la pareja; las instrucciones bancarias del emisor de una factura emitida siguen excluidas. No modifica movimientos existentes ni guarda reglas nuevas.
+- Regresiones con datos ficticios: contradicción tarjeta/IBAN pese a tres antecedentes unánimes, concordancia, exclusión bancaria del emisor, conservación de selección explícita y ambigüedad de cuentas. Dos fallos reproducidos antes de corregir; archivo de familias 54/54 tras la corrección.
+- Navegador bloqueado por native credential state cannot be safely resumed incluso tras reinicio y apertura canónica. Sin intentos de extraer credenciales ni otro canal de autenticación. QA específica de 30107 y 30108 en pantalla pendiente.
+- Suite completa 142/142, cero fallos, incluida integridad PWA y sintaxis inline. Pendientes al redactar: publicación y verificación de assets. Producción y TransportERP intactos; sin escrituras económicas.
+
 ## Anotación explícita de titular — build 30107 (2026-10-20)
 
 - Versión 3.0.0-rc.1.70. DOMUS ACTIVIDAD seguido del nombre corto o alias exacto de una única persona activa prevalece sobre el titular leído del documento. El ámbito se marca actividad. No cambia movimientos ya guardados, pagador ni cuenta por esa anotación.

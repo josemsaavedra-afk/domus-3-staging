@@ -181,7 +181,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0 · RC1 · Build 30107<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0 · RC1 · Build 30108<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -856,10 +856,12 @@ function documentPaymentEvidence(text,d){
  const config=typeof rules==='undefined'?[]:(rules?.document_payment_rules||[]),matches=Array.isArray(config)?config.filter(r=>r.active!==false&&suffixes.has(r.suffix)&&people.some(p=>p.id===r.payer_person_id&&p.active!==false)&&accounts.some(a=>a.id===r.account_id&&a.active!==false)):[];
  const pairs=[...new Set(matches.map(r=>JSON.stringify([r.payer_person_id,r.account_id])))];
  const result={};if(pairs.length===1){const [payer,account]=JSON.parse(pairs[0]);if((d.payer_person_id&&d.payer_person_id!==payer)||(d.account_id&&d.account_id!==account))result.conflict='La tarjeta contradice el pagador o la cuenta indicados; revisa los datos.';else{result.payer_person_id=payer;result.account_id=account;result.source='tarjeta identificada por terminación'}}else if(pairs.length>1)result.conflict='Hay tarjetas de pagadores o cuentas distintos; selecciona el pago correspondiente.';
- if(!result.account_id&&d.document_family!=='household_issued_invoice'){
+ if(d.document_family!=='household_issued_invoice'){
   const compact=String(text||'').replace(/[^a-z0-9]/gi,'').toUpperCase();const candidates=accounts.filter(a=>a.active!==false&&(a.aliases||[]).some(v=>{const iban=String(v).replace(/[^a-z0-9]/gi,'').toUpperCase();return /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)&&compact.includes(iban)}));
-  if(candidates.length===1){if(result.account_id&&result.account_id!==candidates[0].id){delete result.payer_person_id;delete result.account_id;result.conflict='La tarjeta y el IBAN señalan cuentas distintas; revisa el pago.'}else if(!d.account_id){result.account_id=candidates[0].id;result.account_source='IBAN explícito coincidente con el alias de la cuenta'}}
+  if(candidates.length>1)result.conflict='El IBAN del documento coincide con varias cuentas; revisa el pago.';
+  else if(candidates.length===1){const account=result.account_id||d.account_id;if(account&&account!==candidates[0].id)result.conflict=result.account_id?'La tarjeta y el IBAN señalan cuentas distintas; revisa el pago.':'El IBAN contradice la cuenta indicada; revisa el pago.';else if(!result.conflict&&!d.account_id&&!result.account_id){result.account_id=candidates[0].id;result.account_source='IBAN explícito coincidente con el alias de la cuenta'}}
  }
+ if(result.conflict){delete result.payer_person_id;delete result.account_id;delete result.source;delete result.account_source}
  return result;
 }
 function applyDocumentClassification(out,text){
@@ -1016,7 +1018,7 @@ function enrichDocumentDraft(d,text=''){
  if(out[field])continue;const value=dominantHistoricalValue(ownerRows,field);
  if(value){out[field]=value;out.field_sources[field]='documentos confirmados del mismo emisor y clase · '+ownerRows.filter(r=>r[field]===value).length+'/'+ownerRows.length+' antecedentes'}
  }
- const pair=historicalPaymentPair(similar,out);
+ const pair=out.payment_evidence_warning?null:historicalPaymentPair(similar,out);
  if(pair)for(const [field,value] of [['payer_person_id',pair[0]],['account_id',pair[1]]])if(!out[field]){out[field]=value;out.field_sources[field]='pareja pagador/cuenta de documentos confirmados del mismo titular'}
  }
  return out;
@@ -1344,7 +1346,7 @@ function renderBudgets(){
   }).join(''):'<div class="card empty">Todavía no hay presupuestos. Crea uno arriba, por ejemplo «Vacaciones».</div>';
 }
 
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30107'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30108'}[name]||'DOMUS';if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury')renderTreasury();if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
