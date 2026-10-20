@@ -1,3 +1,13 @@
+## Comprobación autenticada completada del bloque 30102 — 2026-10-20
+
+- Commit de código bcdd56c9576d59a665723e8a7112d1b2acf24993; Pages workflow 39373608252 completed/success. Endpoint y cabecera autenticada coinciden en 30102 / 3.0.0-rc.1.65. Suite completa 123/123.
+- Tras recarga, las cuatro referencias sintéticas nuevas se recuperan en review. RHD abre dos tarjetas de 18,08 y 31,20, scroll de modal/caja cero, prefinanciación de ingreso oculta para ambos gastos. Factura emitida abre como ingreso con prefinanciación visible y clase de gasto oculta; cambiar tipo en pantalla actualiza visibilidad y cerrar sin crear no persiste ese cambio.
+- TGSS reabierto sobre 30102: importe 302,60; selección de movimiento vacía; comprobación sin marcar; Crear desactivado. Combustible: 25,00; número de lectura distinto del archivo; comprobación sin marcar; ámbito vacío. Cerrados sin crear/vincular/sustituir.
+- Evidencia visual guardada solo para inspección interna. No se publican capturas ni originales privados en el repositorio. No nuevas referencias aparte de las cuatro sintéticas descritas; no escrituras económicas ni cambios en saldo/conciliación.
+- Alcance verificado: análisis de nueve PDF reales localmente y flujo navegador con cuatro equivalentes sintéticos. Pendiente repetición autenticada con esos nueve originales: autorización anterior específica de transferencia correspondía a VS-26-154071 y V26-162583; no ampliar silenciosamente a otros PDF con datos fiscales/bancarios.
+- Persistencia de confirmación parcial, error al guardar y conservación de edición/asociaciones/predefinición probadas de forma aislada. No se ha ejecutado Crear/Sustituir/Vincular sobre movimientos reales. Continúan los pendientes generales: sustitución transaccional aislada, pagador/medio por evidencia, aprendizaje de reglas y móvil completo. No declarar cierre integral de DOMUS.
+- Producción y TransportERP intactos. Reanudar desde 30102 sin repetir auditoría ni pedir permiso para tareas técnicas ordinarias de Staging.
+
 ## Conservación completa de revisión pendiente — build 30102 (2026-10-20)
 
 - Versión 3.0.0-rc.1.65; suite completa 123/123. Extiende 30101: conserva selección de prefinanciación, fecha disponible y asociaciones manuales de otras tarjetas cuando se confirma una; una selección vaciada manualmente no se vuelve a inferir al renderizar.
