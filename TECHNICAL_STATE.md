@@ -1,3 +1,15 @@
+## Cotejo autenticado de nueve originales; corrección TGSS — build 30105 (2026-10-20)
+
+- Autorización expresa del usuario recibida para cargar los nueve originales y guardar propuestas sin crear movimientos. Acceso seguro y sesión Staging recuperados, build 30104 comprobada.
+- Los nueve PDF procesados desde selector UI; nueve nuevas referencias en review, diez propuestas (RHD múltiple tiene dos). Revisados los nueve mediante Siguiente sin guardar y cierre final sin crear/vincular/sustituir movimientos. No se suben originales privados al repositorio.
+- Importes en controles UI: dos G26 293,65/51,91, emitida 72,60, combustible 25,00, RHD 21,85/12,04/18,08+31,20/46,02, justificante 302,60. Fechas leídas correctas salvo combustible: OCR navegador deja fecha vacía (original 02/10); número se toma del archivo según decisión del usuario y coincide. Base/IVA de G26, emitida y combustible coherentes.
+- RHD conserva grupos separados y avisa referencias pendientes cuando falta ingreso. Emitida identifica Jeni/cliente; RHD de Jeni y combustible identifican Jeni. Titular de JM queda vacío en G26 y RHD de JM por alias corto en maestros; no inventado. Pagador/cuenta y categorías siguen mayoritariamente vacíos. Combustible muestra duplicado compatible existente. G26 ya figuran en movimientos; revisión no señala equivalencia de emisor, pendiente de corregir/validar.
+- Hallazgo real grave: PDF.js ordena encabezados antes que valores en TGSS. Parser anterior caía a lector genérico, proveedor Timestamp/clase comisión y Crear habilitado. Ninguna acción económica ejecutada.
+- Corregido: TGSS/adeudo siempre permanece justificante con revisión obligatoria; fila explícita importe/comisión/fecha permite recuperar 302,60 y 30/09. Si no puede leer importe, queda null/revisión y nunca pasa a gasto simple. Prueba anonimizada con orden real de PDF.js y variante incompleta.
+- Reproducción local usa PDF.js 4.10.38 y reconstrucción de texto idéntica al navegador sobre los ocho PDF con texto; escaneo tratado aparte. Herramienta de comparación y resultados privados fuera del repositorio.
+- Pendientes al redactar: suite completa/publicación de 30105 y releer solo TGSS real para verificar bloqueo de Crear. Los otros defectos (fecha OCR combustible, alias JM, equivalencias de emisor, categorías/pagador/cuenta) permanecen abiertos; no declarar motor terminado.
+- Producción, TransportERP, movimientos económicos, saldos y conciliaciones intactos.
+
 ## Cotejo de nueve originales y referencia partida — build 30104 (2026-10-20)
 
 - Releídos los nueve PDF originales del lote adicional, extracción local con pdftotext -layout y OCR del escaneo de combustible; sin transferencia a DOMUS ni escrituras económicas. Originales, textos y resultados privados fuera del repositorio.
