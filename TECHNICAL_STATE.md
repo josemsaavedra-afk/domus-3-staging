@@ -1,3 +1,10 @@
+## Cotejo real finalizado y TGSS verificado — 30105 (2026-10-20)
+
+- Código 8a1ebc9a2f01ba15605d8cafc057d4d4b1f67cfc; Pages 39378186252 completed/success. version.json y cabecera autenticada coinciden en 30105 / 3.0.0-rc.1.68. Suite completa 128/128.
+- Relectura autorizada de TGSS original desde UI 30105: 302,60, 30/09/2026, Cuota autónomos TGSS, clase standard, sin nº factura; justificante de cargo/revisión obligatoria. Crear desactivado, selector existente vacío, comprobación sin marcar. Ofrece una ocurrencia coincidente de 302,60 en 30/09, sin seleccionarla. Cierre sin crear/vincular/sustituir.
+- Recarga posterior y Documentos recuperan las nueve referencias originales nuevas + una relectura TGSS, todas review. Diez nuevas referencias, no diez movimientos. La propuesta TGSS anterior de 30104 permanece para trazabilidad y NO debe usarse como válida: conserva el fallo detectado; la lectura nueva es la corregida. No se han reescrito propuestas antiguas en bloque ni borrado datos.
+- Cotejo de los nueve originales realizado; no equivale a cierre integral del lector. Permanecen fecha OCR de combustible, alias JM, categorías/pagador/cuenta y equivalencias de emisor G26. Sin operaciones económicas ni cambios en producción/TransportERP.
+
 ## Cotejo autenticado de nueve originales; corrección TGSS — build 30105 (2026-10-20)
 
 - Autorización expresa del usuario recibida para cargar los nueve originales y guardar propuestas sin crear movimientos. Acceso seguro y sesión Staging recuperados, build 30104 comprobada.
