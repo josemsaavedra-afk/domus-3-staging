@@ -1,3 +1,14 @@
+## Lector documental y revisión múltiple — build 30100 (2026-10-20)
+
+- Versión 3.0.0-rc.1.63. Suite completa 121/121, 0 fallos. Publicación y comprobación autenticada pendientes al redactar esta entrada.
+- Análisis local de nueve PDF adicionales: RHD con dos costes en un mismo documento (18,08 y 31,20), grupos de referencias independientes y salto de página; factura emitida 72,60 como ingreso; cargo TGSS 302,60 como justificante; combustible 25,00 con discrepancia OCR/nombre de archivo; dos G26 con totales y fiscalidad coherentes. Los originales privados no se incorporan al repositorio.
+- RHD ahora devuelve una propuesta por coste e impide que enriquecerla añada referencias de otros grupos. Confirmar una propuesta conserva las restantes en revisión; cada propuesta almacena su vínculo y el documento se confirma solo al terminar todas. Historial y detalle de movimientos reconocen vínculos múltiples.
+- Justificante TGSS no crea factura nueva: exige revisión y selección manual de un movimiento existente. Vincular solo adjunta documento y confirma propuesta, sin modificar importes, fechas ni estado económico. Cobertura aislada de esta escritura; no ejecutada contra movimientos reales.
+- Combustible muestra discrepancia de número y exige confirmación antes de crear. No infiere ámbito profesional por estación/producto. Factura emitida identifica titular en el encabezado anterior a Facturar a y usa cliente como contraparte; no infiere pagador/cuenta a partir del IBAN del emisor.
+- Pruebas añadidas anonimizadas: separación RHD y referencias tras enriquecimiento; confirmación parcial; error de persistencia; vinculación sin cambios económicos; discrepancia OCR; emisor/cliente; justificante bancario.
+- Ningún movimiento económico, saldo, conciliación ni pago/cobro alterado. Nuevos PDF leídos solo localmente; no transferidos todavía a Staging. Sesión del navegador anterior no disponible: página actual solicita acceso. Pendiente QA autenticada de las propuestas nuevas; no declarar validación integral.
+- Producción y TransportERP no modificados. Sin migraciones ni despliegue backend. Continúan los pendientes generales de la entrada anterior.
+
 ## Validación final real sobre 30099 — 2026-10-19
 
 - Código main 453ab489039d912ce1cd436c4d78d53f8b481236, versión 3.0.0-rc.1.62 / build 30099. version.json y cabecera autenticada coinciden; publicación comprobada.
