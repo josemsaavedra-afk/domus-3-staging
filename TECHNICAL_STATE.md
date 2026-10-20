@@ -1,3 +1,11 @@
+## Conservación completa de revisión pendiente — build 30102 (2026-10-20)
+
+- Versión 3.0.0-rc.1.65; suite completa 123/123. Extiende 30101: conserva selección de prefinanciación, fecha disponible y asociaciones manuales de otras tarjetas cuando se confirma una; una selección vaciada manualmente no se vuelve a inferir al renderizar.
+- Factura emitida sintética verificada en navegador sobre 30100: ingreso 72,60, fecha 19/10/2026, nº 20261019, titular Jeni, cliente de prueba como contraparte, base 60 e IVA 12,60; cobrador vacío. Cerrada sin crear movimiento. Cuarta referencia sintética nueva en review.
+- Totales acumulados de pruebas de esta ejecución: 7 referencias reales anteriores autorizadas + 7 sintéticas (3 previas, 4 nuevas); ninguna contabilizada por estas pruebas. Nueve originales nuevos solo leídos localmente.
+- 30101 código bfc43e2b221cb3e5ac8c8fd0634ed6a98df9d959. 30102 sustituye a 30101 para comprobación final; no se declara QA de 30102 hasta observar cabecera y revisión actualizadas.
+- Producción, TransportERP, saldos, conciliaciones y movimientos económicos intactos. Sin cambios de esquema/backend.
+
 ## QA autenticada 30100 y ajustes de revisión 30101 — 2026-10-20
 
 - Acceso seguro recuperado, cabecera autenticada Build 30100 y maestros cargados.
