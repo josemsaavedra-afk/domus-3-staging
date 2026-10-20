@@ -2,7 +2,10 @@
 
 - Versión 3.0.0-rc.1.70. DOMUS ACTIVIDAD seguido del nombre corto o alias exacto de una única persona activa prevalece sobre el titular leído del documento. El ámbito se marca actividad. No cambia movimientos ya guardados, pagador ni cuenta por esa anotación.
 - Ante empate, nombre inactivo, ausencia de nombre o coincidencia parcial conserva el titular documental. Pruebas con identidades ficticias; sin datos privados en código.
-- Suite completa 139/139, sintaxis inline e integridad PWA correctas. Pendientes al redactar: publicación y comprobación del despliegue. GitHub Pages mostró error del servicio al intentar abrir la aplicación; no equivale a QA autenticada.
+- Suite completa 139/139, sintaxis inline e integridad PWA correctas. Código 9eb51218cd88e84be53e08ea53d5826431c1b2e6; Pages 39488436085 completed/success. version.json, index.html, asset-manifest.js y sw.js publicados idénticos byte a byte a los probados. Cabecera autenticada 30107 observada tras recarga; sesión recuperada.
+- El error inicial de GitHub Pages desapareció tras una recarga. Acceso seguro completado. Al preparar el caso sintético, navegador bloqueado por retained_data_restricted tras native credential delivery y reinicio del kernel. La prueba funcional de la anotación en UI sigue pendiente; no inferir éxito del caso ni iniciar otra vía de credenciales. No se pulsó Leer/Crear/Sustituir/Vincular en esta ejecución.
+- Comprobación económica a las 20:05 UTC: 1952 filas, digest bacb94d48c45d6d3eae876d8bb5bb051. Hay 43 altas con la misma marca 2026-10-20 19:58:13.130686+00 respecto al punto anterior. Autor/origen no atribuidos. Las 1909 filas anteriores conservan exactamente el digest 5d6078f910ecc800d9cc29170e84a0c4: no hay cambios en ese conjunto. No revertir ni tratar las 43 altas como datos de prueba de esta ejecución.
+- El ajuste local que figuraba pendiente en 30106 queda publicado con esta build. Pendiente solo su prueba funcional autenticada específica; no equivale a cierre integral del lector, sustitución transaccional ni QA móvil. Producción y TransportERP no modificados.
 
 ## Cierre de QA autenticada — build 30106 (2026-10-20)
 
