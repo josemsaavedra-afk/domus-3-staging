@@ -1,3 +1,12 @@
+## QA autenticada 30100 y ajustes de revisión 30101 — 2026-10-20
+
+- Acceso seguro recuperado, cabecera autenticada Build 30100 y maestros cargados.
+- Lote de tres PDF sintéticos leído en navegador: RHD presenta dos tarjetas (18,08 y 31,20) con fecha 03/08/2026, clase prefinance_fee y grupos de referencias separados; TGSS muestra 302,60, fecha 30/09, nº factura vacío, crear desactivado, selección existente vacía y comprobación sin marcar; combustible muestra 25,00, 02/10, ámbito vacío y discrepancia OCR/archivo con confirmación sin marcar.
+- Se avanzó y cerró usando Siguiente/Cerrar sin crear. Tres referencias sintéticas nuevas en review; ninguna escritura económica. Los nueve originales nuevos siguen sin transferirse.
+- Build 30101 / 3.0.0-rc.1.64: al abrir o avanzar revisión vuelve al principio; opción Ingreso prefinanciable solo en ingresos; confirmar una tarjeta captura las modificaciones de las demás tarjetas pendientes antes de volver a renderizar. Sin cambios fiscales ni de importes.
+- Suite completa 122/122. Publicación 30101 y comprobación final de estos ajustes pendientes al redactar. Factura emitida sintética en proceso de revisión, no declarar resultado todavía.
+- La confirmación/vinculación económica sigue probada solo mediante stubs; no se ejecutó creación/sustitución/vinculación contra movimientos reales. Producción y TransportERP intactos.
+
 ## Publicación 30100 confirmada; QA autenticada bloqueada — 2026-10-20
 
 - Código publicado: 3f2123d0a431ea384e10a6685965eed009db2797. Endpoint público version.json devuelve 3.0.0-rc.1.63 / build 30100. Suite completa previa al commit: 121/121.
