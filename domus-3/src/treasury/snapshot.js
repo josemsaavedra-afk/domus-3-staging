@@ -7,7 +7,12 @@ export function createTreasurySnapshot({ householdId, userId, accounts = [], ser
   const rows = [];
   for (const movement of members) {
     const start = parseBankDate(movement.start_date);
-    const stateMap = new Map(states.filter(row => row.series_id === movement.id).map(row => [parseBankDate(row.occurrence_date), row]));
+    const stateMap = new Map();
+    for (const state of states.filter(row => row.series_id === movement.id)) {
+      const occurrence = parseBankDate(state.occurrence_date);
+      if (stateMap.has(occurrence)) throw new Error(`Estado duplicado para la operación ${movement.id}|${occurrence}`);
+      stateMap.set(occurrence, state);
+    }
     const dates = new Set(stateMap.keys());
     if (movement.recurrence === 'none') dates.add(start);
     else {
