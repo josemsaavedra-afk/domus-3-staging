@@ -1,3 +1,5 @@
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createTreasurySnapshot} from '../domus-3/src/treasury/snapshot.js';
@@ -33,4 +35,10 @@ test('actual payment date changes its economic month and is no longer pending af
 });
 test('duplicate occurrence states fail explicitly instead of silently selecting one',()=>{
  assert.throws(()=>snapshot([movement('s')],[{series_id:'s',occurrence_date:'2026-10-25'},{series_id:'s',occurrence_date:'2026-10-25'}]),/Estado duplicado/);
+});
+
+test('Inicio gives an explicit rescheduled date precedence over a historical estimated window',()=>{
+ const html=readFileSync('domus-3/index.html','utf8'),source=html.slice(html.indexOf('function habitualMilestone(){'),html.indexOf('\n',html.indexOf('function habitualMilestone(){')));
+ const f={first:{id:'s',concept:'Income',occurrenceDate:new Date('2026-10-23T12:00:00'),state:{rescheduled_date:'2026-10-23'}},windowStart:new Date('2026-10-23T12:00:00'),windowEnd:new Date('2026-10-25T12:00:00'),daysMin:2,daysMax:4,expected:3000};
+ const context={Date,Math,interpaymentForecast:()=>f,fmt:d=>d.toISOString().slice(0,10),startOfDay:d=>d,originalDateOf:()=> '2026-10-25',escapeHtml:String,euro:String};vm.createContext(context);vm.runInContext(source,context);const out=context.habitualMilestone();assert.match(out,/Fecha reprogramada: 2026-10-23/);assert.ok(!out.includes('Ventana estimada'));assert.ok(!out.includes('2026-10-23–2026-10-25'));
 });
