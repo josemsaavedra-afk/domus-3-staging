@@ -25,10 +25,19 @@ export function createTreasuryViewModel(rows, accounts = [], asOf = new Date()) 
   const accountRows = accounts.map(account => {
     const accountReal = real.filter(row => row.accountId === account.id), registered = account.current_balance ?? account.balance ?? account.opening_balance;
     const confirmed = computeConfirmedBalance(account, real, asOf);
-    return { id: account.id, name: account.name || 'Cuenta sin nombre', registeredBalance: registered == null ? null : Number(registered), confirmedBalance: confirmed.available ? confirmed.balance : null, balanceReason: confirmed.available ? null : confirmed.reason, realFlow: confirmed.available ? confirmed.flow : rounded(totals(accountReal)).net, movements: confirmed.available ? confirmed.movements : accountReal.length };
+    return { id: account.id, name: account.name || 'Cuenta sin nombre', registeredBalance: registered == null ? null : Number(registered), confirmedBalance: confirmed.available ? confirmed.balance : null, referenceDate: confirmed.openingDate || null, balanceReason: confirmed.available ? null : confirmed.reason, realFlow: confirmed.available ? confirmed.flow : rounded(totals(accountReal)).net, movements: confirmed.available ? confirmed.movements : accountReal.length };
   });
   if (real.some(row => !row.accountId)) { const unassigned = real.filter(row => !row.accountId); accountRows.push({ id: null, name: 'Sin cuenta asignada', registeredBalance: null, realFlow: rounded(totals(unassigned)).net, movements: unassigned.length }); }
   return Object.freeze({ today, all: treasury.items, open, real, byStatus, horizons, nextIncomeDate, nextIncome: rounded(totals(nextIncomeRows)), dueBeforeIncome, dueBeforeIncomeTotals: rounded(totals(dueBeforeIncome)), accountRows });
 }
 
 export function legacyPendingTotals(rows, asOf = new Date()) { const vm = createTreasuryViewModel(rows, [], asOf); return rounded(totals(vm.open)); }
+
+// Period results never depend on bank checkpoints or carry previous months.
+export function monthlyTreasury(vm, month = vm.today.slice(0, 7)) {
+  const inMonth = row => row.date?.slice(0, 7) === month;
+  const pendingRows = vm.open.filter(inMonth), realizedRows = vm.real.filter(inMonth);
+  const plannedRows = [...pendingRows, ...realizedRows].sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
+  return { month, pendingRows, realizedRows, plannedRows,
+    pending: rounded(totals(pendingRows)), realized: rounded(totals(realizedRows)), planned: rounded(totals(plannedRows)) };
+}
