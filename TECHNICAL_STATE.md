@@ -1,3 +1,15 @@
+## Guardado económico transaccional — build 30112 (2026-10-21)
+
+- Versión 3.0.0-rc.1.75. Altas, cambios de fecha de movimientos individuales y sustituciones de una ocurrencia con cambios de metadatos usan `domus3_save_single_movement`. Los cambios de tramos futuros usan `domus3_save_recurrence_segment`.
+- Cada RPC confirma series, estados y cancelación de la versión sustituida en una transacción. Bloqueo de serie, revisión esperada y estado esperado previenen cambios concurrentes y reintentos que creen copias. Las conciliaciones afectadas bloquean el cambio de identidad. No hay fallback a escrituras parciales cliente. Una reprogramación simple conserva la clave de ocurrencia y sigue siendo una única escritura.
+- Migraciones `20261021094843_rc1_atomic_recurrence.sql` y `20261021100438_rc1_atomic_single_movement.sql` aplicadas exclusivamente a Staging. SECURITY INVOKER, ejecución solo authenticated, membresía explícita y RLS intacta. Acceso anónimo denegado y permisos contrastados tras aplicar. Advisors sin hallazgos nuevos respecto al control anterior.
+- Inicio prioriza una fecha reprogramada explícita frente a ventanas históricas estimadas. Inicio y Dinero esperan la carga del contexto económico del usuario/hogar. Carga pendiente o fallida no se presenta como cero; el snapshot offline conserva contexto de propietario.
+- Validación local: suite completa 165/165, incluidos once escenarios SQL transaccionales y transporte/carga/aislamiento. Después se añadió una regresión de fecha reprogramada exacta en Inicio: el grupo afectado pasa 15/15 (166 casos distintos en total). Sintaxis inline y manifiesto PWA correctos.
+- La reparación delimitada de la ocurrencia duplicada sigue comprobada. El resto de series y estados conservan las huellas de la copia previa. Detalle financiero privado fuera del repositorio público.
+- 30111: Pages completado; cabecera autenticada observada. Inicio se observó con una sola ocurrencia reprogramada y resultado mensual sin saldo inicial. La revisión posterior de Dinero se interrumpió por desconexión del servicio de navegador; lectura y reinicio agotaron el tiempo de espera. No afirmar QA visual completa ni validación autenticada de estas RPC nuevas.
+- Pendientes materiales: cotejo de liquidaciones prefinanciadas (netos frente a costes enlazados y costes calculados frente a facturas posteriores), edición/conciliación de extremo a extremo y QA final móvil/recarga/nueva sesión. No declarar cerrada la auditoría integral ni dar por definitivos todos los importes mensuales.
+- Reversión: volver primero a la aplicación 30111 y después retirar las funciones añadidas por sus firmas. Las migraciones solo añaden funciones y permisos; no transforman registros económicos existentes.
+
 ## Tesorería mensual e integridad — builds 30110/30111 (2026-10-21)
 
 - 30110 / 3.0.0-rc.1.73 integrada mediante PR #4. Pages completado correctamente para 99a854bab1d342c681edd50d764f350774d9a016.
