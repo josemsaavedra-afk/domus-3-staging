@@ -7,7 +7,12 @@ export function createTreasurySnapshot({ householdId, userId, accounts = [], ser
   const rows = [];
   for (const movement of members) {
     const start = parseBankDate(movement.start_date);
-    const stateMap = new Map(states.filter(row => row.series_id === movement.id).map(row => [parseBankDate(row.occurrence_date), row]));
+    const stateMap = new Map();
+    for (const state of states.filter(row => row.series_id === movement.id)) {
+      const key = parseBankDate(state.occurrence_date);
+      if (stateMap.has(key)) throw new Error('Estado duplicado para ' + movement.id + '|' + key);
+      stateMap.set(key, state);
+    }
     const dates = new Set(stateMap.keys());
     if (movement.recurrence === 'none') dates.add(start);
     else {
@@ -28,6 +33,11 @@ export function createTreasurySnapshot({ householdId, userId, accounts = [], ser
     }
     for (const original of dates) {
       const state = stateMap.get(original) || {};
+      // Closed segments can retain old pending exceptions. Only an explicit
+      // reschedule or a realized operation survives outside the segment.
+      const outside = original < start || (movement.recurrence_end && original > movement.recurrence_end);
+      if (outside && !state.rescheduled_date && !state.actual_date && state.status !== 'done') continue;
+      if (movement.active === false && state.status !== 'done' && !state.actual_date) continue;
       const effective = state.actual_date || state.prefinanced_at || state.rescheduled_date || original;
       if (parseBankDate(effective) > horizon) continue;
       rows.push({ ...movement, ...state, id: `${movement.id}|${original}`, series_id: movement.id,
