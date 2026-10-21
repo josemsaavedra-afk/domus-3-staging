@@ -21,3 +21,16 @@ test('carga todas las páginas y no devuelve resultados parciales al fallar',asy
  assert.equal(result.data.length,1201);
  await assert.rejects(()=>readAllPages(()=>({range:async(a,b)=>a?{error:new Error('red')}:{data:data.slice(a,b+1)}})),/red/);
 });
+
+test('rechaza estados duplicados de una misma operación sin sumar dos cobros',()=>{
+ const series=[{id:'lyreco',household_id:'a',start_date:'2026-10-10',recurrence:'none',type:'income',amount:3000}];
+ const states=[
+  {series_id:'lyreco',occurrence_date:'2026-10-10',status:'pending'},
+  {series_id:'lyreco',occurrence_date:'2026-10-10',status:'rescheduled',rescheduled_date:'2026-10-25'}
+ ];
+ assert.throws(()=>createTreasurySnapshot({...input,series,states}),/Estado duplicado/);
+ const snapshot=createTreasurySnapshot({...input,series,states:[states[1]]});
+ assert.equal(snapshot.rows.length,1);
+ assert.equal(snapshot.rows[0].amount,3000);
+ assert.equal(snapshot.rows[0].rescheduled_date,'2026-10-25');
+});
