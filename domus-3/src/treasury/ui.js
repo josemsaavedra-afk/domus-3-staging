@@ -74,11 +74,15 @@ function statusCards(vm) { return Object.entries(LABEL).map(([status, label]) =>
  }).join(''); }
 function treasuryTotals(rows){return rows.reduce((out,row)=>{out.income+=row.type==='income'?Number(row.amount||0):0;out.expense+=row.type==='expense'?Number(row.amount||0):0;out.net+=Number(row.signedAmount||0);out.count++;return out},{income:0,expense:0,net:0,count:0})}
 function operationalTreasury(vm,available,confirmedCount,totalAccounts){
- const today=vm.today,monthStart=today.slice(0,7)+'-01',weekEnd=vm.horizons.week.end,monthEnd=vm.horizons.month.end;
- const overdueRows=vm.open.filter(r=>r.status==='vencido'),todayRows=vm.open.filter(r=>r.date===today),weekRows=vm.open.filter(r=>r.date>today&&r.date<=weekEnd),monthRows=vm.open.filter(r=>r.date>today&&r.date<=monthEnd),realMonthRows=vm.real.filter(r=>r.date>=monthStart&&r.date<=today),commitmentRows=vm.open.filter(r=>r.date<=monthEnd);
- const overdue=treasuryTotals(overdueRows),todayTotals=treasuryTotals(todayRows),week=treasuryTotals(weekRows),month=treasuryTotals(monthRows),realMonth=treasuryTotals(realMonthRows),commitment=treasuryTotals(commitmentRows);
+ const today=vm.today,monthStart=today.slice(0,7)+'-01',monthEnd=vm.horizons.month.end;
+ const overdueRows=vm.open.filter(r=>r.date<monthStart),todayRows=vm.open.filter(r=>r.date===today),currentMonthOpenRows=vm.open.filter(r=>r.date>=monthStart&&r.date<=monthEnd),commitmentRows=vm.open.filter(r=>r.date<=monthEnd),realMonthRows=vm.real.filter(r=>r.date>=monthStart&&r.date<=today);
+ const overdue=treasuryTotals(overdueRows),todayTotals=treasuryTotals(todayRows),currentMonthOpen=treasuryTotals(currentMonthOpenRows),commitment=treasuryTotals(commitmentRows),realMonth=treasuryTotals(realMonthRows);
+ const plannedMonth={income:realMonth.income+currentMonthOpen.income,expense:realMonth.expense+currentMonthOpen.expense,net:(realMonth.income+currentMonthOpen.income)-(realMonth.expense+currentMonthOpen.expense)};
  const projected=confirmedCount?available+commitment.net:null,projectedComplete=confirmedCount>0&&confirmedCount===totalAccounts;
- return {today,monthStart,weekEnd,monthEnd,overdueRows,todayRows,weekRows,monthRows,realMonthRows,commitmentRows,overdue,todayTotals,week,month,realMonth,commitment,projected,projectedComplete};
+ const nextCutoff=day=>{const d=new Date(today+'T12:00:00');let y=d.getFullYear(),m=d.getMonth();if(d.getDate()>day){m++;if(m>11){m=0;y++;}}return y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0')};
+ const cutoff10=nextCutoff(10),cutoff25=nextCutoff(25);
+ const cut10Rows=vm.open.filter(r=>r.date<=cutoff10),cut25Rows=vm.open.filter(r=>r.date<=cutoff25),cut10=treasuryTotals(cut10Rows),cut25=treasuryTotals(cut25Rows);
+ return {today,monthStart,monthEnd,overdueRows,todayRows,currentMonthOpenRows,realMonthRows,commitmentRows,overdue,todayTotals,currentMonthOpen,realMonth,plannedMonth,commitment,projected,projectedComplete,cutoff10,cutoff25,cut10Rows,cut25Rows,cut10,cut25,cutoff10Balance:confirmedCount?available+cut10.net:null,cutoff25Balance:confirmedCount?available+cut25.net:null};
 }
 function operationalCards(op){
  const projectedText=op.projected==null?'Sin saldo base':euro(op.projected),projectedSub=op.projected==null?'Confirma saldos bancarios para calcularlo':(op.projectedComplete?'Saldo calculado + pendientes hasta fin de mes':'Proyección parcial: faltan cuentas por confirmar');
@@ -166,103 +170,88 @@ export function renderTreasury3(snapshot) {
   const context = JSON.stringify([snapshot.userId || null, snapshot.householdId || null]);
   if (context !== activeContext) { resetTreasury3(); activeContext = context; }
   currentSnapshot = snapshot;
-  const generation = ++renderGeneration;
-  const sourceAccounts = (snapshot.accounts || []).filter(account => snapshot.householdId && account.household_id === snapshot.householdId && account.active !== false), accounts = sourceAccounts.map(account => accountWithLocalCheckpoint(account, checkpointFor(account.id)));
+  ++renderGeneration;
+  const sourceAccounts = (snapshot.accounts || []).filter(account => snapshot.householdId && account.household_id === snapshot.householdId && account.active !== false);
+  const accounts = sourceAccounts.map(account => accountWithLocalCheckpoint(account, checkpointFor(account.id)));
   const vm = createTreasuryViewModel(snapshot.rows || [], accounts, snapshot.asOf || new Date());
   lastViewModel = vm; queueMicrotask(()=>window.renderDashboard?.());
-  const realAccounts = vm.accountRows.filter(row => row.id), confirmedAccounts = realAccounts.filter(row => row.confirmedBalance != null), available = confirmedAccounts.reduce((sum,row) => sum + Number(row.confirmedBalance || 0), 0), op=operationalTreasury(vm,available,confirmedAccounts.length,realAccounts.length);
-  const availableText = confirmedAccounts.length ? euro(available) : 'Sin saldo confirmado', availableSub = confirmedAccounts.length ? (confirmedAccounts.length === realAccounts.length ? confirmedAccounts.length+' cuenta(s) calculadas' : confirmedAccounts.length+' de '+realAccounts.length+' cuenta(s) calculadas') : 'Registra o recupera un saldo bancario para ver el disponible real.';
-  root.innerHTML = `<div class="card treasury-explain"><h2 style="margin:0 0 6px">Tu dinero este mes</h2><p class="muted" style="margin:0">Lo esencial: cuánto tienes, cuánto queda por pagar, cuánto esperas cobrar y cómo terminarías el mes.</p></div>
-  <div class="treasury-overview-grid">
-    <div class="card treasury-balance-focus"><div class="label">Dinero disponible hoy</div><div class="value">${availableText}</div><div class="sub">${esc(availableSub)}</div></div>
-    <button class="card kpi clickable" type="button" data-treasury-operational="monthExpense"><span class="label">Por pagar este mes</span><span class="value">${euro(op.commitment.expense)}</span><span class="sub">${op.commitment.count} movimientos pendientes en total</span></button>
-    <button class="card kpi clickable" type="button" data-treasury-operational="monthIncome"><span class="label">Por cobrar este mes</span><span class="value">${euro(op.commitment.income)}</span><span class="sub">Cobros previstos hasta final de mes</span></button>
-    <div class="card kpi treasury-balance-focus"><span class="label">Previsión al acabar el mes</span><span class="value">${op.projected==null?'Sin saldo base':euro(op.projected)}</span><span class="sub">${op.projected==null?'Confirma algún saldo para calcularla':(op.projectedComplete?'Si se cumplen los cobros y pagos previstos':'Proyección parcial: faltan cuentas por confirmar')}</span></div>
+
+  const realAccounts=vm.accountRows.filter(row=>row.id),confirmedAccounts=realAccounts.filter(row=>row.confirmedBalance!=null);
+  const available=confirmedAccounts.reduce((sum,row)=>sum+Number(row.confirmedBalance||0),0);
+  const op=operationalTreasury(vm,available,confirmedAccounts.length,realAccounts.length);
+  const hasBalance=confirmedAccounts.length>0;
+  const balanceText=hasBalance?euro(available):'Sin saldo base';
+  const balanceSub=hasBalance?'Saldo total consolidado. Da igual en qué cuenta esté.':'Falta un saldo de partida para proyectar la caja.';
+  const endBalance=op.projected==null?'—':euro(op.projected);
+  const endClass=op.projected!=null&&op.projected<0?'expense':'income';
+  const incomePct=op.plannedMonth.income?Math.min(100,Math.round(op.realMonth.income/op.plannedMonth.income*100)):0;
+  const expensePct=op.plannedMonth.expense?Math.min(100,Math.round(op.realMonth.expense/op.plannedMonth.expense*100)):0;
+  const dueIncome=op.commitment.income,dueExpense=op.commitment.expense;
+  const overdueCount=op.overdueRows.length,todayCount=op.todayRows.length;
+
+  root.innerHTML = `<div class="treasury-simple-head">
+    <div><span class="home-kicker">Tesorería</span><h2>Tu dinero, sin rodeos</h2><p class="muted">Qué tienes hoy, qué has cobrado y pagado, qué queda pendiente y con cuánto acabarías el mes.</p></div>
   </div>
-  <div class="grid two treasury3-panels">
-    <div class="card"><div class="section-title"><div><h2>Dinero por cuenta</h2><p class="muted">Saldos disponibles calculados a partir del último saldo confirmado.</p></div></div><div class="treasury-account-mobile">${accountCards(vm)}</div><div class="table-wrap treasury-account-table" tabindex="0" role="region" aria-label="Dinero por cuenta"><table class="table"><thead><tr><th>Cuenta</th><th>Disponible</th><th>Cambio desde saldo</th><th>Mov.</th></tr></thead><tbody>${accountRows(vm)}</tbody></table></div></div>
-    <div class="card"><h2>Hasta el próximo cobro</h2><p class="muted">Para saber qué tiene que aguantar el dinero disponible.</p><div class="detail-field"><small>Próximo ingreso previsto</small><strong>${date(vm.nextIncomeDate)} · ${euro(vm.nextIncome.income)}</strong></div><div class="detail-field"><small>Pagos pendientes hasta entonces</small><strong>${euro(vm.dueBeforeIncomeTotals.expense)}</strong><span class="muted"> · ${vm.dueBeforeIncomeTotals.count} movimiento(s)</span></div></div>
+
+  <div class="treasury-hero-grid">
+    <div class="card treasury-hero-card">
+      <span class="label">Saldo hoy</span>
+      <strong class="treasury-hero-value">${balanceText}</strong>
+      <small>${esc(balanceSub)}</small>
+    </div>
+    <div class="card treasury-hero-card treasury-end-card">
+      <span class="label">Saldo previsto fin de mes</span>
+      <strong class="treasury-hero-value ${endClass}">${endBalance}</strong>
+      <small>${op.projected==null?'Se calculará cuando exista saldo de partida.':'Saldo hoy + cobros pendientes − pagos pendientes.'}</small>
+    </div>
   </div>
-  <div class="card treasury-balance-now"><div class="section-title"><div><h2>Poner los saldos de hoy</h2><p class="muted">Escribe lo que muestra ahora cada banco. DOMUS usará ese importe como punto de partida para calcular tu dinero disponible.</p></div></div><div class="msg info"><strong>No tienes que reconstruir años anteriores.</strong> Puedes poner el saldo actual con la fecha de hoy y, desde ahí, DOMUS irá sumando y restando los movimientos reales posteriores.</div>${balanceCaptureRows(sourceAccounts, vm.today)}</div>\n  <div id="treasury3Detail" class="card hidden"><div class="section-title treasury-detail-head"><h2 id="treasury3DetailTitle">Desglose</h2><button class="btn" type="button" id="treasury3Close">Cerrar</button></div><div id="treasury3DetailMobile" class="treasury-detail-mobile"></div><div class="table-wrap treasury-detail-table" tabindex="0" role="region" aria-label="Tabla desplazable horizontalmente"><table class="table"><thead><tr><th>Fecha</th><th>Estado</th><th>Concepto</th><th>Tipo</th><th>Importe</th></tr></thead><tbody id="treasury3DetailBody"></tbody></table></div></div>
-  <details class="card treasury-advanced"><summary><strong>Más opciones</strong><span class="muted"> · saldos, previsiones, extractos y conciliación</span></summary>
-    <div class="treasury3-note"><strong>Estado de sincronización</strong><p role="status" data-persistence-mode="${persistence.state()}">${persistence.state() === 'local' ? 'Trabajo local: todavía no se guardan estos datos en remoto.' : persistence.state() === 'persistent' ? 'Sincronización remota disponible.' : 'Guardado remoto pendiente de habilitación segura.'}</p></div>
-    ${(()=>{const u=vm.accountRows.find(row=>!row.id);return u?`<button class="card kpi clickable treasury-unassigned-warning" type="button" data-treasury-unassigned><span class="label">Histórico sin cuenta asignada</span><span class="value">${euro(Math.abs(u.realFlow))}</span><span class="sub">${u.movements} movimiento(s). No forman parte de ningún saldo bancario actual.</span></button>`:''})()}
-    <details class="card"><summary><strong>Diagnóstico por estados</strong><span class="muted"> · histórico completo y previsiones largas</span></summary><p class="muted">Información técnica para auditar cómo DOMUS clasifica los movimientos. No se usa como indicador principal.</p><div class="treasury-status-grid">${statusCards(vm)}</div></details>
-    
-    <div class="card"><h2>Previsión por períodos</h2><div class="table-wrap" tabindex="0" role="region" aria-label="Previsión acumulada"><table class="table"><thead><tr><th>Horizonte</th><th>Ingresos</th><th>Pagos</th><th>Neto</th><th>Mov.</th></tr></thead><tbody>${horizonRows(vm)}</tbody></table></div></div>
-    <div class="card"><div class="section-title"><div><h2>Conciliación bancaria segura</h2><p class="muted">El extracto se usa para reconocer y comprobar movimientos existentes.</p></div><label class="btn">2. Seleccionar extracto<input id="treasuryCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label></div><div class="msg info"><strong>Regla de seguridad:</strong> cargar o conciliar un extracto <strong>no crea movimientos</strong>. Una línea bancaria solo puede enlazarse con un movimiento DOMUS ya existente. Si no hay coincidencia, queda pendiente de revisión.</div><div id="treasuryCsvResult" class="empty">1. Selecciona la cuenta. Después elige tu CSV o TSV. DOMUS buscará coincidencias sin crear nada nuevo.</div></div>
-  </details>`;
-  const accountSelect = document.createElement('select');
-  accountSelect.id = 'treasuryCsvAccount'; accountSelect.className = 'treasury-review-select'; accountSelect.setAttribute('aria-label', 'Cuenta del extracto');
-  accountSelect.innerHTML = '<option value="">1. Cuenta del extracto…</option>'+sourceAccounts.map(account => `<option value="${esc(account.id)}">${esc(account.name || 'Cuenta sin nombre')}</option>`).join('');
-  const fileLabel = root.querySelector('#treasuryCsv').closest('label'); fileLabel.parentElement.insertBefore(accountSelect, fileLabel);
-  root.querySelector('#treasury3Close').onclick = () => root.querySelector('#treasury3Detail').classList.add('hidden');
-  const signature = accountId => JSON.stringify(movementsForStatementAccount(vm.real, accountId).map(row => [row.id, row.date, row.signedAmount, row.concept]));
-  const showReview = key => {
-    const entry = statementReviews.get(key); if (!entry) return;
-    if (!sourceAccounts.some(account => account.id === entry.metadata.account.id)) return;
-    activeReviewKey = key; accountSelect.value = entry.metadata.account.id;
-    entry.stale = entry.signature !== signature(entry.metadata.account.id);
-    bindReconciliationReview(root.querySelector('#treasuryCsvResult'), entry, generation);
+
+  <div class="treasury-flow-grid">
+    <button class="card treasury-flow-card clickable" type="button" data-treasury-operational="monthIncome">
+      <div class="treasury-flow-head"><span>Ingresos del mes</span><strong>${euro(op.plannedMonth.income)} previstos</strong></div>
+      <div class="treasury-progress"><span style="width:${incomePct}%"></span></div>
+      <div class="treasury-flow-stats"><span><small>Cobrado</small><b class="income">${euro(op.realMonth.income)}</b></span><span><small>Queda por cobrar</small><b class="income">${euro(dueIncome)}</b></span></div>
+      <small class="muted">Toca para ver los cobros pendientes. Los vencidos aparecen también en Atención.</small>
+    </button>
+    <button class="card treasury-flow-card clickable" type="button" data-treasury-operational="monthExpense">
+      <div class="treasury-flow-head"><span>Pagos del mes</span><strong>${euro(op.plannedMonth.expense)} previstos</strong></div>
+      <div class="treasury-progress"><span style="width:${expensePct}%"></span></div>
+      <div class="treasury-flow-stats"><span><small>Pagado</small><b class="expense">${euro(op.realMonth.expense)}</b></span><span><small>Queda por pagar</small><b class="expense">${euro(dueExpense)}</b></span></div>
+      <small class="muted">Toca para ver los pagos pendientes. Los vencidos aparecen también en Atención.</small>
+    </button>
+  </div>
+
+  <div class="card treasury-cutoff-card">
+    <div class="section-title"><div><h2>Próximos cortes de caja</h2><p class="muted">Tus dos fechas de referencia habituales.</p></div></div>
+    <div class="treasury-cutoff-grid">
+      <button type="button" class="treasury-cutoff clickable" data-treasury-operational="cut10"><small>Saldo previsto · ${date(op.cutoff10)}</small><strong>${op.cutoff10Balance==null?'—':euro(op.cutoff10Balance)}</strong><span>Por cobrar ${euro(op.cut10.income)} · por pagar ${euro(op.cut10.expense)}</span></button>
+      <button type="button" class="treasury-cutoff clickable" data-treasury-operational="cut25"><small>Saldo previsto · ${date(op.cutoff25)}</small><strong>${op.cutoff25Balance==null?'—':euro(op.cutoff25Balance)}</strong><span>Por cobrar ${euro(op.cut25.income)} · por pagar ${euro(op.cut25.expense)}</span></button>
+    </div>
+  </div>
+
+  <div class="card treasury-attention-card">
+    <div class="section-title"><div><h2>Atención</h2><p class="muted">Solo lo que necesita revisión ahora.</p></div></div>
+    <div class="treasury-attention-grid">
+      <button type="button" class="treasury-attention-item clickable ${overdueCount?'attention':''}" data-treasury-operational="overdue"><span>Vencidos</span><strong>${overdueCount}</strong><small>Cobros ${euro(op.overdue.income)} · pagos ${euro(op.overdue.expense)}</small></button>
+      <button type="button" class="treasury-attention-item clickable" data-treasury-operational="today"><span>Vencen hoy</span><strong>${todayCount}</strong><small>Cobros ${euro(op.todayTotals.income)} · pagos ${euro(op.todayTotals.expense)}</small></button>
+    </div>
+  </div>
+
+  <div id="treasury3Detail" class="card hidden"><div class="section-title treasury-detail-head"><h2 id="treasury3DetailTitle">Desglose</h2><button class="btn" type="button" id="treasury3Close">Cerrar</button></div><div id="treasury3DetailMobile" class="treasury-detail-mobile"></div><div class="table-wrap treasury-detail-table" tabindex="0" role="region" aria-label="Detalle de tesorería"><table class="table"><thead><tr><th>Fecha</th><th>Estado</th><th>Concepto</th><th>Tipo</th><th>Importe</th></tr></thead><tbody id="treasury3DetailBody"></tbody></table></div></div>`;
+
+  root.querySelector('#treasury3Close').onclick=()=>root.querySelector('#treasury3Detail').classList.add('hidden');
+  const detail=root.querySelector('#treasury3Detail'),title=root.querySelector('#treasury3DetailTitle'),body=root.querySelector('#treasury3DetailBody'),mobile=root.querySelector('#treasury3DetailMobile');
+  const show=(label,rows)=>{title.textContent=label;body.innerHTML=movementRows(rows);mobile.innerHTML=movementCards(rows);detail.classList.remove('hidden');detail.scrollIntoView({behavior:'smooth',block:'start'});};
+  const rowsByKey={
+    monthIncome:op.commitmentRows.filter(r=>r.type==='income'),
+    monthExpense:op.commitmentRows.filter(r=>r.type==='expense'),
+    overdue:op.overdueRows,
+    today:op.todayRows,
+    cut10:op.cut10Rows,
+    cut25:op.cut25Rows
   };
-  if (statementReviews.size) {
-    const saved = document.createElement('select'); saved.setAttribute('aria-label', 'Revisiones de esta sesión');
-    saved.innerHTML = '<option value="">Reabrir revisión…</option>' + [...statementReviews].map(([key,entry]) => '<option value="' + esc(key) + '">' + esc(entry.metadata.account.name + ' · ' + entry.metadata.fileName) + '</option>').join('');
-    fileLabel.parentElement.insertBefore(saved, fileLabel); saved.value = activeReviewKey || '';
-    saved.onchange = () => { if (generation === renderGeneration) showReview(saved.value); };
-  }
-  if (activeReviewKey) showReview(activeReviewKey);
-  const fileInput = root.querySelector('#treasuryCsv');
-  fileInput.disabled = !accountSelect.value;
-  accountSelect.onchange = () => { fileInput.disabled = !accountSelect.value; root.querySelector('#treasuryCsvResult').textContent = '2. Selecciona el archivo para esta cuenta. Las revisiones anteriores se conservan.'; };
-  fileInput.onchange = async event => {
-    const output = root.querySelector('#treasuryCsvResult');
-    try {
-      const file = event.target.files?.[0], account = sourceAccounts.find(item => item.id === accountSelect.value);
-      if (!file) return;
-      if (!account) throw new Error('Selecciona la cuenta a la que pertenece el extracto');
-      if (file.size > 5 * 1024 * 1024) throw new Error('El archivo supera 5 MB');
-      if (/\.(xlsx?|pdf)$/i.test(file.name)) throw new Error('Este paso lee extractos CSV o TSV. Exporta el extracto bancario a CSV; los documentos profesionales mantienen su circuito de TransportERP.');
-      const text = await file.text();
-      if (generation !== renderGeneration) return;
-      let info = inspectStatementCsv(text);
-      const display = () => {
-        output.className = '';
-        const option = selected => '<option value="-1">Sin columna</option>' + info.headers.map((h,i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${esc(h || '(sin título)')}</option>`).join('');
-        const labels = { date:'Fecha real de operación', concept:'Concepto', amount:'Importe con signo (− cargo / + abono)', debit:'Cargo', credit:'Abono', reference:'Referencia (opcional)' };
-        output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p><label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>`;
-        output.querySelector('[data-csv-delimiter]').value = info.delimiter==='\t'?'tab':info.delimiter;
-        output.querySelector('[data-csv-format]').onclick = () => { try { const delimiter = output.querySelector('[data-csv-delimiter]').value; info = inspectStatementCsv(text,{delimiter:delimiter==='tab'?'\t':delimiter,headerRow:Number(output.querySelector('[data-csv-header]').value)-1}); display(); } catch(error) { output.querySelector('[data-csv-message]').textContent = 'No importado: '+error.message; } };
-        output.querySelector('[data-csv-review]').onclick = async () => {
-          const note = output.querySelector('[data-csv-message]');
-          try {
-            if (generation !== renderGeneration || accountSelect.value !== account.id) throw new Error('La cuenta ha cambiado. Selecciona de nuevo el archivo.');
-            const mapping = {delimiter:info.delimiter,headerRow:info.headerRow,...Object.fromEntries([...output.querySelectorAll('[data-csv-map]')].map(el=>[el.dataset.csvMap,Number(el.value)]))};
-            const rows = parseStatementCsv(text,mapping), fingerprint = await createStatementFingerprint(account.id,text);
-            if (generation !== renderGeneration) return;
-            const existing = statementReviews.get(fingerprint.duplicateKey);
-            if (existing && !existing.stale && !existing.needsPersistentReview) { showReview(fingerprint.duplicateKey); return; }
-            const results = reconcileStatement(rows,movementsForStatementAccount(vm.real,account.id));
-            const key = existing ? fingerprint.duplicateKey+':revision:'+(statementReviews.size+1) : fingerprint.duplicateKey;
-            statementReviews.set(key,{session:createReviewSession(results),signature:signature(account.id),metadata:{account,fileName:file.name,csv:text,mapping,fingerprint,automatic:reconciliationSummary(results)}});
-            activeReviewKey=key;renderTreasury3(snapshot);
-          } catch(error) { note.className='msg error';note.textContent='No importado: '+error.message+'. El historial anterior se conserva.'; }
-        };
-      };
-      display();
-    } catch(error) { if (generation===renderGeneration) { output.className='msg error';output.textContent='No importado: '+error.message+'. El historial anterior se conserva.'; } }
-    finally { event.target.value=''; }
-  };
-  bindBalanceCapture(root, { ...snapshot, accounts: sourceAccounts }, vm, generation);
-  bindDetails(root, vm);
-  persistencePanel?.render(root);
-  // Staging currently exposes an authenticated read endpoint only. Prevent
-  // accidental creation of unsendable write proposals in the local outbox.
-  if(window.__domusTreasuryReadAdapter){
-    const status=root.querySelector('[data-persistence-mode]');
-    if(status)status.textContent='Consulta remota disponible. Guardado de Tesorería pendiente de habilitación segura.';
-    root.querySelectorAll('[data-enqueue-checkpoint],[data-enqueue-import],[data-enqueue-confirmations],[data-sync-treasury]').forEach(button=>{button.disabled=true;button.title='Guardado remoto no disponible en RC1 de pruebas';});
-  }
+  const labels={monthIncome:'Queda por cobrar',monthExpense:'Queda por pagar',overdue:'Vencidos pendientes',today:'Vencen hoy',cut10:'Movimientos hasta '+date(op.cutoff10),cut25:'Movimientos hasta '+date(op.cutoff25)};
+  root.querySelectorAll('[data-treasury-operational]').forEach(button=>button.onclick=()=>show(labels[button.dataset.treasuryOperational],rowsByKey[button.dataset.treasuryOperational]||[]));
   return vm;
 }
 window.DOMUSTreasury3 = { render: renderTreasury3, reset: resetTreasury3, snapshot: createTreasurySnapshot, configurePersistence, summary: () => lastViewModel };
