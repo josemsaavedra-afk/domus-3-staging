@@ -1,3 +1,13 @@
+## Rediseño de Tesorería — build 30109 (2026-10-21)
+
+- Versión 3.0.0-rc.1.72. Tesorería deja de presentar cuentas bancarias, saldos por cuenta, captura de saldos, diagnósticos por estados y previsiones largas como contenido principal.
+- Nueva lectura operativa: Saldo hoy; Ingresos del mes (previsto, cobrado, queda por cobrar); Pagos del mes (previsto, pagado, queda por pagar); Saldo previsto fin de mes; próximos cortes de caja de los días 10 y 25; Atención con vencidos y vencimientos de hoy.
+- Los movimientos realizados se usan para cobrado/pagado; los pendientes hasta fin de mes para queda por cobrar/pagar. Los vencidos anteriores al mes se mantienen visibles en Atención y siguen afectando a la caja mientras continúen pendientes.
+- Las cuentas siguen existiendo como metadato y fuente técnica del saldo consolidado, pero desaparecen del protagonismo visual: el usuario ve un único saldo total sin importar dónde esté el dinero.
+- Inicio cambia “Previsión al acabar el mes” por “Saldo previsto fin de mes” y sus pendientes incluyen vencidos para no ocultar obligaciones o cobros arrastrados.
+- Se corrige APP_BUILD, que seguía anclado a 30083 pese a que la aplicación ya estaba en 30108. Producción no modificada.
+- Pendiente de QA visual autenticada en móvil/escritorio y de validar cifras reales tras propagación de GitHub Pages.
+
 ## Evidencia de pago contradictoria — build 30108 (2026-10-20)
 
 - Versión 3.0.0-rc.1.71. Corregido fallo reproducido: una tarjeta reconocida omitía el contraste con IBAN porque el bloque solo se ejecutaba sin cuenta propuesta. Ahora contrasta ambas evidencias, avisa ante cuentas distintas o varios alias coincidentes y retira sugerencias automáticas de pagador/cuenta. Conserva valores explícitos y titular económico.
