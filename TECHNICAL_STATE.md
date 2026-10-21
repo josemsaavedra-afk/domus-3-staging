@@ -1,3 +1,11 @@
+## Desgloses mensuales separados — build 30113 (2026-10-21)
+
+- Versión 3.0.0-rc.1.76. La captura del usuario muestra una lista que mezcla cobros pendientes y realizados. Ingresos y pagos ahora ofrecen cuatro controles independientes: Por cobrar, Cobrado, Por pagar y Pagado, con mes/año visible. Se elimina el desglose combinado y su rótulo previstos y cobrados/pagados.
+- Cada control usa una selección común de filas por mes efectivo, tipo y estado. Prueba con histórico de enero, vencidos de enero y previsiones hasta enero siguiente: ninguno entra en octubre salvo un cobro con fecha real explícita de octubre. Las fechas previstas originales distintas se muestran en filas móviles/escritorio para explicar esa pertenencia. No se reclasifican fechas ni se modifica historial económico.
+- La fecha real de cobro/pago determina el mes de caja. La afirmación de que hay filas de enero en octubre no se ha reproducido sobre la versión actual: el filtro mensual ya existía; se añade regresión de extremo a extremo de selección y trazabilidad de fecha original. No atribuir a un cambio de datos no demostrado.
+- Consulta agregada de Staging encuentra cobros/pagos con fecha real octubre y fecha original de agosto, septiembre, octubre y noviembre; no se cambia esa evidencia por el mes de factura. Cotejo de prefinanciación permanece pendiente, según 30112.
+- Suite completa 169/169, cero fallos; sintaxis e integridad PWA correctas. Pendientes al redactar: publicación y QA autenticada. Sin cambios de esquema, escrituras económicas, producción ni TransportERP.
+
 ## Guardado económico transaccional — build 30112 (2026-10-21)
 
 - Versión 3.0.0-rc.1.75. Altas, cambios de fecha de movimientos individuales y sustituciones de una ocurrencia con cambios de metadatos usan `domus3_save_single_movement`. Los cambios de tramos futuros usan `domus3_save_recurrence_segment`.

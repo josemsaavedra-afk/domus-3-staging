@@ -5,7 +5,7 @@ import { createPersistencePanel } from './persistence-panel.js';
 import { createTreasuryPersistence } from './persistence.js';
 import { createTreasurySnapshot } from './snapshot.js';
 import { buildCheckpointDraft } from './checkpoint-draft.js';
-import { createTreasuryViewModel, monthlyTreasury } from './view-model.js';
+import { createTreasuryViewModel, monthlyTreasury, monthlyTreasuryBreakdowns } from './view-model.js';
 import { reconcileStatement, reconciliationSummary } from './reconciliation.js';
 import { createReviewSession, decideReview, reviewSummary, selectReviewCandidate } from './reconciliation-review.js';
 import { parseStatementCsv, inspectStatementCsv } from './statement-csv.js';
@@ -15,7 +15,7 @@ import { buildReconciliationReport, createStatementFingerprint, movementsForStat
 const euro = value => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(Number(value || 0));
 const date = value => value ? new Intl.DateTimeFormat('es-ES').format(new Date(`${value}T12:00:00`)) : 'Sin fecha prevista';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-const LABEL = { previsto: 'Previsto futuro', pendiente: 'Pendiente hoy', vencido: 'Vencido', realizado: 'Realizado histórico', reprogramado: 'Reprogramado', prefinanciado: 'Prefinanciado', liquidado: 'Liquidado' };
+const LABEL = { previsto: 'Previsto futuro', pendiente: 'Pendiente hoy', vencido: 'Vencido', realizado: 'Realizado', reprogramado: 'Reprogramado', prefinanciado: 'Prefinanciado', liquidado: 'Liquidado' };
 const STATUS_HELP = {
   previsto:'Movimientos pendientes con fecha posterior a hoy.',
   pendiente:'Movimientos pendientes cuya fecha es hoy.',
@@ -99,8 +99,8 @@ function operationalCards(op){
 function horizonRows(vm) { const labels = { week: '7 días', month: 'Fin de mes', days30: '30 días', year: 'Fin de año' }; return Object.entries(vm.horizons).map(([key, row]) => `<tr><td><button class="link-button" type="button" data-treasury-horizon="${key}">${labels[key]}</button><small class="muted"> · hasta ${date(row.end)}</small></td><td class="amount income">${euro(row.income)}</td><td class="amount expense">${euro(row.expense)}</td><td class="amount ${row.net < 0 ? 'expense' : 'income'}">${euro(row.net)}</td><td>${row.count}</td></tr>`).join(''); }
 function accountRows(vm) { const rows=vm.accountRows.filter(row=>row.id); if (!rows.length) return '<tr><td colspan="4" class="empty">No hay cuentas configuradas.</td></tr>'; return rows.map(row => `<tr><td>${esc(row.name)}</td><td>${row.confirmedBalance == null ? `<span class="muted">${esc(row.balanceReason)}</span>` : `<strong>${euro(row.confirmedBalance)}</strong>`}</td><td class="amount ${row.realFlow < 0 ? 'expense' : 'income'}">${euro(row.realFlow)}</td><td>${row.movements}</td></tr>`).join(''); }
 function accountCards(vm){const rows=vm.accountRows.filter(row=>row.id);if(!rows.length)return '<div class="empty">No hay cuentas configuradas.</div>';return rows.map(row=>`<article class="treasury-account-card"><div><strong>${esc(row.name)}</strong><small>${row.confirmedBalance==null?esc(row.balanceReason):date(row.referenceDate)+' · '+row.movements+' movimiento(s) posteriores'}</small></div><span>${row.confirmedBalance==null?'—':euro(row.confirmedBalance)}</span></article>`).join('')}
-function movementRows(rows) { if (!rows.length) return '<tr><td colspan="5" class="empty">Sin movimientos en este desglose.</td></tr>'; return rows.map(row => `<tr><td>${date(row.date)}</td><td><span class="pill">${esc(LABEL[row.status] || row.status)}</span></td><td>${esc(row.concept)}</td><td>${row.type === 'income' ? 'Ingreso' : 'Pago'}</td><td class="amount ${row.type}">${row.type === 'income' ? '+' : '−'}${euro(row.amount)}</td></tr>`).join(''); }
-function movementCards(rows){if(!rows.length)return '<div class="empty">Sin movimientos en este desglose.</div>';return rows.map(row=>`<article class="treasury-mobile-movement"><div class="treasury-mobile-movement-top"><div><strong>${esc(row.concept)}</strong><small>${date(row.date)} · ${esc(LABEL[row.status]||row.status)}</small></div><span class="amount ${row.type}">${row.type==='income'?'+':'−'}${euro(row.amount)}</span></div><div class="treasury-mobile-movement-type">${row.type==='income'?'Ingreso':'Pago'}</div></article>`).join('')}
+function movementRows(rows) { if (!rows.length) return '<tr><td colspan="5" class="empty">Sin movimientos en este desglose.</td></tr>'; return rows.map(row => `<tr><td>${date(row.date)}${row.originalDate&&row.originalDate!==row.date?`<small class="muted">Prevista original: ${date(row.originalDate)}</small>`:''}</td><td><span class="pill">${esc(LABEL[row.status] || row.status)}</span></td><td>${esc(row.concept)}</td><td>${row.type === 'income' ? 'Ingreso' : 'Pago'}</td><td class="amount ${row.type}">${row.type === 'income' ? '+' : '−'}${euro(row.amount)}</td></tr>`).join(''); }
+function movementCards(rows){if(!rows.length)return '<div class="empty">Sin movimientos en este desglose.</div>';return rows.map(row=>`<article class="treasury-mobile-movement"><div class="treasury-mobile-movement-top"><div><strong>${esc(row.concept)}</strong><small>${date(row.date)} · ${esc(LABEL[row.status]||row.status)}</small>${row.originalDate&&row.originalDate!==row.date?`<small>Fecha prevista original: ${date(row.originalDate)}</small>`:''}</div><span class="amount ${row.type}">${row.type==='income'?'+':'−'}${euro(row.amount)}</span></div><div class="treasury-mobile-movement-type">${row.type==='income'?'Ingreso':'Pago'}</div></article>`).join('')}
 function reconciliationRows(session) { return session.rows.map(row => { const locked = row.decision !== 'pendiente'; return `<tr><td>${date(row.statement.date)}</td><td>${esc(row.statement.concept)}</td><td class="amount ${row.statement.signedAmount < 0 ? 'expense' : 'income'}">${euro(row.statement.signedAmount)}</td><td><span class="pill">${esc(locked ? row.decision : row.matchStatus.replaceAll('_', ' '))}</span></td><td>${row.candidates.length ? `<select class="treasury-review-select" data-review-select="${esc(row.statement.id)}" ${locked ? 'disabled' : ''}><option value="">Seleccionar…</option>${row.candidates.map(candidate => `<option value="${esc(candidate.id)}" ${candidate.id === row.selectedMovementId ? 'selected' : ''}>${esc(candidate.concept)}${candidate.id === row.candidates[0]?.id ? ` · ${row.score}%` : ''}</option>`).join('')}</select>` : '<strong>Sin coincidencia</strong><br><small class="muted">No se crea movimiento</small>'}</td><td><div class="actions"><button class="btn primary" type="button" data-review-confirm="${esc(row.statement.id)}" ${locked || !row.selectedMovementId ? 'disabled' : ''}>Conciliar</button><button class="btn" type="button" data-review-discard="${esc(row.statement.id)}" ${locked ? 'disabled' : ''}>Descartar</button></div></td></tr>`; }).join(''); }
 function balanceCaptureRows(accounts, asOf) { if (!accounts.length) return '<div class="empty">No hay cuentas configuradas.</div>'; return accounts.map(account => { const checkpoint = checkpointFor(account.id); return `<div class="treasury-balance-form" data-balance-account="${esc(account.id)}"><h3>${esc(account.name || 'Cuenta sin nombre')}</h3><div class="treasury-balance-grid"><label>Saldo que muestra el banco<input data-opening-amount type="number" step="0.01" value="${checkpoint?.amount ?? ''}" placeholder="0,00"></label><label>Fecha de ese saldo<input data-opening-date type="date" max="${esc(asOf)}" value="${checkpoint?.date ?? esc(asOf)}"></label><button class="btn" type="button" data-save-opening>Aplicar saldo</button></div><details class="treasury-balance-check"><summary>Comprobar más adelante si DOMUS cuadra con el banco</summary><div class="treasury-balance-grid"><label>Saldo bancario a comprobar<input data-closing-amount type="number" step="0.01" placeholder="0,00"></label><label>Fecha del saldo bancario<input data-closing-date type="date" max="${esc(asOf)}" value="${esc(asOf)}"></label><button class="btn" type="button" data-check-balance ${checkpoint ? '' : 'disabled'}>Comprobar cuadre</button><button class="btn" type="button" data-download-checkpoint>Descargar copia técnica</button></div></details><div data-balance-result class="muted">${checkpoint ? `${checkpoint.persisted ? "Saldo guardado" : "Saldo pendiente de guardar"}: ${euro(checkpoint.amount)} a ${date(checkpoint.date)}.` : 'Introduce el saldo actual y la fecha. DOMUS empezará a calcular desde ese punto.'}</div></div>`; }).join(''); }
 
@@ -186,9 +186,7 @@ export function renderTreasury3(snapshot) {
   const balanceSub=hasBalance?'Saldo total consolidado. Da igual en qué cuenta esté.':'Falta un saldo de partida para proyectar la caja.';
   const endBalance=euro(op.plannedMonth.net);
   const endClass=op.plannedMonth.net<0?'expense':'income';
-  const incomePct=op.plannedMonth.income?Math.min(100,Math.round(op.realMonth.income/op.plannedMonth.income*100)):0;
-  const expensePct=op.plannedMonth.expense?Math.min(100,Math.round(op.realMonth.expense/op.plannedMonth.expense*100)):0;
-  const dueIncome=op.currentMonthOpen.income,dueExpense=op.currentMonthOpen.expense;
+  const monthLabel=new Intl.DateTimeFormat('es-ES',{month:'long',year:'numeric'}).format(new Date(op.monthStart+'T12:00:00'));
   const overdueCount=op.overdueRows.length,todayCount=op.todayRows.length;
 
   root.innerHTML = `<div class="treasury-simple-head">
@@ -209,18 +207,22 @@ export function renderTreasury3(snapshot) {
   </div>
 
   <div class="treasury-flow-grid">
-    <button class="card treasury-flow-card clickable" type="button" data-treasury-operational="monthIncome">
-      <div class="treasury-flow-head"><span>Ingresos del mes</span><strong>${euro(op.plannedMonth.income)} previstos</strong></div>
-      <div class="treasury-progress"><span style="width:${incomePct}%"></span></div>
-      <div class="treasury-flow-stats"><span><small>Cobrado</small><b class="income">${euro(op.realMonth.income)}</b></span><span><small>Queda por cobrar</small><b class="income">${euro(dueIncome)}</b></span></div>
-      <small class="muted">Toca para ver todos los cobros del mes. Los vencidos aparecen también en Atención.</small>
-    </button>
-    <button class="card treasury-flow-card clickable" type="button" data-treasury-operational="monthExpense">
-      <div class="treasury-flow-head"><span>Pagos del mes</span><strong>${euro(op.plannedMonth.expense)} previstos</strong></div>
-      <div class="treasury-progress"><span style="width:${expensePct}%"></span></div>
-      <div class="treasury-flow-stats"><span><small>Pagado</small><b class="expense">${euro(op.realMonth.expense)}</b></span><span><small>Queda por pagar</small><b class="expense">${euro(dueExpense)}</b></span></div>
-      <small class="muted">Toca para ver todos los pagos del mes. Los vencidos aparecen también en Atención.</small>
-    </button>
+    <section class="card treasury-flow-card">
+      <div class="treasury-flow-head"><span>Ingresos · ${esc(monthLabel)}</span></div>
+      <div class="treasury-flow-stats">
+        <button class="clickable" type="button" data-treasury-operational="monthIncomePending"><small>Por cobrar</small><b class="income">${euro(op.currentMonthOpen.income)}</b></button>
+        <button class="clickable" type="button" data-treasury-operational="monthIncomeReal"><small>Cobrado</small><b class="income">${euro(op.realMonth.income)}</b></button>
+      </div>
+      <small class="muted">Pendientes y cobrados en listas separadas. Solo este mes.</small>
+    </section>
+    <section class="card treasury-flow-card">
+      <div class="treasury-flow-head"><span>Pagos · ${esc(monthLabel)}</span></div>
+      <div class="treasury-flow-stats">
+        <button class="clickable" type="button" data-treasury-operational="monthExpensePending"><small>Por pagar</small><b class="expense">${euro(op.currentMonthOpen.expense)}</b></button>
+        <button class="clickable" type="button" data-treasury-operational="monthExpenseReal"><small>Pagado</small><b class="expense">${euro(op.realMonth.expense)}</b></button>
+      </div>
+      <small class="muted">Pendientes y pagados en listas separadas. Solo este mes.</small>
+    </section>
   </div>
 
   <details class="card"><summary>Saldos bancarios y conciliación</summary>
@@ -314,14 +316,13 @@ export function renderTreasury3(snapshot) {
   const detail=root.querySelector('#treasury3Detail'),title=root.querySelector('#treasury3DetailTitle'),body=root.querySelector('#treasury3DetailBody'),mobile=root.querySelector('#treasury3DetailMobile');
   const show=(label,rows)=>{title.textContent=label+' · '+rows.length+' movimientos · '+euro(treasuryTotals(rows).net);body.innerHTML=movementRows(rows);mobile.innerHTML=movementCards(rows);detail.classList.remove('hidden');detail.scrollIntoView({behavior:'smooth',block:'start'});};
   const rowsByKey={
-    monthIncome:[...op.currentMonthOpenRows,...op.realMonthRows].filter(r=>r.type==='income'),
-    monthExpense:[...op.currentMonthOpenRows,...op.realMonthRows].filter(r=>r.type==='expense'),
+    ...monthlyTreasuryBreakdowns(vm),
     overdue:op.overdueRows,
     today:op.todayRows,
     cut10:op.cut10Rows,
     cut25:op.cut25Rows
   };
-  const labels={monthIncome:'Ingresos del mes · previstos y cobrados',monthExpense:'Gastos del mes · previstos y pagados',overdue:'Vencidos pendientes',today:'Vencen hoy',cut10:'Movimientos hasta '+date(op.cutoff10),cut25:'Movimientos hasta '+date(op.cutoff25)};
+  const labels={monthIncomePending:'Por cobrar · '+monthLabel,monthIncomeReal:'Cobrado · '+monthLabel,monthExpensePending:'Por pagar · '+monthLabel,monthExpenseReal:'Pagado · '+monthLabel,overdue:'Vencidos pendientes',today:'Vencen hoy',cut10:'Movimientos hasta '+date(op.cutoff10),cut25:'Movimientos hasta '+date(op.cutoff25)};
   root.querySelectorAll('[data-treasury-operational]').forEach(button=>button.onclick=()=>show(labels[button.dataset.treasuryOperational],rowsByKey[button.dataset.treasuryOperational]||[]));
   if(window.__domusTreasuryReadAdapter){
     root.querySelectorAll('[data-enqueue-checkpoint],[data-enqueue-import],[data-enqueue-confirmations],[data-sync-treasury]').forEach(button=>{button.disabled=true;button.title='Guardado remoto no disponible en este adaptador';});

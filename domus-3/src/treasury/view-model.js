@@ -41,3 +41,15 @@ export function monthlyTreasury(vm, month = vm.today.slice(0, 7)) {
   return { month, pendingRows, realizedRows, plannedRows,
     pending: rounded(totals(pendingRows)), realized: rounded(totals(realizedRows)), planned: rounded(totals(plannedRows)) };
 }
+
+// Each monthly drill-down has one cash state and one movement type.
+export function monthlyTreasuryBreakdowns(vm, month = vm.today.slice(0, 7)) {
+  const summary = monthlyTreasury(vm, month);
+  const ordered = rows => [...rows].sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
+  return Object.fromEntries([
+    ['monthIncomePending', summary.pendingRows, 'income'],
+    ['monthIncomeReal', summary.realizedRows, 'income'],
+    ['monthExpensePending', summary.pendingRows, 'expense'],
+    ['monthExpenseReal', summary.realizedRows, 'expense']
+  ].map(([key, rows, type]) => [key, ordered(rows.filter(row=>row.type===type))]));
+}
