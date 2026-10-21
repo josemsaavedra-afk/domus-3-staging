@@ -4,3 +4,9 @@ async function install(corrupt){let job,activated=false,puts=0;const handlers={}
  vm.runInContext(readFileSync('domus-3/sw.js','utf8'),context);handlers.install({waitUntil:p=>job=p});return {job,state:()=>({activated,puts,total:self.DOMUS3_ASSETS.length})};}
 test('PWA installs a complete, verified build before activation',async()=>{const x=await install(false);await x.job;assert.equal(x.state().puts,x.state().total);assert.equal(x.state().activated,true);});
 test('PWA rejects mixed assets without writing or activating their cache',async()=>{const x=await install(true);await assert.rejects(x.job,/Archivo de otro build/);assert.equal(x.state().puts,0);assert.equal(x.state().activated,false);});
+test('visible header and updater identify the packaged build',()=>{
+ const version=JSON.parse(readFileSync('domus-3/version.json','utf8'));
+ const html=readFileSync('domus-3/index.html','utf8');
+ assert.ok(html.includes('DOMUS · '+version.version+' · Build '+version.build));
+ assert.ok(html.includes("const APP_BUILD='"+version.build+"'"));
+});

@@ -77,7 +77,7 @@ function treasuryTotals(rows){return rows.reduce((out,row)=>{out.income+=row.typ
 function operationalTreasury(vm,available,confirmedCount,totalAccounts){
  const monthly=monthlyTreasury(vm);
  const today=vm.today,monthStart=today.slice(0,7)+'-01',monthEnd=vm.horizons.month.end;
- const overdueRows=vm.open.filter(r=>r.date<monthStart),todayRows=vm.open.filter(r=>r.date===today),currentMonthOpenRows=vm.open.filter(r=>r.date>=monthStart&&r.date<=monthEnd),commitmentRows=vm.open.filter(r=>r.date<=monthEnd),realMonthRows=monthly.realizedRows;
+ const overdueRows=vm.open.filter(r=>r.date<today),todayRows=vm.open.filter(r=>r.date===today),currentMonthOpenRows=vm.open.filter(r=>r.date>=monthStart&&r.date<=monthEnd),commitmentRows=vm.open.filter(r=>r.date<=monthEnd),realMonthRows=monthly.realizedRows;
  const overdue=treasuryTotals(overdueRows),todayTotals=treasuryTotals(todayRows),currentMonthOpen=treasuryTotals(currentMonthOpenRows),commitment=treasuryTotals(commitmentRows),realMonth=treasuryTotals(realMonthRows);
  const plannedMonth=monthly.planned;
  const projected=confirmedCount>0&&confirmedCount===totalAccounts?available+commitment.net:null,projectedComplete=confirmedCount>0&&confirmedCount===totalAccounts;
@@ -172,7 +172,7 @@ export function renderTreasury3(snapshot) {
   const context = JSON.stringify([snapshot.userId || null, snapshot.householdId || null]);
   if (context !== activeContext) { resetTreasury3(); activeContext = context; }
   currentSnapshot = snapshot;
-  ++renderGeneration;
+  const generation=++renderGeneration;
   const sourceAccounts = (snapshot.accounts || []).filter(account => snapshot.householdId && account.household_id === snapshot.householdId && account.active !== false);
   const accounts = sourceAccounts.map(account => accountWithLocalCheckpoint(account, checkpointFor(account.id)));
   const vm = createTreasuryViewModel(snapshot.rows || [], accounts, snapshot.asOf || new Date());
@@ -227,7 +227,8 @@ export function renderTreasury3(snapshot) {
     <p>Saldo confirmado y movimientos posteriores a su fecha de referencia. Sin referencia, el saldo es desconocido.</p>
     ${accountCards(vm)}
     ${balanceCaptureRows(accounts,vm.today)}
-    <div class="treasury-advanced"></div>
+    <div class="treasury-advanced">    <div class="card"><div class="section-title"><div><h2>Conciliación bancaria segura</h2><p class="muted">El extracto se usa para reconocer y comprobar movimientos existentes.</p></div><label class="btn">2. Seleccionar extracto<input id="treasuryCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label></div><div class="msg info"><strong>Regla de seguridad:</strong> cargar o conciliar un extracto <strong>no crea movimientos</strong>. Una línea bancaria solo puede enlazarse con un movimiento DOMUS ya existente. Si no hay coincidencia, queda pendiente de revisión.</div><div id="treasuryCsvResult" class="empty">1. Selecciona la cuenta. Después elige tu CSV o TSV. DOMUS buscará coincidencias sin crear nada nuevo.</div></div>
+</div>
   <div class="card treasury-cutoff-card">
     <div class="section-title"><div><h2>Próximos cortes de caja</h2><p class="muted">Tus dos fechas de referencia habituales.</p></div></div>
     <div class="treasury-cutoff-grid">
@@ -247,6 +248,66 @@ export function renderTreasury3(snapshot) {
 
   <div id="treasury3Detail" class="card hidden"><div class="section-title treasury-detail-head"><h2 id="treasury3DetailTitle">Desglose</h2><button class="btn" type="button" id="treasury3Close">Cerrar</button></div><div id="treasury3DetailMobile" class="treasury-detail-mobile"></div><div class="table-wrap treasury-detail-table" tabindex="0" role="region" aria-label="Detalle de tesorería"><table class="table"><thead><tr><th>Fecha</th><th>Estado</th><th>Concepto</th><th>Tipo</th><th>Importe</th></tr></thead><tbody id="treasury3DetailBody"></tbody></table></div></div>`;
 
+  const accountSelect = document.createElement('select');
+  accountSelect.id = 'treasuryCsvAccount'; accountSelect.className = 'treasury-review-select'; accountSelect.setAttribute('aria-label', 'Cuenta del extracto');
+  accountSelect.innerHTML = '<option value="">1. Cuenta del extracto…</option>'+sourceAccounts.map(account => `<option value="${esc(account.id)}">${esc(account.name || 'Cuenta sin nombre')}</option>`).join('');
+  const fileLabel = root.querySelector('#treasuryCsv').closest('label'); fileLabel.parentElement.insertBefore(accountSelect, fileLabel);
+  const signature = accountId => JSON.stringify(movementsForStatementAccount(vm.real, accountId).map(row => [row.id, row.date, row.signedAmount, row.concept]));
+  const showReview = key => {
+    const entry = statementReviews.get(key); if (!entry) return;
+    if (!sourceAccounts.some(account => account.id === entry.metadata.account.id)) return;
+    activeReviewKey = key; accountSelect.value = entry.metadata.account.id;
+    entry.stale = entry.signature !== signature(entry.metadata.account.id);
+    bindReconciliationReview(root.querySelector('#treasuryCsvResult'), entry, generation);
+  };
+  if (statementReviews.size) {
+    const saved = document.createElement('select'); saved.setAttribute('aria-label', 'Revisiones de esta sesión');
+    saved.innerHTML = '<option value="">Reabrir revisión…</option>' + [...statementReviews].map(([key,entry]) => '<option value="' + esc(key) + '">' + esc(entry.metadata.account.name + ' · ' + entry.metadata.fileName) + '</option>').join('');
+    fileLabel.parentElement.insertBefore(saved, fileLabel); saved.value = activeReviewKey || '';
+    saved.onchange = () => { if (generation === renderGeneration) showReview(saved.value); };
+  }
+  if (activeReviewKey) showReview(activeReviewKey);
+  const fileInput = root.querySelector('#treasuryCsv');
+  fileInput.disabled = !accountSelect.value;
+  accountSelect.onchange = () => { fileInput.disabled = !accountSelect.value; root.querySelector('#treasuryCsvResult').textContent = '2. Selecciona el archivo para esta cuenta. Las revisiones anteriores se conservan.'; };
+  fileInput.onchange = async event => {
+    const output = root.querySelector('#treasuryCsvResult');
+    try {
+      const file = event.target.files?.[0], account = sourceAccounts.find(item => item.id === accountSelect.value);
+      if (!file) return;
+      if (!account) throw new Error('Selecciona la cuenta a la que pertenece el extracto');
+      if (file.size > 5 * 1024 * 1024) throw new Error('El archivo supera 5 MB');
+      if (/\.(xlsx?|pdf)$/i.test(file.name)) throw new Error('Este paso lee extractos CSV o TSV. Exporta el extracto bancario a CSV; los documentos profesionales mantienen su circuito de TransportERP.');
+      const text = await file.text();
+      if (generation !== renderGeneration) return;
+      let info = inspectStatementCsv(text);
+      const display = () => {
+        output.className = '';
+        const option = selected => '<option value="-1">Sin columna</option>' + info.headers.map((h,i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${esc(h || '(sin título)')}</option>`).join('');
+        const labels = { date:'Fecha real de operación', concept:'Concepto', amount:'Importe con signo (− cargo / + abono)', debit:'Cargo', credit:'Abono', reference:'Referencia (opcional)' };
+        output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p><label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>`;
+        output.querySelector('[data-csv-delimiter]').value = info.delimiter==='\t'?'tab':info.delimiter;
+        output.querySelector('[data-csv-format]').onclick = () => { try { const delimiter = output.querySelector('[data-csv-delimiter]').value; info = inspectStatementCsv(text,{delimiter:delimiter==='tab'?'\t':delimiter,headerRow:Number(output.querySelector('[data-csv-header]').value)-1}); display(); } catch(error) { output.querySelector('[data-csv-message]').textContent = 'No importado: '+error.message; } };
+        output.querySelector('[data-csv-review]').onclick = async () => {
+          const note = output.querySelector('[data-csv-message]');
+          try {
+            if (generation !== renderGeneration || accountSelect.value !== account.id) throw new Error('La cuenta ha cambiado. Selecciona de nuevo el archivo.');
+            const mapping = {delimiter:info.delimiter,headerRow:info.headerRow,...Object.fromEntries([...output.querySelectorAll('[data-csv-map]')].map(el=>[el.dataset.csvMap,Number(el.value)]))};
+            const rows = parseStatementCsv(text,mapping), fingerprint = await createStatementFingerprint(account.id,text);
+            if (generation !== renderGeneration) return;
+            const existing = statementReviews.get(fingerprint.duplicateKey);
+            if (existing && !existing.stale && !existing.needsPersistentReview) { showReview(fingerprint.duplicateKey); return; }
+            const results = reconcileStatement(rows,movementsForStatementAccount(vm.real,account.id));
+            const key = existing ? fingerprint.duplicateKey+':revision:'+(statementReviews.size+1) : fingerprint.duplicateKey;
+            statementReviews.set(key,{session:createReviewSession(results),signature:signature(account.id),metadata:{account,fileName:file.name,csv:text,mapping,fingerprint,automatic:reconciliationSummary(results)}});
+            activeReviewKey=key;renderTreasury3(snapshot);
+          } catch(error) { note.className='msg error';note.textContent='No importado: '+error.message+'. El historial anterior se conserva.'; }
+        };
+      };
+      display();
+    } catch(error) { if (generation===renderGeneration) { output.className='msg error';output.textContent='No importado: '+error.message+'. El historial anterior se conserva.'; } }
+    finally { event.target.value=''; }
+  };
   bindBalanceCapture(root,snapshot,vm,renderGeneration);
   persistencePanel?.render(root);
   root.querySelector('#treasury3Close').onclick=()=>root.querySelector('#treasury3Detail').classList.add('hidden');
@@ -262,6 +323,9 @@ export function renderTreasury3(snapshot) {
   };
   const labels={monthIncome:'Ingresos del mes · previstos y cobrados',monthExpense:'Gastos del mes · previstos y pagados',overdue:'Vencidos pendientes',today:'Vencen hoy',cut10:'Movimientos hasta '+date(op.cutoff10),cut25:'Movimientos hasta '+date(op.cutoff25)};
   root.querySelectorAll('[data-treasury-operational]').forEach(button=>button.onclick=()=>show(labels[button.dataset.treasuryOperational],rowsByKey[button.dataset.treasuryOperational]||[]));
+  if(window.__domusTreasuryReadAdapter){
+    root.querySelectorAll('[data-enqueue-checkpoint],[data-enqueue-import],[data-enqueue-confirmations],[data-sync-treasury]').forEach(button=>{button.disabled=true;button.title='Guardado remoto no disponible en este adaptador';});
+  }
   return vm;
 }
 window.DOMUSTreasury3 = { render: renderTreasury3, reset: resetTreasury3, snapshot: createTreasurySnapshot, configurePersistence, normalize: normalizeTreasuryItem, monthly: monthlyTreasury, summary: () => lastViewModel };

@@ -1,3 +1,12 @@
+## Tesorería mensual e integridad — builds 30110/30111 (2026-10-21)
+
+- 30110 / 3.0.0-rc.1.73 integrada mediante PR #4. Pages completado correctamente para 99a854bab1d342c681edd50d764f350774d9a016.
+- Resultados mensuales sin saldo inicial, referencias bancarias separadas, expansión de ocurrencias compartida entre interfaces, exclusión de excepciones pendientes antiguas en tramos cerrados y transferencia de estados al editar recurrencias futuras.
+- Reparación económica delimitada realizada desde UI autenticada de Staging y contrastada contra copia previa. El detalle privado de la reparación y las huellas permanecen fuera del repositorio público. No se modificó producción.
+- 30111 / 3.0.0-rc.1.74 restaura controles de extractos/conciliación dentro de la sección bancaria y corrige cabecera desactualizada. Atención incluye también los vencidos del mes actual. Conserva las restricciones del adaptador de consulta: no habilita escrituras bancarias remotas no soportadas.
+- Validación local de 30111: suite 149/149 y prueba adicional de coherencia cabecera/version.json/actualizador. Sintaxis JS y manifiesto PWA correctos.
+- Pendientes: QA autenticada de la última versión publicada, persistencia tras recarga/nueva sesión y móvil. El navegador volvió al formulario de acceso tras recargar, sin error de aplicación visible; no atribuir causa sin evidencia. Edición de tramos futuros aún usa compensación cliente; falta atomicidad SQL frente a cierre abrupto. No afirmar auditoría integral cerrada.
+
 ## Rediseño de Tesorería — build 30109 (2026-10-21)
 
 - Versión 3.0.0-rc.1.72. Tesorería deja de presentar cuentas bancarias, saldos por cuenta, captura de saldos, diagnósticos por estados y previsiones largas como contenido principal.
