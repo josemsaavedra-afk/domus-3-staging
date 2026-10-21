@@ -8,6 +8,18 @@
 - Se corrige APP_BUILD, que seguía anclado a 30083 pese a que la aplicación ya estaba en 30108. Producción no modificada.
 - Pendiente de QA visual autenticada en móvil/escritorio y de validar cifras reales tras propagación de GitHub Pages.
 
+## QA autenticada completada — build 30108 (2026-10-21)
+
+- Acceso seguro recuperado y cabecera autenticada 30108 comprobada. Se completan las dos pruebas específicas pendientes de 30107 y 30108; sin cambios de código ni nueva build.
+- Caso sintético de anotación: documento indica un titular y DOMUS ACTIVIDAD con el nombre corto de otro. Revisión muestra JM, ámbito Actividad económica y origen anotación explícita; total 10,00 y fecha 21/10/2026. Pagador/cuenta vacíos. Verificado en controles DOM, sin crear movimiento.
+- Caso sintético de pago: tarjeta e IBAN de cuentas distintas. Revisión muestra el aviso La tarjeta y el IBAN señalan cuentas distintas; revisa el pago. Titular documental Jeni conservado; pagador y cuenta Sin especificar. No publicar IBAN ni datos de maestros privados en código, tests o capturas del repositorio.
+- Ambas propuestas se cierran con Siguiente sin guardar / Cerrar sin crear movimiento, se reabren desde Archivo de referencias y recuperan titular/ámbito o aviso/pago vacío, respectivamente. Cierre final comprobado. Dos referencias nuevas en review, no dos movimientos económicos; los originales reales del cotejo anterior no se han vuelto a subir.
+- Comprobación SQL antes y después: 1952 filas en movement_series, digest bacb94d48c45d6d3eae876d8bb5bb051 idéntico. Sin Crear/Sustituir/Vincular, cambios de esquema, producción ni TransportERP. Suite publicada 142/142 preservada; no se repite por este cambio solo documental.
+- Evidencia visual inspeccionada internamente; no se publica con datos personales o bancarios. La restricción del navegador de la sesión anterior ya no bloquea esta comprobación.
+- Pendientes generales conservados: sustitución transaccional aislada y QA móvil completa, entre otros registrados más abajo. Estas dos comprobaciones no equivalen a cierre integral de DOMUS.
+
+- Durante el cierre se detectó en main una actualización independiente de Tesorería 30109. Se conserva íntegra; estas pruebas corresponden al lector servido en 30108, no validan el rediseño de Tesorería ni su nueva build.
+
 ## Evidencia de pago contradictoria — build 30108 (2026-10-20)
 
 - Versión 3.0.0-rc.1.71. Corregido fallo reproducido: una tarjeta reconocida omitía el contraste con IBAN porque el bloque solo se ejecutaba sin cuenta propuesta. Ahora contrasta ambas evidencias, avisa ante cuentas distintas o varios alias coincidentes y retira sugerencias automáticas de pagador/cuenta. Conserva valores explícitos y titular económico.
