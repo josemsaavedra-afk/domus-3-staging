@@ -1,3 +1,11 @@
+## Cobro normal vs prefinanciación — build 30110 (2026-10-22)
+
+- Versión 3.0.0-rc.1.73. Corregido el flujo de «Marcar cobrado»: ya no pregunta por prefinanciación por el mero hecho de que el ingreso sea prefinanciable.
+- «Marcar cobrado» significa cobro normal y registra el ingreso como realizado sin coste de prefinanciación.
+- La prefinanciación queda reservada al botón explícito «Prefinanciar», que mantiene su confirmación específica y la lógica RHD/4,9 %.
+- Esto evita especialmente el aviso absurdo cuando la fecha prevista de cobro es hoy y evita marcar accidentalmente como prefinanciado un cobro ordinario.
+- No se modifican datos económicos existentes ni producción.
+
 ## Arranque y carga de datos — build 30116 (2026-10-22)
 
 - Versión 3.0.0-rc.1.79. El bloqueo permanente reportado no se ha reproducido en la sesión de escritorio; se corrigen causas verificadas en el arranque sin atribuir una causa única no demostrada.
