@@ -194,16 +194,18 @@ export function renderTreasury3(snapshot) {
   </div>
 
   <div class="treasury-hero-grid">
-    <div class="card treasury-hero-card">
+    <button class="card treasury-hero-card clickable" type="button" data-treasury-operational="monthReal">
       <span class="label">Resultado realizado del mes</span>
       <strong class="treasury-hero-value">${euro(op.realMonth.net)}</strong>
-      <small>Cobrado − pagado en el mes.</small>
-    </div>
-    <div class="card treasury-hero-card treasury-end-card">
+      <div class="treasury-result-breakdown"><span>Cobrado <strong>+${euro(op.realMonth.income)}</strong></span><span>Pagado <strong>−${euro(op.realMonth.expense)}</strong></span></div>
+      <small>Lo que queda de lo ya cobrado menos lo ya pagado este mes. Toca para ver el detalle.</small>
+    </button>
+    <button class="card treasury-hero-card treasury-end-card clickable" type="button" data-treasury-operational="monthPlanned">
       <span class="label">Resultado previsto del mes</span>
       <strong class="treasury-hero-value ${endClass}">${endBalance}</strong>
-      <small>Ingresos del mes − gastos del mes. Sin arrastre de saldos.</small>
-    </div>
+      <div class="treasury-result-breakdown"><span>Ingresos totales <strong>+${euro(op.plannedMonth.income)}</strong></span><span>Pagos totales <strong>−${euro(op.plannedMonth.expense)}</strong></span></div>
+      <small>Resultado esperado de todo el mes. Sin arrastre de saldos. Toca para ver el detalle.</small>
+    </button>
   </div>
 
   <div class="treasury-flow-grid">
@@ -213,7 +215,8 @@ export function renderTreasury3(snapshot) {
         <button class="clickable" type="button" data-treasury-operational="monthIncomePending"><small>Por cobrar</small><b class="income">${euro(op.currentMonthOpen.income)}</b></button>
         <button class="clickable" type="button" data-treasury-operational="monthIncomeReal"><small>Cobrado</small><b class="income">${euro(op.realMonth.income)}</b></button>
       </div>
-      <small class="muted">Pendientes y cobrados en listas separadas. Solo este mes.</small>
+      <div class="treasury-flow-total"><span>Total ingresos del mes</span><strong class="income">+${euro(op.plannedMonth.income)}</strong></div>
+      <small class="muted">Total = cobrado + pendiente de cobrar del mes.</small>
     </section>
     <section class="card treasury-flow-card">
       <div class="treasury-flow-head"><span>Pagos · ${esc(monthLabel)}</span></div>
@@ -221,7 +224,8 @@ export function renderTreasury3(snapshot) {
         <button class="clickable" type="button" data-treasury-operational="monthExpensePending"><small>Por pagar</small><b class="expense">${euro(op.currentMonthOpen.expense)}</b></button>
         <button class="clickable" type="button" data-treasury-operational="monthExpenseReal"><small>Pagado</small><b class="expense">${euro(op.realMonth.expense)}</b></button>
       </div>
-      <small class="muted">Pendientes y pagados en listas separadas. Solo este mes.</small>
+      <div class="treasury-flow-total"><span>Total pagos del mes</span><strong class="expense">−${euro(op.plannedMonth.expense)}</strong></div>
+      <small class="muted">Total = pagado + pendiente de pagar del mes.</small>
     </section>
   </div>
 
@@ -317,12 +321,13 @@ export function renderTreasury3(snapshot) {
   const show=(label,rows)=>{title.textContent=label+' · '+rows.length+' movimientos · '+euro(treasuryTotals(rows).net);body.innerHTML=movementRows(rows);mobile.innerHTML=movementCards(rows);detail.classList.remove('hidden');detail.scrollIntoView({behavior:'smooth',block:'start'});};
   const rowsByKey={
     ...monthlyTreasuryBreakdowns(vm),
+    monthPlanned:[...op.realMonthRows,...op.currentMonthOpenRows],
     overdue:op.overdueRows,
     today:op.todayRows,
     cut10:op.cut10Rows,
     cut25:op.cut25Rows
   };
-  const labels={monthIncomePending:'Por cobrar · '+monthLabel,monthIncomeReal:'Cobrado · '+monthLabel,monthExpensePending:'Por pagar · '+monthLabel,monthExpenseReal:'Pagado · '+monthLabel,overdue:'Vencidos pendientes',today:'Vencen hoy',cut10:'Movimientos hasta '+date(op.cutoff10),cut25:'Movimientos hasta '+date(op.cutoff25)};
+  const labels={monthIncomePending:'Por cobrar · '+monthLabel,monthIncomeReal:'Cobrado · '+monthLabel,monthExpensePending:'Por pagar · '+monthLabel,monthExpenseReal:'Pagado · '+monthLabel,monthReal:'Realizado · '+monthLabel,monthPlanned:'Total previsto del mes · '+monthLabel,overdue:'Vencidos pendientes',today:'Vencen hoy',cut10:'Movimientos hasta '+date(op.cutoff10),cut25:'Movimientos hasta '+date(op.cutoff25)};
   root.querySelectorAll('[data-treasury-operational]').forEach(button=>button.onclick=()=>show(labels[button.dataset.treasuryOperational],rowsByKey[button.dataset.treasuryOperational]||[]));
   if(window.__domusTreasuryReadAdapter){
     root.querySelectorAll('[data-enqueue-checkpoint],[data-enqueue-import],[data-enqueue-confirmations],[data-sync-treasury]').forEach(button=>{button.disabled=true;button.title='Guardado remoto no disponible en este adaptador';});
