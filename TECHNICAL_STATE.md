@@ -1,3 +1,13 @@
+## Tesorería: terminología y totalización — build 30124 (2026-10-22)
+
+- Versión 3.0.0-rc.1.87.
+- Informes unifica estados a «Realizado + pendiente», «Realizado» y «Pendiente». Se elimina la mezcla «Real + previsto» / «Previsto / pendiente».
+- La tarjeta «Resultado realizado del mes» muestra Cobrado, Pagado y Resultado; es clicable y abre el detalle de movimientos realizados del mes.
+- La tarjeta «Resultado previsto del mes» muestra Ingresos totales, Pagos totales y Resultado esperado; es clicable y abre el conjunto completo del mes.
+- Los bloques Ingresos y Pagos añaden Total del mes: cobrado + pendiente y pagado + pendiente, respectivamente.
+- Se mantienen separados realizado y pendiente; no se crean terceros estados conceptuales.
+- Producción no modificada.
+
 ## Informes: desgloses útiles, signos y porcentajes — build 30123 (2026-10-22)
 
 - Versión 3.0.0-rc.1.86.
