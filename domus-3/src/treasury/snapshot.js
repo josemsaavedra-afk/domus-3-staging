@@ -15,8 +15,11 @@ export function createTreasurySnapshot({ householdId, userId, accounts = [], ser
     const stateMap = new Map();
     for (const state of statesBySeries.get(movement.id) || []) {
       const key = parseBankDate(state.occurrence_date);
-      if (stateMap.has(key)) throw new Error('Estado duplicado para ' + movement.id + '|' + key);
-      stateMap.set(key, state);
+      const previous = stateMap.get(key);
+      if (!previous) { stateMap.set(key, state); continue; }
+      const previousRevision = Number(previous.treasury_revision || 0), nextRevision = Number(state.treasury_revision || 0);
+      const previousUpdated = String(previous.updated_at || ''), nextUpdated = String(state.updated_at || '');
+      if (nextRevision > previousRevision || (nextRevision === previousRevision && nextUpdated > previousUpdated)) stateMap.set(key, state);
     }
     const dates = new Set(stateMap.keys());
     if (movement.recurrence === 'none') dates.add(start);
