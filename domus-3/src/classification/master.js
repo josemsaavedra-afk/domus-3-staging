@@ -121,7 +121,7 @@
   const ruleRefs={person_id:'people',payer_person_id:'people',account_id:'accounts',counterparty_id:'counterparties',category_id:'categories',activity_project_id:'activity_projects',tag_ids:'tags'};
   function validateRule(rule,catalogs){
     if(!rule.household_id||!String(rule.name||'').trim()||!Number.isInteger(rule.priority)||rule.priority < -2147483648||rule.priority > 2147483647)throw Error('Nombre y prioridad entera obligatorios.');
-    for(const [part,allowed] of [['conditions',['counterparty_id','concept','account_id','type','person_id','payer_person_id','amount']],['proposals',['category_id','person_id','payer_person_id','counterparty_id','activity_project_id','tag_ids','expense_scope']]]){
+    for(const [part,allowed] of [['conditions',['counterparty_id','concept','account_id','type','person_id','payer_person_id','amount']],['proposals',['category_id','person_id','payer_person_id','account_id','counterparty_id','activity_project_id','tag_ids','expense_scope']]]){
       const data=rule[part];if(!data||Array.isArray(data)||typeof data!=='object'||!Object.keys(data).length)throw Error('Define al menos una condición y una propuesta.');
       for(const [field,value] of Object.entries(data)){
         if(!allowed.includes(field))throw Error('Campo no admitido: '+field);
