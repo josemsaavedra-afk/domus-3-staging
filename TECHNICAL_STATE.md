@@ -1,3 +1,10 @@
+## Corrección de vencimiento de un cobro reprogramado — 2026-10-22
+
+- La aclaración del usuario confirma que el vencimiento válido es el 26 de octubre. La revisión anterior de tarjetas acumuladas no resolvía esta fecha económica: se había conservado una excepción reprogramada al 23 y cancelado la ocurrencia del tramo sustituto.
+- Reparación desde el formulario autenticado de Staging, aplicando solo a esta ocurrencia: se reprograma el único cobro activo al día 26 conservando identidad e importe; el duplicado ya cancelado permanece cancelado. No se crea una serie ni un estado nuevo. Historial before/after conservado por la auditoría de base. El formulario materializa también document_date con la fecha original ya efectiva; sin cambio del mes documental.
+- SQL posterior confirma el cambio de fecha, mismo estado pendiente y cancelación de la copia. Inicio muestra el vencimiento correcto; Movimientos muestra una fila en octubre; Tesorería incluye una sola vez el cobro dentro de Por cobrar, conservando el resto de ingresos. No se cambia la recurrencia futura ni producción.
+- Regresión añadida con tramo cerrado, excepción reprogramada, copia cancelada y excepciones futuras antiguas: una sola ocurrencia en octubre en la fecha correcta, ninguna en la fecha anterior y noviembre conservado, también al reconstruir. Suite 170/170. Sin cambio del código servido: continúa build 30115.
+
 ## Etiquetas de previsión visibles en móvil — build 30115 (2026-10-22)
 
 - Versión 3.0.0-rc.1.78. Causa de la captura: en <=700px forecast-grid pasa a bloque y forecast-head se oculta; las celdas solo mostraban cantidad y número de movimientos. Se perdían tanto el plazo como Por cobrar/Por pagar.

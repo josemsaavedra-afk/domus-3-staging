@@ -18,6 +18,23 @@ test('targeted cancellation preserves following months and independent invoice o
  assert.equal(oct.planned.income,6000);
  assert.ok(vm.open.some(r=>r.seriesId==='next'&&r.date==='2026-11-26'));
 });
+test('reprogramming the surviving October income from 23 to 26 keeps one 3000 occurrence and no income on 23',()=>{
+ const series=[movement('old',{recurrence_end:'2026-10-24'}),movement('next',{start_date:'2026-10-26',recurrence_end:'2027-03-25'})];
+ const states=[{series_id:'old',occurrence_date:'2026-09-25',status:'done',actual_date:'2026-09-25'},
+  {series_id:'old',occurrence_date:'2026-10-25',rescheduled_date:'2026-10-26',status:'pending'},
+  {series_id:'old',occurrence_date:'2026-11-25',status:'pending'},
+  {series_id:'next',occurrence_date:'2026-10-26',status:'cancelled'}];
+ for(let reload=0;reload<2;reload++){
+  const vm=createTreasuryViewModel(snapshot(series,states).rows,[],'2026-10-22');
+  const october=monthlyTreasury(vm);
+  assert.equal(october.pending.income,3000);
+  assert.equal(october.plannedRows.length,1);
+  assert.equal(october.plannedRows[0].date,'2026-10-26');
+  assert.equal(october.plannedRows[0].originalDate,'2026-10-25');
+  assert.ok(!vm.open.some(r=>r.date==='2026-10-23'));
+  assert.equal(vm.open.filter(r=>r.date==='2026-11-26').length,1);
+ }
+});
 test('monthly result excludes prior overdue 29.74 and does not require a bank balance',()=>{
  const rows=[movement('income',{recurrence:'none',start_date:'2026-10-23',amount:100}),movement('expense',{type:'expense',recurrence:'none',start_date:'2026-10-20',amount:40}),movement('overdue',{type:'expense',recurrence:'none',start_date:'2026-09-18',amount:29.74}),movement('foreign',{household_id:'other'})];
  const states=[{series_id:'expense',occurrence_date:'2026-10-20',status:'done',actual_date:'2026-10-20'}];
