@@ -1,3 +1,12 @@
+## Informes: desgloses útiles, signos y porcentajes — build 30123 (2026-10-22)
+
+- Versión 3.0.0-rc.1.86.
+- El informe impreso deja de repetir desgloses redundantes de una sola línea cuando no aportan información: titular económico, pagador/cobrador, doméstico/actividad y realizado/pendiente.
+- Los desgloses económicos imprimen signo explícito: ingresos con + y gastos con −, de modo que el informe sea legible en blanco y negro.
+- Gasto por categoría, doméstico/actividad e ingresos habituales/variables e ingresos por cliente/origen muestran porcentaje sobre el total correspondiente.
+- La vista en pantalla usa la misma convención de signos y porcentajes.
+- Producción no modificada.
+
 ## Informe financiero: margen y comparación — build 30122 (2026-10-22)
 
 - Versión 3.0.0-rc.1.85.
