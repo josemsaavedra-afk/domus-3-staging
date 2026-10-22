@@ -1,3 +1,13 @@
+## Informe financiero: margen y comparación — build 30122 (2026-10-22)
+
+- Versión 3.0.0-rc.1.85.
+- El resumen financiero separa claramente el rendimiento del período de la comparación contra el período anterior.
+- Para Ingresos, Gastos y Balance se muestra el importe actual y su peso sobre los ingresos del propio período. En Balance ese porcentaje se etiqueta como «Margen sobre ingresos».
+- La comparación queda visualmente separada: importe anterior, porcentaje sobre ingresos anterior, diferencia absoluta en euros y variación porcentual frente al período anterior.
+- En el informe impreso/PDF el encabezado se agrupa en «Período actual» y «Comparación con …» para evitar confundir margen con variación intermensual.
+- Ejemplo validado con septiembre 2026: 2.159,62 € / 4.914,56 € = 43,94 % de margen; agosto: 2.890,71 € / 6.558,10 € = 44,08 %.
+- Producción no modificada.
+
 ## Motor de vencimientos por reglas — build 30121 (2026-10-22)
 
 - Versión 3.0.0-rc.1.84.
