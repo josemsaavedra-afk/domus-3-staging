@@ -184,7 +184,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.79 · Build 30119<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.79 · Build 30120<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -1426,14 +1426,14 @@ function renderBudgets(){
   }).join(''):'<div class="card empty">Todavía no hay presupuestos. Crea uno arriba, por ejemplo «Vacaciones».</div>';
 }
 
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30119'}[name]||'DOMUS';if(name==='dashboard'){renderTreasury3();renderDashboard();renderMilestones('homeMilestones')}if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury'){renderTreasury();renderMilestones('treasuryMilestones')}if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30120'}[name]||'DOMUS';if(name==='dashboard'){renderTreasury3();renderDashboard();renderMilestones('homeMilestones')}if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury'){renderTreasury();renderMilestones('treasuryMilestones')}if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 document.getElementById('homeForecastDetails').ontoggle=event=>{if(event.target.open){renderPersonForecast();renderScopeForecast()}};
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30119';
+const APP_BUILD='30120';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{
