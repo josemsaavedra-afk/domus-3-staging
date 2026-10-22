@@ -1,3 +1,14 @@
+## Movimientos: filtros combinables — build 30125 (2026-10-22)
+
+- Versión 3.0.0-rc.1.88.
+- Se separan los filtros de Movimientos en dos ejes independientes:
+  - Naturaleza: Gastos / Ingresos / Todos.
+  - Estado: Pendientes / Realizados / Todos.
+- Las combinaciones funcionan simultáneamente: gastos pendientes, ingresos realizados, todos los gastos, todos los pendientes o todos los movimientos.
+- Se conserva la búsqueda y la paginación sobre el conjunto ya filtrado.
+- El estado inicial mantiene Todos + Pendientes para no cambiar el comportamiento de entrada.
+- Producción no modificada.
+
 ## Tesorería: terminología y totalización — build 30124 (2026-10-22)
 
 - Versión 3.0.0-rc.1.87.
