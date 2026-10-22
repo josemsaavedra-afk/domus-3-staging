@@ -121,13 +121,22 @@
   const ruleRefs={person_id:'people',payer_person_id:'people',account_id:'accounts',counterparty_id:'counterparties',category_id:'categories',activity_project_id:'activity_projects',tag_ids:'tags'};
   function validateRule(rule,catalogs){
     if(!rule.household_id||!String(rule.name||'').trim()||!Number.isInteger(rule.priority)||rule.priority < -2147483648||rule.priority > 2147483647)throw Error('Nombre y prioridad entera obligatorios.');
-    for(const [part,allowed] of [['conditions',['counterparty_id','concept','account_id','type','person_id','payer_person_id','amount']],['proposals',['category_id','person_id','payer_person_id','account_id','counterparty_id','activity_project_id','tag_ids','expense_scope']]]){
+    for(const [part,allowed] of [['conditions',['counterparty_id','concept','account_id','type','person_id','payer_person_id','amount']],['proposals',['category_id','person_id','payer_person_id','account_id','counterparty_id','activity_project_id','tag_ids','expense_scope','due_policy']]]){
       const data=rule[part];if(!data||Array.isArray(data)||typeof data!=='object'||!Object.keys(data).length)throw Error('Define al menos una condición y una propuesta.');
       for(const [field,value] of Object.entries(data)){
         if(!allowed.includes(field))throw Error('Campo no admitido: '+field);
         if(ruleRefs[field]){const ids=field==='tag_ids'?value:[value];if(!Array.isArray(ids)||!ids.length||ids.some(id=>!(catalogs[ruleRefs[field]]||[]).some(x=>x.id===id&&x.household_id===rule.household_id)))throw Error('Las referencias deben pertenecer al mismo hogar.');}
         if(field==='type'&&!['income','expense'].includes(value))throw Error('Tipo no válido.');
         if(field==='expense_scope'&&!['domestic','business','mixed'].includes(value))throw Error('Ámbito no válido.');
+        if(field==='due_policy'){
+          if(!value||Array.isArray(value)||typeof value!=='object')throw Error('Política de vencimiento no válida.');
+          if(value.mode==='days_after'){
+            if(!Number.isInteger(value.days)||value.days<0||value.days>365)throw Error('Días de vencimiento no válidos.');
+          }else if(value.mode==='monthly_days'){
+            if(!Array.isArray(value.days)||!value.days.length||value.days.some(d=>!Number.isInteger(d)||d<1||d>31))throw Error('Días mensuales de vencimiento no válidos.');
+            if(value.weekend_policy&&!['none','sat_prev_sun_next'].includes(value.weekend_policy))throw Error('Ajuste de fin de semana no válido.');
+          }else throw Error('Modo de vencimiento no válido.');
+        }
         if(field==='concept'&&(!value||!['contains','equals'].includes(value.mode)||typeof value.value!=='string'||!value.value.trim()||Object.keys(value).some(k=>!['mode','value'].includes(k))))throw Error('Condición de concepto no válida.');
         if(field==='amount'&&(!value||Array.isArray(value)||!Object.keys(value).length||Object.entries(value).some(([k,v])=>!['min','max'].includes(k)||typeof v!=='number'||!Number.isFinite(v)||v<0)||value.min!=null&&value.max!=null&&value.min>value.max))throw Error('Rango de importe no válido.');
       }
