@@ -1,3 +1,13 @@
+## Reglas, vencimientos y vínculos documentales — build 30120 (2026-10-22)
+
+- Versión 3.0.0-rc.1.83.
+- Las reglas de clasificación ya pueden proponer también account_id, además de categoría, ámbito, titular, pagador/cobrador, tercero, actividad y etiquetas.
+- El lector documental separa fecha de factura y vencimiento/fecha prevista. Si existe vencimiento, esa fecha se usa como start_date de Tesorería; la fecha de factura se conserva como document_date.
+- La revisión muestra «Vencimiento / fecha prevista» cuando procede y mantiene visible la fecha de factura para trazabilidad.
+- Comisión, seguro y coste de prefinanciación se vinculan automáticamente por referencias documentales. El enlace funciona tanto si el ingreso ya existe como si se crea después: el orden de carga de archivos deja de ser determinante.
+- Los enlaces explícitos continúan siendo idempotentes por la restricción de movement_links; no se crean vínculos duplicados.
+- No se modificaron movimientos económicos ni producción.
+
 ## Defaults inteligentes de documentos — build 30119 (2026-10-22)
 
 - Versión 3.0.0-rc.1.82. La revisión documental deja de tratar cada documento como un caso nuevo: si el titular está identificado y no hay evidencia contraria, pagador/cobrador se propone como la misma persona.
