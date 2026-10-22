@@ -4,11 +4,16 @@ import { parseBankDate } from './statement-csv.js';
 export function createTreasurySnapshot({ householdId, userId, accounts = [], series = [], states = [], asOf }) {
   const today = parseBankDate(asOf), horizon = `${Number(today.slice(0, 4)) + 2}-12-31`;
   const members = series.filter(row => row.household_id === householdId);
+  const statesBySeries = new Map();
+  for (const state of states) {
+    if (!statesBySeries.has(state.series_id)) statesBySeries.set(state.series_id, []);
+    statesBySeries.get(state.series_id).push(state);
+  }
   const rows = [];
   for (const movement of members) {
     const start = parseBankDate(movement.start_date);
     const stateMap = new Map();
-    for (const state of states.filter(row => row.series_id === movement.id)) {
+    for (const state of statesBySeries.get(movement.id) || []) {
       const key = parseBankDate(state.occurrence_date);
       if (stateMap.has(key)) throw new Error('Estado duplicado para ' + movement.id + '|' + key);
       stateMap.set(key, state);

@@ -1,3 +1,11 @@
+## Arranque y carga de datos — build 30116 (2026-10-22)
+
+- Versión 3.0.0-rc.1.79. El bloqueo permanente reportado no se ha reproducido en la sesión de escritorio; se corrigen causas verificadas en el arranque sin atribuir una causa única no demostrada.
+- Las sincronizaciones simultáneas de un mismo contexto comparten un trabajo y conservan un único reintento posterior. Una renovación de token/aviso de sesión ya cargada no vuelve a ejecutar toda la ruta. La cola offline deja de esperarse dos veces al entrar.
+- La carga conjunta tiene límite de 25 segundos. Respuesta tardía, fallo de presupuestos o cambio de contexto no publican datos parciales. Un fallo inicial sustituye el indicador infinito por instrucciones de reintento; no muestra datos vacíos como cero.
+- Se renderizan las vistas abiertas. Inicio no calcula Informes, Movimientos, Ajustes ni las previsiones plegadas; cada vista se actualiza al abrirse. La expansión económica indexa estados y series en lugar de buscarlos repetidamente por fila. No cambia reglas, importes ni fechas.
+- Regresiones: espera agotada/respuesta tardía, reintento, ráfaga serializada, carga de otro hogar, presupuesto fallido sin publicación parcial y renderizado de Inicio sin vistas ocultas. Pendientes: suite completa, publicación y comprobación autenticada.
+
 ## Corrección de vencimiento de un cobro reprogramado — 2026-10-22
 
 - La aclaración del usuario confirma que el vencimiento válido es el 26 de octubre. La revisión anterior de tarjetas acumuladas no resolvía esta fecha económica: se había conservado una excepción reprogramada al 23 y cancelado la ocurrencia del tramo sustituto.
