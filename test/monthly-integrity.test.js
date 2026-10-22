@@ -50,8 +50,13 @@ test('actual payment date changes its economic month and is no longer pending af
   assert.equal(monthlyTreasury(vm).realized.expense,10);assert.equal(monthlyTreasury(vm,'2026-09').planned.expense,0);assert.equal(vm.open.length,0);
  }
 });
-test('duplicate occurrence states fail explicitly instead of silently selecting one',()=>{
- assert.throws(()=>snapshot([movement('s')],[{series_id:'s',occurrence_date:'2026-10-25'},{series_id:'s',occurrence_date:'2026-10-25'}]),/Estado duplicado/);
+test('duplicate transient states preserve one occurrence and the latest revision',()=>{
+ const old={series_id:'s',occurrence_date:'2026-10-25',status:'pending',treasury_revision:1};
+ const latest={...old,status:'done',actual_date:'2026-10-25',treasury_revision:2};
+ for(const states of [[old,latest],[latest,old]]){
+  const rows=snapshot([movement('s')],states).rows.filter(r=>r.occurrence_date==='2026-10-25');
+  assert.equal(rows.length,1);assert.equal(rows[0].status,'done');
+ }
 });
 
 test('Inicio gives an explicit rescheduled date precedence over a historical estimated window',()=>{

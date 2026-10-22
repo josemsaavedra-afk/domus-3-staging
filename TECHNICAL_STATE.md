@@ -1,3 +1,15 @@
+## Transición doméstica: primera interfaz — build 30126 (2026-10-22)
+
+- Versión 3.0.0-rc.1.89. Formulario manual corto sobre el guardado transaccional existente: gasto/ingreso, importe, concepto, fecha, estado, personas, cuenta/medio y categoría. Nuevas entradas domésticas realizadas por defecto; estado editable. Fecha documental y real se sincronizan solo en modo corto; editar conserva fechas históricas y formulario completo. Más detalles permite clasificación profesional transitoria y recurrencias.
+- Inicio retira cifras mensuales, disponible bancario y tablas de previsión; ofrece accesos a documentos, alta manual, Agenda, Dinero, Movimientos e Informes. Listas próximas acotadas a siete días; realizados no se muestran como compromisos. Sin afirmaciones sobre dinero disponible.
+- Dinero presenta cobrado, por cobrar, pagado, por pagar, resultado realizado y previsto, en ese orden; conserva filtros mensuales y detalle. Retiradas tarjetas de saldos y proyecciones de cortes. Motor y datos de conciliación conservados con acceso opcional.
+- Revisión documental pliega referencia, ámbito y vínculos profesionales junto con datos fiscales; conserva todos sus campos y validaciones. Cámara y carga múltiple existentes conservadas; no afirmar mejora de precisión OCR ni prueba móvil física.
+- No hay migración, reclasificación ni escritura económica. Producción no modificada.
+- Pruebas locales: se ejecutan pruebas disponibles sin PGlite, sincronización de fechas del formulario corto, Inicio sin nodos retirados, filtros siete días, sintaxis y actualización PWA íntegra. El test antiguo que esperaba error ante estado repetido se actualiza a la política ya implantada en 30118: una ocurrencia, mayor revisión, ambos órdenes.
+- Limitaciones: npm ci bloqueado por acceso de red del entorno; PGlite no disponible localmente. Se incorpora CI para ejecutar la suite completa. Navegador web de Staging solicita acceso; validación autenticada, gasto de Jennifer, OCR real, iPhone físico y persistencia de extremo a extremo siguen pendientes.
+- Esta entrega NO cierra la misión. Pendientes: seguimiento de liquidación, importación desde Documentos, elección campo a campo de fuente bancaria/DOMUS, recordatorio mensual y pruebas integrales exigidas por la orden. No afirmar que capacidades anteriores del importador cumplen ya esos requisitos nuevos.
+- Publicación: pendiente al redactar este registro; verificar CI y Pages antes de declarar publicado.
+
 ## Movimientos: filtros combinables — build 30125 (2026-10-22)
 
 - Versión 3.0.0-rc.1.88.

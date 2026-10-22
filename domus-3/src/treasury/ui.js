@@ -190,59 +190,23 @@ export function renderTreasury3(snapshot) {
   const overdueCount=op.overdueRows.length,todayCount=op.todayRows.length;
 
   root.innerHTML = `<div class="treasury-simple-head">
-    <div><span class="home-kicker">Tesorería</span><h2>Tu dinero, sin rodeos</h2><p class="muted">Ingresos, gastos y resultado del mes. Los saldos bancarios se calculan por separado.</p></div>
-  </div>
-
-  <div class="treasury-hero-grid">
-    <button class="card treasury-hero-card clickable" type="button" data-treasury-operational="monthReal">
-      <span class="label">Resultado realizado del mes</span>
-      <strong class="treasury-hero-value">${euro(op.realMonth.net)}</strong>
-      <div class="treasury-result-breakdown"><span>Cobrado <strong>+${euro(op.realMonth.income)}</strong></span><span>Pagado <strong>−${euro(op.realMonth.expense)}</strong></span></div>
-      <small>Lo que queda de lo ya cobrado menos lo ya pagado este mes. Toca para ver el detalle.</small>
-    </button>
-    <button class="card treasury-hero-card treasury-end-card clickable" type="button" data-treasury-operational="monthPlanned">
-      <span class="label">Resultado previsto del mes</span>
-      <strong class="treasury-hero-value ${endClass}">${endBalance}</strong>
-      <div class="treasury-result-breakdown"><span>Ingresos totales <strong>+${euro(op.plannedMonth.income)}</strong></span><span>Pagos totales <strong>−${euro(op.plannedMonth.expense)}</strong></span></div>
-      <small>Resultado esperado de todo el mes. Sin arrastre de saldos. Toca para ver el detalle.</small>
-    </button>
+    <div><span class="home-kicker">Tesorería</span><h2>Tu dinero, sin rodeos</h2><p class="muted">Ingresos, gastos y resultado del mes, sin arrastrar saldos bancarios.</p></div>
   </div>
 
   <div class="treasury-flow-grid">
-    <section class="card treasury-flow-card">
-      <div class="treasury-flow-head"><span>Ingresos · ${esc(monthLabel)}</span></div>
-      <div class="treasury-flow-stats">
-        <button class="clickable" type="button" data-treasury-operational="monthIncomePending"><small>Por cobrar</small><b class="income">${euro(op.currentMonthOpen.income)}</b></button>
-        <button class="clickable" type="button" data-treasury-operational="monthIncomeReal"><small>Cobrado</small><b class="income">${euro(op.realMonth.income)}</b></button>
-      </div>
-      <div class="treasury-flow-total"><span>Total ingresos del mes</span><strong class="income">+${euro(op.plannedMonth.income)}</strong></div>
-      <small class="muted">Total = cobrado + pendiente de cobrar del mes.</small>
-    </section>
-    <section class="card treasury-flow-card">
-      <div class="treasury-flow-head"><span>Pagos · ${esc(monthLabel)}</span></div>
-      <div class="treasury-flow-stats">
-        <button class="clickable" type="button" data-treasury-operational="monthExpensePending"><small>Por pagar</small><b class="expense">${euro(op.currentMonthOpen.expense)}</b></button>
-        <button class="clickable" type="button" data-treasury-operational="monthExpenseReal"><small>Pagado</small><b class="expense">${euro(op.realMonth.expense)}</b></button>
-      </div>
-      <div class="treasury-flow-total"><span>Total pagos del mes</span><strong class="expense">−${euro(op.plannedMonth.expense)}</strong></div>
-      <small class="muted">Total = pagado + pendiente de pagar del mes.</small>
-    </section>
+<button class="card treasury-hero-card clickable" type="button" data-treasury-operational="monthIncomeReal"><span class="label">Dinero cobrado</span><strong class="treasury-hero-value">${euro(op.realMonth.income)}</strong><small>${esc(monthLabel)} · Ver movimientos</small></button>
+<button class="card treasury-hero-card clickable" type="button" data-treasury-operational="monthIncomePending"><span class="label">Dinero por cobrar</span><strong class="treasury-hero-value">${euro(op.currentMonthOpen.income)}</strong><small>${esc(monthLabel)} · Ver movimientos</small></button>
+<button class="card treasury-hero-card clickable" type="button" data-treasury-operational="monthExpenseReal"><span class="label">Dinero pagado</span><strong class="treasury-hero-value">${euro(op.realMonth.expense)}</strong><small>${esc(monthLabel)} · Ver movimientos</small></button>
+<button class="card treasury-hero-card clickable" type="button" data-treasury-operational="monthExpensePending"><span class="label">Dinero por pagar</span><strong class="treasury-hero-value">${euro(op.currentMonthOpen.expense)}</strong><small>${esc(monthLabel)} · Ver movimientos</small></button>
+<button class="card treasury-hero-card clickable" type="button" data-treasury-operational="monthReal"><span class="label">Resultado realizado</span><strong class="treasury-hero-value">${euro(op.realMonth.net)}</strong><small>${esc(monthLabel)} · Ver movimientos</small></button>
+<button class="card treasury-hero-card clickable" type="button" data-treasury-operational="monthPlanned"><span class="label">Resultado previsto</span><strong class="treasury-hero-value">${euro(op.plannedMonth.net)}</strong><small>${esc(monthLabel)} · Ver movimientos</small></button>
   </div>
-
-  <details class="card"><summary>Saldos bancarios y conciliación</summary>
+  <p class="muted">Resultado realizado: cobrado menos pagado. Resultado previsto: todos los ingresos menos todos los gastos del mes, realizados y pendientes. Estas cifras no son saldos bancarios.</p>
+  <details class="card"><summary>Importar y comparar un extracto (opcional)</summary>
     <p>Saldo confirmado y movimientos posteriores a su fecha de referencia. Sin referencia, el saldo es desconocido.</p>
-    ${accountCards(vm)}
-    ${balanceCaptureRows(accounts,vm.today)}
+
     <div class="treasury-advanced">    <div class="card"><div class="section-title"><div><h2>Conciliación bancaria segura</h2><p class="muted">El extracto se usa para reconocer y comprobar movimientos existentes.</p></div><label class="btn">2. Seleccionar extracto<input id="treasuryCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label></div><div class="msg info"><strong>Regla de seguridad:</strong> cargar o conciliar un extracto <strong>no crea movimientos</strong>. Una línea bancaria solo puede enlazarse con un movimiento DOMUS ya existente. Si no hay coincidencia, queda pendiente de revisión.</div><div id="treasuryCsvResult" class="empty">1. Selecciona la cuenta. Después elige tu CSV o TSV. DOMUS buscará coincidencias sin crear nada nuevo.</div></div>
 </div>
-  <div class="card treasury-cutoff-card">
-    <div class="section-title"><div><h2>Próximos cortes de caja</h2><p class="muted">Tus dos fechas de referencia habituales.</p></div></div>
-    <div class="treasury-cutoff-grid">
-      <button type="button" class="treasury-cutoff clickable" data-treasury-operational="cut10"><small>Saldo previsto · ${date(op.cutoff10)}</small><strong>${op.cutoff10Balance==null?'—':euro(op.cutoff10Balance)}</strong><span>Por cobrar ${euro(op.cut10.income)} · por pagar ${euro(op.cut10.expense)}</span></button>
-      <button type="button" class="treasury-cutoff clickable" data-treasury-operational="cut25"><small>Saldo previsto · ${date(op.cutoff25)}</small><strong>${op.cutoff25Balance==null?'—':euro(op.cutoff25Balance)}</strong><span>Por cobrar ${euro(op.cut25.income)} · por pagar ${euro(op.cut25.expense)}</span></button>
-    </div>
-  </div>
-
   </details>
   <div class="card treasury-attention-card">
     <div class="section-title"><div><h2>Atención</h2><p class="muted">Solo lo que necesita revisión ahora.</p></div></div>
