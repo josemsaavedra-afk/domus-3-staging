@@ -1,3 +1,12 @@
+## Defaults inteligentes de documentos — build 30119 (2026-10-22)
+
+- Versión 3.0.0-rc.1.82. La revisión documental deja de tratar cada documento como un caso nuevo: si el titular está identificado y no hay evidencia contraria, pagador/cobrador se propone como la misma persona.
+- La cuenta y categoría se proponen desde historial confirmado del mismo titular, tercero y naturaleza cuando el antecedente es inequívoco. La equivalencia de categorías antiguas usa la categoría activa actual.
+- Familia OTOQI/SBILL: ingreso variable de actividad económica, concepto Factura OTOQI, contraparte OTOQI y nº de factura derivado del nombre SBILL. La propuesta actual de Jeni usa ING Jeni e Ingresos Variables por historial confirmado.
+- Se añade Estado a la revisión documental. Tickets/recibos de compra se proponen como Pagados; las facturas siguen pendientes salvo evidencia de cobro/pago.
+- Al crear un documento propuesto como Pagado/Cobrado se crea también su estado realizado, evitando que un ticket pagado entre en Tesorería como pendiente.
+- La propuesta almacenada SBILL21593_2026_10_0002 se corrigió y se eliminó una referencia de confirmación huérfana a una serie inexistente. No se creó ningún movimiento económico ni se tocó producción.
+
 <!-- pages-republish-30118-20261022 -->
 ## Estado duplicado transitorio al marcar pagado — build 30118 (2026-10-22)
 
