@@ -5,10 +5,10 @@
 - Dinero presenta cobrado, por cobrar, pagado, por pagar, resultado realizado y previsto, en ese orden; conserva filtros mensuales y detalle. Retiradas tarjetas de saldos y proyecciones de cortes. Motor y datos de conciliación conservados con acceso opcional.
 - Revisión documental pliega referencia, ámbito y vínculos profesionales junto con datos fiscales; conserva todos sus campos y validaciones. Cámara y carga múltiple existentes conservadas; no afirmar mejora de precisión OCR ni prueba móvil física.
 - No hay migración, reclasificación ni escritura económica. Producción no modificada.
-- Pruebas locales: se ejecutan pruebas disponibles sin PGlite, sincronización de fechas del formulario corto, Inicio sin nodos retirados, filtros siete días, sintaxis y actualización PWA íntegra. El test antiguo que esperaba error ante estado repetido se actualiza a la política ya implantada en 30118: una ocurrencia, mayor revisión, ambos órdenes.
-- Limitaciones: npm ci bloqueado por acceso de red del entorno; PGlite no disponible localmente. Se incorpora CI para ejecutar la suite completa. Navegador web de Staging solicita acceso; validación autenticada, gasto de Jennifer, OCR real, iPhone físico y persistencia de extremo a extremo siguen pendientes.
+- Pruebas locales: 149/149 correctas, sincronización de fechas del formulario corto, Inicio sin nodos retirados, filtros siete días, sintaxis y actualización PWA íntegra. El test antiguo que esperaba error ante estado repetido se actualiza a la política ya implantada en 30118: una ocurrencia, mayor revisión, ambos órdenes.
+- Suite completa en GitHub Actions: 176/176, cero fallos; job 120061498488, run 39846628154. npm ci y PGlite ejecutados correctamente en CI. Localmente PGlite no estuvo disponible por restricción de red. Navegador web de Staging solicita acceso; validación autenticada, gasto de Jennifer, OCR real, iPhone físico y persistencia de extremo a extremo siguen pendientes.
 - Esta entrega NO cierra la misión. Pendientes: seguimiento de liquidación, importación desde Documentos, elección campo a campo de fuente bancaria/DOMUS, recordatorio mensual y pruebas integrales exigidas por la orden. No afirmar que capacidades anteriores del importador cumplen ya esos requisitos nuevos.
-- Publicación: pendiente al redactar este registro; verificar CI y Pages antes de declarar publicado.
+- Publicación comprobada: código d6b4a68daa177f584effdbfa1cca2eca010f5509; Pages run 39846721448 completed/success. Navegador remoto abrió version.json y confirmó 3.0.0-rc.1.89 / 30126. Validación autenticada aún pendiente; no confundir versión servida con prueba funcional completa.
 
 ## Movimientos: filtros combinables — build 30125 (2026-10-22)
 
