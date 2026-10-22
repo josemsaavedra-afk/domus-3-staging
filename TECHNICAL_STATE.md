@@ -1,3 +1,11 @@
+## Estado duplicado transitorio al marcar pagado — build 30118 (2026-10-22)
+
+- Versión 3.0.0-rc.1.81. Corregida la alerta «Estado duplicado para serie|fecha» que podía aparecer después de marcar manualmente una comisión o un seguro como pagado.
+- La base de datos mantiene clave primaria (series_id, occurrence_date); no admite dos estados persistidos para la misma ocurrencia. El aviso procedía de la reconstrucción cliente de Tesorería cuando durante una recarga podía recibir temporalmente la misma clave más de una vez.
+- snapshot.js deja de abortar la reconstrucción por esa repetición transitoria y conserva determinísticamente el estado más reciente por treasury_revision y updated_at.
+- El pago ya se estaba guardando correctamente; la corrección elimina el falso error posterior sin cambiar importes, fechas ni estados económicos existentes.
+- Producción no modificada.
+
 ## Cobro normal vs prefinanciación — build 30117 (2026-10-22)
 
 - Versión 3.0.0-rc.1.80, aplicada sobre 30116 sin rebajar trabajo posterior. Corregido el flujo de «Marcar cobrado»: ya no pregunta por prefinanciación por el mero hecho de que el ingreso sea prefinanciable.
