@@ -1,3 +1,16 @@
+## Motor de vencimientos por reglas — build 30121 (2026-10-22)
+
+- Versión 3.0.0-rc.1.84.
+- La revisión documental muestra siempre Fecha del documento y Vencimiento/fecha prevista de cobro-pago como campos separados. Tesorería usa vencimiento cuando existe; la fecha documental se conserva.
+- Las reglas de clasificación admiten account_id y due_policy. due_policy soporta days_after y monthly_days, con ajuste opcional sábado→viernes / domingo→lunes.
+- El lector aplica automáticamente due_policy solo cuando el documento no trae vencimiento explícito.
+- Regla creada: ONLOGIST ingreso = fecha de factura + 29 días.
+- Regla Lyreco ampliada: próximos días 10/25; sábado pasa al viernes y domingo al lunes.
+- OTOQI y DriiveMe quedan sin política de vencimiento hasta fijar sus calendarios exactos; no se inventan.
+- Reglas antiguas corregidas para usar categorías activas: Mercadona→Alimentación, Vodafone→Suministros, AEAT→Impuestos.
+- Se corrigió el patrón de nombre SBILL/OTOQI que había quedado mal escapado en una edición anterior.
+- Staging solamente. Producción no modificada.
+
 ## Reglas, vencimientos y vínculos documentales — build 30120 (2026-10-22)
 
 - Versión 3.0.0-rc.1.83.
