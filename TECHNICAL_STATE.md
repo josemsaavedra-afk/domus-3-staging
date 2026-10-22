@@ -1,3 +1,10 @@
+## Etiquetas de previsión visibles en móvil — build 30115 (2026-10-22)
+
+- Versión 3.0.0-rc.1.78. Causa de la captura: en <=700px forecast-grid pasa a bloque y forecast-head se oculta; las celdas solo mostraban cantidad y número de movimientos. Se perdían tanto el plazo como Por cobrar/Por pagar.
+- Cada celda de persona y ámbito lleva una etiqueta propia siempre visible, independiente del encabezado de tabla y del tooltip. Los controles pasan a botones semánticos, con nombre que incluye tipo de flujo, plazo, importe y número de movimientos. En cada persona se recuerda que los horizontes son acumulados y no se suman.
+- Conserva importes, selección de pendientes, plazos y acciones de desglose. Dos tarjetas de igual importe no demuestran dos movimientos: pueden ser la misma ocurrencia contenida en dos horizontes. No se deduplica ni cambia la base de datos por semejanza de cantidades.
+- Pendientes al redactar: suite, publicación y comprobación visual. La validación en navegador de escritorio no equivale a una prueba física de iPhone. Sin cambios económicos, de esquema, producción ni TransportERP.
+
 ## Desgloses mensuales separados — build 30114 (2026-10-21)
 
 - Versión 3.0.0-rc.1.77. La captura del usuario muestra una lista que mezcla cobros pendientes y realizados. Ingresos y pagos ahora ofrecen cuatro controles independientes: Por cobrar, Cobrado, Por pagar y Pagado, con mes/año visible. Se elimina el desglose combinado y su rótulo previstos y cobrados/pagados.
