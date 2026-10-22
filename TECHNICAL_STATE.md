@@ -1,3 +1,4 @@
+<!-- pages-republish-30118-20261022 -->
 ## Estado duplicado transitorio al marcar pagado — build 30118 (2026-10-22)
 
 - Versión 3.0.0-rc.1.81. Corregida la alerta «Estado duplicado para serie|fecha» que podía aparecer después de marcar manualmente una comisión o un seguro como pagado.
