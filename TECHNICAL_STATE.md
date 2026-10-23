@@ -1,3 +1,13 @@
+## QA autenticada del alta doméstica — build 30126 (2026-10-23)
+
+- Acceso seguro completado y cabecera 3.0.0-rc.1.89 / 30126 comprobada en Staging.
+- Alta desde «Añadir sin ticket»: gasto ficticio claramente identificado por 0,01 EUR, persona/pagador Jeni, cuenta y medio seleccionados, categoría doméstica. Guardado desde el formulario corto completado; se observa una sola fila realizada en el detalle mensual.
+- Recarga completa: sesión recuperada; búsqueda de la prueba en Movimientos muestra una única fila pagada. Editar recupera importe, fechas prevista/documental/real iguales, ámbito doméstico y medio de pago.
+- Prueba cancelada desde Editar → Estado cancelado → Guardar. Se comprueba que deja de figurar en realizados; no se borra historial. Solo se escribe la operación ficticia creada para esta prueba, sin modificar movimientos reales ni producción.
+- Dinero abre el detalle de pagos y presenta las seis cifras en el orden solicitado. Esto verifica navegación y recuperación del dato de prueba, no constituye auditoría de todos los importes históricos.
+- Hallazgo pendiente: Inicio todavía repite el próximo cobro entre hitos y lista; la ausencia de alertas duplicadas NO está validada. Los seguros antiguos pendientes siguen en atención; seguimiento de liquidación aún por implementar.
+- Continúan pendientes OCR real, documentos múltiples extremo a extremo, iPhone físico, CSV con elección de fuente y demás criterios de la orden. No declarar terminada la misión.
+
 ## Transición doméstica: primera interfaz — build 30126 (2026-10-22)
 
 - Versión 3.0.0-rc.1.89. Formulario manual corto sobre el guardado transaccional existente: gasto/ingreso, importe, concepto, fecha, estado, personas, cuenta/medio y categoría. Nuevas entradas domésticas realizadas por defecto; estado editable. Fecha documental y real se sincronizan solo en modo corto; editar conserva fechas históricas y formulario completo. Más detalles permite clasificación profesional transitoria y recurrencias.
