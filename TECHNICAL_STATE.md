@@ -1,7 +1,7 @@
 ## Compromisos sin repeticiones — build 30127 (2026-10-23)
 
 - Versión 3.0.0-rc.1.90. Inicio elimina el bloque de hitos redundante; cada compromiso conserva su lista y acceso al movimiento. Dinero conserva hitos, pero no repite el mismo cobro como próximo ingreso y cobro habitual.
-- Regresión ejecutada: mismo id/ocurrencia en ambos tipos de hito se representa una vez. Pruebas locales disponibles: 150/150; hashes PWA regenerados. Suite completa y comprobación del despliegue pendientes al redactar.
+- Regresión ejecutada: mismo id/ocurrencia en ambos tipos de hito se representa una vez. Pruebas locales disponibles: 150/150; hashes PWA regenerados. Suite completa CI: 177/177, cero fallos (run 39934834490, job 120351719485). Pages 39934922635 completed/success. Cabecera autenticada 30127/3.0.0-rc.1.90 comprobada tras actualización íntegra de PWA y recarga; Inicio muestra una vez el cobro en su lista; Dinero muestra dos hitos distintos sin repetir cobro habitual. Sesión recuperada y datos cargados.
 - Sin cambios económicos ni de esquema. Producción no modificada. Resto de requisitos de la misión pendientes conforme a registros siguientes.
 
 ## QA autenticada del alta doméstica — build 30126 (2026-10-23)
@@ -11,7 +11,7 @@
 - Recarga completa: sesión recuperada; búsqueda de la prueba en Movimientos muestra una única fila pagada. Editar recupera importe, fechas prevista/documental/real iguales, ámbito doméstico y medio de pago.
 - Prueba cancelada desde Editar → Estado cancelado → Guardar. Se comprueba que deja de figurar en realizados; no se borra historial. Solo se escribe la operación ficticia creada para esta prueba, sin modificar movimientos reales ni producción.
 - Dinero abre el detalle de pagos y presenta las seis cifras en el orden solicitado. Esto verifica navegación y recuperación del dato de prueba, no constituye auditoría de todos los importes históricos.
-- Hallazgo pendiente: Inicio todavía repite el próximo cobro entre hitos y lista; la ausencia de alertas duplicadas NO está validada. Los seguros antiguos pendientes siguen en atención; seguimiento de liquidación aún por implementar.
+- Hallazgo detectado en 30126 y corregido/comprobado en 30127: Inicio repetía el próximo cobro entre hitos y lista. Los seguros antiguos pendientes siguen en atención; seguimiento de liquidación aún por implementar.
 - Continúan pendientes OCR real, documentos múltiples extremo a extremo, iPhone físico, CSV con elección de fuente y demás criterios de la orden. No declarar terminada la misión.
 
 ## Transición doméstica: primera interfaz — build 30126 (2026-10-22)
