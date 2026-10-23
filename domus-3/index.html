@@ -1102,6 +1102,7 @@ function retailReceiptEvidence(d,doc,text){
  if(proof!=null){out.amount=proof;out.field_sources.amount='importe corroborado por total y pago del ticket';out.extraction_quality='high'}
  else if(cards.length&&charges.length&&cards.every(x=>!charges.includes(x))){out.amount=null;out.extraction_quality='low';out.field_sources.amount='importes de pago contradictorios: requiere revisión'}
  else if(totals.length&&charges.length&&totals.every(x=>!charges.includes(x))){out.amount=null;out.extraction_quality='low';out.field_sources.amount='total y cargo contradictorios: requiere revisión'}
+ else if(payment&&proof==null){out.amount=null;out.extraction_quality='low';out.field_sources.amount='OCR del total no corroborado por el cargo: revisar importe antes de crear'}
  // Aplicar la tarjeta a pagador/cuenta, nunca al titular económico.
  const pay=documentPaymentEvidence(src,out);
  for(const field of ['payer_person_id','account_id'])if(pay[field]&&!out[field]){out[field]=pay[field];out.field_sources[field]='tarjeta identificada por terminación'}
