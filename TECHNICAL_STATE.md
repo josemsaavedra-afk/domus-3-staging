@@ -1,3 +1,14 @@
+## Seguimiento individual y acceso bancario — build 30128 (2026-10-23)
+
+- Versión 3.0.0-rc.1.91. Detalle de gasto pendiente permite marcar/quitar «Pendiente de liquidación». Mantiene estado pendiente, importe y todas las fechas; no reclasifica automáticamente ningún movimiento de ONLOGIST ni real.
+- Inicio e hitos excluyen esas operaciones de urgencias; Dinero conserva su obligación en resultados y muestra un detalle separado de pendientes de liquidación. Corregido el detalle de Resultado realizado, que carecía de su clave de filas.
+- Documentos incorpora acceso permanente «Importar movimientos bancarios» al importador opcional existente. NO se considera implementada la nueva elección banco/DOMUS/campo a campo ni auditada toda la conciliación.
+- Migración aditiva Staging 20261023103949: columna nullable, RPC invoker con RLS, permiso authenticated, bloqueo y comprobación de revisión. Los dos guardados atómicos conservan el nuevo metadato al editar. Producción intacta.
+- Backup recuperable verificado antes del cambio: snapshot d9b54e40-c06a-4443-9191-5199450da2ac, pre_follow_up_30128_20261023; 1960 series y 1961 estados completos, más definiciones previas de ambos RPC en manifest. Restauración por jsonb_populate_record comprobada sin escritura; acceso cliente denegado. Tras migración, 1960/1960 series y 1961/1961 estados iguales a backup ignorando solo columna nueva. No restaurar encima de cambios posteriores del usuario.
+- CI ejecutada: 186/186, cero fallos; run 39940598692, job 120370785394. Incluye aislamiento RLS/anon, revisión obsoleta, fechas de recurrencia, pagados/cancelados/ingresos, conservación de marcador al sustituir movimiento/tramo, cálculos y detalles de Tesorería. Las pruebas usan snapshots JSON como API para fechas y números.
+- RPC real Staging probado como authenticated en hogar ficticio dentro de BEGIN/ROLLBACK: alta controlada, marcar, rechazar revisión obsoleta, quitar marca, igualdad de datos económicos. Transacción revertida; no quedan movimientos de prueba nuevos.
+- Publicación y QA autenticada de interfaz de esta entrega pendientes de verificación. OCR real/lote, iPhone físico, nueva conciliación asistida y recordatorio mensual continúan pendientes. DOMUS 3 conserva capacidades profesionales de transición; 4 aislado conforme al contrato de continuidad.
+
 ## Continuidad operativa 3.0 y producto doméstico 4.0 — decisión 23/10/2026
 
 - DOMUS 3.0 sigue en uso como puente y conserva las capacidades profesionales actuales hasta TransportERP. El plan autorizado de mejoras y pruebas de Staging continúa.
