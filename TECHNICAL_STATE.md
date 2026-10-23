@@ -1,3 +1,11 @@
+## Continuidad operativa 3.0 y producto doméstico 4.0 — decisión 23/10/2026
+
+- DOMUS 3.0 sigue en uso como puente y conserva las capacidades profesionales actuales hasta TransportERP. El plan autorizado de mejoras y pruebas de Staging continúa.
+- 4.0 debe evolucionar en entorno y datos aislados; no reemplazar ni modificar la base operativa de 3.0 como vía de simplificación. Una rama por sí sola no protege los datos.
+- TransportERP aportará ingresos familiares trazables; evitar duplicar los cobros profesionales ya registrados en 3.0. Beneficio profesional y aportación efectiva al hogar son conceptos diferentes.
+- Contrato de continuidad, auditoría de producto propuesta y condiciones de traspaso en [docs/DOMUS_3_4_CONTINUITY.md](docs/DOMUS_3_4_CONTINUITY.md). Recomendaciones pendientes de implementación; no se crean entornos ni se migran datos en este cambio documental.
+- Sin cambio del código servido: build 30127. No se atribuyen pruebas nuevas a esta decisión documental.
+
 ## Compromisos sin repeticiones — build 30127 (2026-10-23)
 
 - Versión 3.0.0-rc.1.90. Inicio elimina el bloque de hitos redundante; cada compromiso conserva su lista y acceso al movimiento. Dinero conserva hitos, pero no repite el mismo cobro como próximo ingreso y cobro habitual.
