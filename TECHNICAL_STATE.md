@@ -1,3 +1,11 @@
+## Recordatorio voluntario y formato CSV recordado — build 30129 (2026-10-23)
+
+- Versión 3.0.0-rc.1.92. Inicio ofrece el día 1 revisar el banco del mes pasado. Revisar abre el importador, Más tarde espera hasta mañana, Este mes no lo descarta hasta el siguiente mes. La elección persiste por usuario/hogar en este dispositivo; no bloquea otras tareas ni modifica datos económicos.
+- Columnas CSV confirmadas se recuerdan por usuario/hogar/cuenta en este dispositivo. Reutilizar exige mismos encabezados, orden y formato; si cambian se propone detección nueva y mapeo visible. No se guarda el contenido bancario en estas preferencias. Almacenamiento denegado no impide uso de la aplicación.
+- Retirada explicación de saldo calculado del panel opcional de importación; mantiene funciones históricas de conciliación accesibles para la transición 3.0.
+- Pruebas locales ejecutadas completas: 191/191, cero fallos; incluyen renovación mensual, posposición, persistencia tras recrear controlador, aislamiento de usuario/hogar/cuenta, ruta de revisión, formato desconocido en archivo posterior y encabezados cambiados. PWA verifica hashes y rechaza actualización incompleta con nuevos módulos incluidos.
+- Sin migración ni modificación económica. Publicación/CI/QA autenticada de esta build pendientes de verificación. No confundir las pruebas unitarias de fecha con una sesión real el día 1. Persistencia multidispositivo del recordatorio/formato no implementada.
+
 ## Seguimiento individual y acceso bancario — build 30128 (2026-10-23)
 
 - Versión 3.0.0-rc.1.91. Detalle de gasto pendiente permite marcar/quitar «Pendiente de liquidación». Mantiene estado pendiente, importe y todas las fechas; no reclasifica automáticamente ningún movimiento de ONLOGIST ni real.
@@ -7,7 +15,7 @@
 - Backup recuperable verificado antes del cambio: snapshot d9b54e40-c06a-4443-9191-5199450da2ac, pre_follow_up_30128_20261023; 1960 series y 1961 estados completos, más definiciones previas de ambos RPC en manifest. Restauración por jsonb_populate_record comprobada sin escritura; acceso cliente denegado. Tras migración, 1960/1960 series y 1961/1961 estados iguales a backup ignorando solo columna nueva. No restaurar encima de cambios posteriores del usuario.
 - CI ejecutada: 186/186, cero fallos; run 39940598692, job 120370785394. Incluye aislamiento RLS/anon, revisión obsoleta, fechas de recurrencia, pagados/cancelados/ingresos, conservación de marcador al sustituir movimiento/tramo, cálculos y detalles de Tesorería. Las pruebas usan snapshots JSON como API para fechas y números.
 - RPC real Staging probado como authenticated en hogar ficticio dentro de BEGIN/ROLLBACK: alta controlada, marcar, rechazar revisión obsoleta, quitar marca, igualdad de datos económicos. Transacción revertida; no quedan movimientos de prueba nuevos.
-- Publicación y QA autenticada de interfaz de esta entrega pendientes de verificación. OCR real/lote, iPhone físico, nueva conciliación asistida y recordatorio mensual continúan pendientes. DOMUS 3 conserva capacidades profesionales de transición; 4 aislado conforme al contrato de continuidad.
+- Publicación 30128 comprobada: main 434860bff62625d6b5bf6adccf46db0939f854b8; Pages 39940827847 success; navegador sirve version.json 3.0.0-rc.1.91 / 30128. QA autenticada de interfaz pendiente; navegador requiere acceso. OCR real/lote, iPhone físico, nueva conciliación asistida y recordatorio mensual continúan pendientes. DOMUS 3 conserva capacidades profesionales de transición; 4 aislado conforme al contrato de continuidad.
 
 ## Continuidad operativa 3.0 y producto doméstico 4.0 — decisión 23/10/2026
 

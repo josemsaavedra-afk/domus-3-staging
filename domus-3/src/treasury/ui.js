@@ -1,3 +1,5 @@
+import { createBankReminder, bindMonthlyReminder } from './monthly-reminder.js';
+import { readStatementFormat, rememberStatementFormat, matchingStatementFormat } from './statement-preferences.js';
 import { normalizeTreasuryItem } from './engine.js';
 import { createPersistenceRuntime } from './persistence-runtime.js';
 import { createIndexedDbOutbox } from './outbox-store.js';
@@ -11,6 +13,10 @@ import { createReviewSession, decideReview, reviewSummary, selectReviewCandidate
 import { parseStatementCsv, inspectStatementCsv } from './statement-csv.js';
 import { accountWithLocalCheckpoint, createLocalCheckpoint, validateAccountReconciliation } from './balance-checkpoint.js';
 import { buildReconciliationReport, createStatementFingerprint, movementsForStatementAccount, reconciliationReportFileName, serializeReconciliationReport } from './reconciliation-report.js';
+
+const preferenceStorage = {getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value)};
+const bankReminder = createBankReminder(preferenceStorage);
+window.renderMonthlyBankReminder = (userId, householdId) => bindMonthlyReminder({root: document.getElementById('monthlyBankReminder'), reminder: bankReminder, userId, householdId, onReview: () => window.openBankImport()});
 
 const euro = value => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(Number(value || 0));
 const date = value => value ? new Intl.DateTimeFormat('es-ES').format(new Date(`${value}T12:00:00`)) : 'Sin fecha prevista';
@@ -204,7 +210,7 @@ export function renderTreasury3(snapshot) {
   </div>
   <p class="muted">Resultado realizado: cobrado menos pagado. Resultado previsto: todos los ingresos menos todos los gastos del mes, realizados y pendientes. Estas cifras no son saldos bancarios.</p>
   <details class="card"><summary>Importar y comparar un extracto (opcional)</summary>
-    <p>Saldo confirmado y movimientos posteriores a su fecha de referencia. Sin referencia, el saldo es desconocido.</p>
+    <p>Compara pagos y cobros con tus movimientos. Esta revisión es voluntaria y no calcula saldos bancarios.</p>
 
     <div class="treasury-advanced">    <div class="card"><div class="section-title"><div><h2>Conciliación bancaria segura</h2><p class="muted">El extracto se usa para reconocer y comprobar movimientos existentes.</p></div><label class="btn">2. Seleccionar extracto<input id="treasuryCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label></div><div class="msg info"><strong>Regla de seguridad:</strong> cargar o conciliar un extracto <strong>no crea movimientos</strong>. Una línea bancaria solo puede enlazarse con un movimiento DOMUS ya existente. Si no hay coincidencia, queda pendiente de revisión.</div><div id="treasuryCsvResult" class="empty">1. Selecciona la cuenta. Después elige tu CSV o TSV. DOMUS buscará coincidencias sin crear nada nuevo.</div></div>
 </div>
@@ -252,20 +258,30 @@ export function renderTreasury3(snapshot) {
       if (/\.(xlsx?|pdf)$/i.test(file.name)) throw new Error('Este paso lee extractos CSV o TSV. Exporta el extracto bancario a CSV; los documentos profesionales mantienen su circuito de TransportERP.');
       const text = await file.text();
       if (generation !== renderGeneration) return;
-      let info = inspectStatementCsv(text);
+      const formatContext = {userId: snapshot.userId, householdId: snapshot.householdId, accountId: account.id};
+      const savedFormat = readStatementFormat(preferenceStorage, formatContext);
+      let info = inspectStatementCsv(text), restoredFormat = false;
+      if (savedFormat) {
+        try {
+          const detected = inspectStatementCsv(text, savedFormat.mapping);
+          const matching = matchingStatementFormat(savedFormat, detected.headers);
+          if (matching) { info = {...detected, indexes: {...detected.indexes, ...matching}}; restoredFormat = true; }
+        } catch { /* A different format uses fresh detection and visible column choices. */ }
+      }
       const display = () => {
         output.className = '';
         const option = selected => '<option value="-1">Sin columna</option>' + info.headers.map((h,i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${esc(h || '(sin título)')}</option>`).join('');
         const labels = { date:'Fecha real de operación', concept:'Concepto', amount:'Importe con signo (− cargo / + abono)', debit:'Cargo', credit:'Abono', reference:'Referencia (opcional)' };
-        output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p><label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>`;
+        output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p><label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>${restoredFormat?'Hemos recuperado las columnas que elegiste para esta cuenta. Revisa la propuesta. ':''}Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>`;
         output.querySelector('[data-csv-delimiter]').value = info.delimiter==='\t'?'tab':info.delimiter;
-        output.querySelector('[data-csv-format]').onclick = () => { try { const delimiter = output.querySelector('[data-csv-delimiter]').value; info = inspectStatementCsv(text,{delimiter:delimiter==='tab'?'\t':delimiter,headerRow:Number(output.querySelector('[data-csv-header]').value)-1}); display(); } catch(error) { output.querySelector('[data-csv-message]').textContent = 'No importado: '+error.message; } };
+        output.querySelector('[data-csv-format]').onclick = () => { try { const delimiter = output.querySelector('[data-csv-delimiter]').value; info = inspectStatementCsv(text,{delimiter:delimiter==='tab'?'\t':delimiter,headerRow:Number(output.querySelector('[data-csv-header]').value)-1}); restoredFormat=false; display(); } catch(error) { output.querySelector('[data-csv-message]').textContent = 'No importado: '+error.message; } };
         output.querySelector('[data-csv-review]').onclick = async () => {
           const note = output.querySelector('[data-csv-message]');
           try {
             if (generation !== renderGeneration || accountSelect.value !== account.id) throw new Error('La cuenta ha cambiado. Selecciona de nuevo el archivo.');
             const mapping = {delimiter:info.delimiter,headerRow:info.headerRow,...Object.fromEntries([...output.querySelectorAll('[data-csv-map]')].map(el=>[el.dataset.csvMap,Number(el.value)]))};
             const rows = parseStatementCsv(text,mapping), fingerprint = await createStatementFingerprint(account.id,text);
+            if (generation === renderGeneration && accountSelect.value === account.id) rememberStatementFormat(preferenceStorage, formatContext, info.headers, mapping);
             if (generation !== renderGeneration) return;
             const existing = statementReviews.get(fingerprint.duplicateKey);
             if (existing && !existing.stale && !existing.needsPersistentReview) { showReview(fingerprint.duplicateKey); return; }
