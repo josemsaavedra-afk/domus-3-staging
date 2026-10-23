@@ -1,3 +1,13 @@
+## Tickets supermercados y conciliación OCR — build 30129 (2026-10-23)
+
+- Versión 3.0.0-rc.1.92. Staging únicamente.
+- Regresión reportada en Mercadona 20261022.pdf: OCR propuso 34,50 € en lugar de 84,50 €, concepto/proveedor corrupto, estado pendiente, pagador/cuenta/categoría ausentes.
+- En el pipeline se reconocen supermercados conocidos por nombre de archivo con fecha válida; se proponen comercio, compra doméstica y Alimentación activa. No se deduce el titular económico de la tarjeta.
+- Se detecta pago con tarjeta en formatos TARJ. BANCARIA y terminaciones enmascaradas como ****3011, aplicando reglas de pagador/cuenta existentes.
+- El estado se propone realizado cuando existe evidencia de pago o tipo documental ticket.
+- La conciliación del importe exige concordancia entre total y cargo; ante OCR contradictorio o cargo no corroborado se bloquea el importe en vez de guardar una cifra potencialmente errónea.
+- No se ha modificado ni confirmado ningún movimiento económico. Falta prueba de extremo a extremo con el PDF real en navegador, tras propagación de Pages.
+
 ## Seguimiento individual y acceso bancario — build 30128 (2026-10-23)
 
 - Versión 3.0.0-rc.1.91. Detalle de gasto pendiente permite marcar/quitar «Pendiente de liquidación». Mantiene estado pendiente, importe y todas las fechas; no reclasifica automáticamente ningún movimiento de ONLOGIST ni real.
