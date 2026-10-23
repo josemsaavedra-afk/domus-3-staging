@@ -77,14 +77,15 @@ function treasuryTotals(rows){return rows.reduce((out,row)=>{out.income+=row.typ
 function operationalTreasury(vm,available,confirmedCount,totalAccounts){
  const monthly=monthlyTreasury(vm);
  const today=vm.today,monthStart=today.slice(0,7)+'-01',monthEnd=vm.horizons.month.end;
- const overdueRows=vm.open.filter(r=>r.date<today),todayRows=vm.open.filter(r=>r.date===today),currentMonthOpenRows=vm.open.filter(r=>r.date>=monthStart&&r.date<=monthEnd),commitmentRows=vm.open.filter(r=>r.date<=monthEnd),realMonthRows=monthly.realizedRows;
+ const settlementRows=vm.open.filter(r=>r.source?.follow_up_status==='pending_settlement'),attentionRows=vm.open.filter(r=>r.source?.follow_up_status!=='pending_settlement');
+ const overdueRows=attentionRows.filter(r=>r.date<today),todayRows=attentionRows.filter(r=>r.date===today),currentMonthOpenRows=vm.open.filter(r=>r.date>=monthStart&&r.date<=monthEnd),commitmentRows=vm.open.filter(r=>r.date<=monthEnd),realMonthRows=monthly.realizedRows;
  const overdue=treasuryTotals(overdueRows),todayTotals=treasuryTotals(todayRows),currentMonthOpen=treasuryTotals(currentMonthOpenRows),commitment=treasuryTotals(commitmentRows),realMonth=treasuryTotals(realMonthRows);
  const plannedMonth=monthly.planned;
  const projected=confirmedCount>0&&confirmedCount===totalAccounts?available+commitment.net:null,projectedComplete=confirmedCount>0&&confirmedCount===totalAccounts;
  const nextCutoff=day=>{const d=new Date(today+'T12:00:00');let y=d.getFullYear(),m=d.getMonth();if(d.getDate()>day){m++;if(m>11){m=0;y++;}}return y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0')};
  const cutoff10=nextCutoff(10),cutoff25=nextCutoff(25);
  const cut10Rows=vm.open.filter(r=>r.date<=cutoff10),cut25Rows=vm.open.filter(r=>r.date<=cutoff25),cut10=treasuryTotals(cut10Rows),cut25=treasuryTotals(cut25Rows);
- return {today,monthStart,monthEnd,overdueRows,todayRows,currentMonthOpenRows,realMonthRows,commitmentRows,overdue,todayTotals,currentMonthOpen,realMonth,plannedMonth,commitment,projected,projectedComplete,cutoff10,cutoff25,cut10Rows,cut25Rows,cut10,cut25,cutoff10Balance:projectedComplete?available+cut10.net:null,cutoff25Balance:projectedComplete?available+cut25.net:null};
+ return {settlementRows,today,monthStart,monthEnd,overdueRows,todayRows,currentMonthOpenRows,realMonthRows,commitmentRows,overdue,todayTotals,currentMonthOpen,realMonth,plannedMonth,commitment,projected,projectedComplete,cutoff10,cutoff25,cut10Rows,cut25Rows,cut10,cut25,cutoff10Balance:projectedComplete?available+cut10.net:null,cutoff25Balance:projectedComplete?available+cut25.net:null};
 }
 function operationalCards(op){
  const projectedText=op.projected==null?'Sin saldo base':euro(op.projected),projectedSub=op.projected==null?'Confirma saldos bancarios para calcularlo':(op.projectedComplete?'Saldo calculado + pendientes hasta fin de mes':'Proyección parcial: faltan cuentas por confirmar');
@@ -208,6 +209,7 @@ export function renderTreasury3(snapshot) {
     <div class="treasury-advanced">    <div class="card"><div class="section-title"><div><h2>Conciliación bancaria segura</h2><p class="muted">El extracto se usa para reconocer y comprobar movimientos existentes.</p></div><label class="btn">2. Seleccionar extracto<input id="treasuryCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label></div><div class="msg info"><strong>Regla de seguridad:</strong> cargar o conciliar un extracto <strong>no crea movimientos</strong>. Una línea bancaria solo puede enlazarse con un movimiento DOMUS ya existente. Si no hay coincidencia, queda pendiente de revisión.</div><div id="treasuryCsvResult" class="empty">1. Selecciona la cuenta. Después elige tu CSV o TSV. DOMUS buscará coincidencias sin crear nada nuevo.</div></div>
 </div>
   </details>
+  <button type="button" class="card clickable" data-treasury-operational="settlement"><strong>Pendientes de liquidación · ${op.settlementRows.length}</strong><p>Siguen pendientes y conservan sus fechas e importes. Se consultan aquí sin avisos repetidos de urgencia.</p><span>${euro(treasuryTotals(op.settlementRows).expense)} · Ver movimientos</span></button>
   <div class="card treasury-attention-card">
     <div class="section-title"><div><h2>Atención</h2><p class="muted">Solo lo que necesita revisión ahora.</p></div></div>
     <div class="treasury-attention-grid">
@@ -284,6 +286,8 @@ export function renderTreasury3(snapshot) {
   const detail=root.querySelector('#treasury3Detail'),title=root.querySelector('#treasury3DetailTitle'),body=root.querySelector('#treasury3DetailBody'),mobile=root.querySelector('#treasury3DetailMobile');
   const show=(label,rows)=>{title.textContent=label+' · '+rows.length+' movimientos · '+euro(treasuryTotals(rows).net);body.innerHTML=movementRows(rows);mobile.innerHTML=movementCards(rows);detail.classList.remove('hidden');detail.scrollIntoView({behavior:'smooth',block:'start'});};
   const rowsByKey={
+    settlement:op.settlementRows,
+    monthReal:op.realMonthRows,
     ...monthlyTreasuryBreakdowns(vm),
     monthPlanned:[...op.realMonthRows,...op.currentMonthOpenRows],
     overdue:op.overdueRows,
@@ -291,7 +295,7 @@ export function renderTreasury3(snapshot) {
     cut10:op.cut10Rows,
     cut25:op.cut25Rows
   };
-  const labels={monthIncomePending:'Por cobrar · '+monthLabel,monthIncomeReal:'Cobrado · '+monthLabel,monthExpensePending:'Por pagar · '+monthLabel,monthExpenseReal:'Pagado · '+monthLabel,monthReal:'Realizado · '+monthLabel,monthPlanned:'Total previsto del mes · '+monthLabel,overdue:'Vencidos pendientes',today:'Vencen hoy',cut10:'Movimientos hasta '+date(op.cutoff10),cut25:'Movimientos hasta '+date(op.cutoff25)};
+  const labels={settlement:'Pendientes de liquidación',monthIncomePending:'Por cobrar · '+monthLabel,monthIncomeReal:'Cobrado · '+monthLabel,monthExpensePending:'Por pagar · '+monthLabel,monthExpenseReal:'Pagado · '+monthLabel,monthReal:'Realizado · '+monthLabel,monthPlanned:'Total previsto del mes · '+monthLabel,overdue:'Vencidos pendientes',today:'Vencen hoy',cut10:'Movimientos hasta '+date(op.cutoff10),cut25:'Movimientos hasta '+date(op.cutoff25)};
   root.querySelectorAll('[data-treasury-operational]').forEach(button=>button.onclick=()=>show(labels[button.dataset.treasuryOperational],rowsByKey[button.dataset.treasuryOperational]||[]));
   if(window.__domusTreasuryReadAdapter){
     root.querySelectorAll('[data-enqueue-checkpoint],[data-enqueue-import],[data-enqueue-confirmations],[data-sync-treasury]').forEach(button=>{button.disabled=true;button.title='Guardado remoto no disponible en este adaptador';});

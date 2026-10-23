@@ -21,6 +21,6 @@ test('Home renders without removed balance nodes and limits upcoming items to se
 test('Home does not repeat the milestone list and Treasury renders the same income once',()=>{
  assert.ok(!html.includes('id="homeMilestones"'));
  const nodes={innerHTML:''},income={id:'i',occurrenceDate:new Date('2026-10-26'),status:'pending',type:'income'};
- const context={document:{getElementById:()=>nodes},startOfDay:d=>d,addDays:d=>d,occurrencesBetween:()=>[income],originalDateOf:()=> '2026-10-26',interpaymentForecast:()=>({first:income}),milestoneMovement:(label,row)=>row?row.id:'',habitualMilestone:()=> 'DUPLICATED'};vm.createContext(context);
+ const context={isPendingSettlement:()=>false,document:{getElementById:()=>nodes},startOfDay:d=>d,addDays:d=>d,occurrencesBetween:()=>[income],originalDateOf:()=> '2026-10-26',interpaymentForecast:()=>({first:income}),milestoneMovement:(label,row)=>row?row.id:'',habitualMilestone:()=> 'DUPLICATED'};vm.createContext(context);
  vm.runInContext(html.slice(html.indexOf('function renderMilestones('),html.indexOf('function renderInterpaymentSummary(')),context);context.renderMilestones('treasuryMilestones');assert.equal(nodes.innerHTML,'i');
 });
