@@ -883,7 +883,10 @@ function personFromDocumentText(text){
  scores.sort((a,b)=>b.score-a.score);return scores.length&&(!scores[1]||scores[0].score>scores[1].score)?scores[0].id:null;
 }
 function documentPaymentEvidence(text,d){
- const suffixes=new Set();for(const m of String(text||'').matchAll(/\b(?:tarjeta|visa|mastercard|card)\s*(?:n[º°o.]|numero|terminada\s+en)?\s*[:.\-]?\s*([\dxX*• -]{4,30})/gi)){const digits=m[1].replace(/\D/g,'');if(digits.length>=4)suffixes.add(digits.slice(-4))}
+ const suffixes=new Set(),src=String(text||'');
+ for(const m of src.matchAll(/\b(?:tarj(?:eta)?\.?|visa|mastercard|card)\s*(?:bancaria|de\s+cr[eé]dito|de\s+d[eé]bito|n[º°o.]|n[uú]mero|terminada\s+en)?\s*[:.\-]?\s*([\dxX*•\s-]{4,45})/gi)){const digits=m[1].replace(/\D/g,'');if(digits.length>=4)suffixes.add(digits.slice(-4))}
+ // El sufijo también puede estar separado del encabezado por una línea o por el importe.
+ for(const m of src.matchAll(/(?:\*|X|•){3,}[\s*X•-]*([0-9]{4})\b/gi))if(/tarj|mastercard|visa|debit/i.test(src.slice(Math.max(0,m.index-100),m.index+100)))suffixes.add(m[1]);
  const config=typeof rules==='undefined'?[]:(rules?.document_payment_rules||[]),matches=Array.isArray(config)?config.filter(r=>r.active!==false&&suffixes.has(r.suffix)&&people.some(p=>p.id===r.payer_person_id&&p.active!==false)&&accounts.some(a=>a.id===r.account_id&&a.active!==false)):[];
  const pairs=[...new Set(matches.map(r=>JSON.stringify([r.payer_person_id,r.account_id])))];
  const result={};if(pairs.length===1){const [payer,account]=JSON.parse(pairs[0]);if((d.payer_person_id&&d.payer_person_id!==payer)||(d.account_id&&d.account_id!==account))result.conflict='La tarjeta contradice el pagador o la cuenta indicados; revisa los datos.';else{result.payer_person_id=payer;result.account_id=account;result.source='tarjeta identificada por terminación'}}else if(pairs.length>1)result.conflict='Hay tarjetas de pagadores o cuentas distintos; selecciona el pago correspondiente.';
@@ -1069,6 +1072,42 @@ function applyDocumentRuleDefaults(out){
  }
  return out;
 }
+function retailReceiptEvidence(d,doc,text){
+ const file=filenameDocumentEvidence(doc?.file_name),merchant=normDocText(file.merchant||'').trim();
+ const known=/^(mercadona|supeco|aldi|lidl)$/.test(merchant);
+ if(!known)return d;
+ const out={...d,field_sources:{...(d.field_sources||{})}},src=String(text||'');
+ // El nombre identifica el comercio; un OCR con caracteres corruptos no lo reemplaza.
+ const display=merchant.charAt(0).toUpperCase()+merchant.slice(1);
+ out.type='expense';out.supplier=display;out.counterparty=display;out.concept='Compra '+display;
+ out.counterparty_id=window.DOMUSClassification.matchCounterparty(display);
+ out.field_sources.supplier='comercio conocido en el nombre del archivo';
+ out.field_sources.counterparty='comercio conocido en el nombre del archivo';
+ out.field_sources.concept='compra en supermercado';
+ if(file.date){out.document_date=file.date;out.date=file.date;out.field_sources.document_date='fecha válida en el nombre del archivo'}
+ out.expense_scope='domestic';out.field_sources.expense_scope='compra en supermercado';
+ const food=categories.filter(x=>x.active!==false&&(!x.kind||x.kind==='both'||x.kind==='expense')&&normDocText(window.DOMUSClassification.categoryLabel(x)).trim()==='alimentacion');
+ if(food.length===1){out.category_id=food[0].id;out.field_sources.category_id='supermercado: Alimentación'}
+ const payment=/\b(?:tarj(?:eta)?\.?\s*bancaria|tarjeta\s+de\s+(?:cr[eé]dito|d[eé]bito)|debit\s+mastercard|importe\s*:\s*\d+[,.]\d{2}\s*€?\s*\n\s*(?:debit|visa|mastercard))/i.test(src);
+ if(payment||/\b(?:ticket|receipt)\b/i.test(String(doc?.document_type||''))){out.status='done';out.field_sources.status=payment?'pago con tarjeta impreso en el ticket':'ticket de compra'}
+ // Reconciliar importes de cobro y total. La cifra OCR inicial nunca prevalece sobre
+ // dos evidencias de pago coincidentes; si no hay acuerdo, obligar a revisar.
+ const val=s=>moneyFrom(s),money='(\\d{1,5}[,.]\\d{2})';
+ const card=[...src.matchAll(new RegExp('(?:TARJ(?:ETA)?\\.?\\s+BANCARIA|PAGO\\s+CON\\s+TARJETA)\\s*[:\\-]?\\s*'+money,'gi'))].map(m=>val(m[1])).filter(Number.isFinite);
+ const charged=[...src.matchAll(new RegExp('(?:Importe|Cobrado|Pagado)\\s*[:=]\\s*'+money+'\\s*(?:€|EUR)?','gi'))].map(m=>val(m[1])).filter(Number.isFinite);
+ const total=[...src.matchAll(new RegExp('(?:^|\\n)\\s*T[O0]TA[L1I]\\s*\\(?€?\\)?\\s*[:=]?\\s*'+money,'gi'))].map(m=>val(m[1])).filter(Number.isFinite);
+ const unique=arr=>[...new Set(arr.map(x=>x.toFixed(2)))].map(Number);
+ const cards=unique(card),charges=unique(charged),totals=unique(total);
+ const proof=cards.length===1&&charges.includes(cards[0])?cards[0]:charges.length===1&&totals.includes(charges[0])?charges[0]:cards.length===1&&totals.includes(cards[0])?cards[0]:null;
+ if(proof!=null){out.amount=proof;out.field_sources.amount='importe corroborado por total y pago del ticket';out.extraction_quality='high'}
+ else if(cards.length&&charges.length&&cards.every(x=>!charges.includes(x))){out.amount=null;out.extraction_quality='low';out.field_sources.amount='importes de pago contradictorios: requiere revisión'}
+ else if(totals.length&&charges.length&&totals.every(x=>!charges.includes(x))){out.amount=null;out.extraction_quality='low';out.field_sources.amount='total y cargo contradictorios: requiere revisión'}
+ // Aplicar la tarjeta a pagador/cuenta, nunca al titular económico.
+ const pay=documentPaymentEvidence(src,out);
+ for(const field of ['payer_person_id','account_id'])if(pay[field]&&!out[field]){out[field]=pay[field];out.field_sources[field]='tarjeta identificada por terminación'}
+ if(pay.conflict)out.payment_evidence_warning=pay.conflict;
+ return out;
+}
 function smartDocumentDefaults(d,doc){
  const out={...d,field_sources:{...(d.field_sources||{})}},file=String(doc?.file_name||''),docType=String(doc?.document_type||'').toLowerCase();
  const sbill=file.match(/^SBILL(\d+)_([0-9]{4})_([0-9]{2})_([0-9]{4})\.pdf$/i);
@@ -1156,7 +1195,7 @@ async function analyzeBlob(doc,blob,opts={}){currentDocumentId=doc.id;document.g
  if(lastDocumentOcrMode==='ocr'&&drafts.some(d=>!d.date)){recovery.raw=await documentRawDateReading(blob,doc.mime_type||blob.type);drafts=drafts.map(d=>documentRecoveryDate(d,recovery.raw))}
  if(window.DOMUSTransportERPEngine){
   drafts=drafts.map(d=>{if(d.deterministic_reader)return {...d,transporterp_status:'interpreted',transporterp_warnings:[]};const interpreted=window.DOMUSTransportERPEngine.interpretReceipt({filename:doc.file_name,readings:[text,recovery.header,recovery.middle,recovery.footer],firstPass:d}),sources={...(d.field_sources||{})};if(interpreted.provenance.date)sources.date=interpreted.provenance.date;if(interpreted.provenance.issuer){sources.supplier=interpreted.provenance.issuer;sources.concept=interpreted.provenance.issuer}return {...d,amount:d.amount!=null?d.amount:interpreted.amount,date:interpreted.date||d.date||'',supplier:interpreted.issuer||d.supplier||'',counterparty:interpreted.issuer||d.counterparty||'',concept:interpreted.issuer||d.concept||'',counterparty_id:window.DOMUSClassification.matchCounterparty(interpreted.issuer||d.counterparty||d.supplier),field_sources:sources,transporterp_status:interpreted.status,transporterp_warnings:interpreted.warnings}})
- }else drafts=applyFilenameEvidence(drafts,doc);drafts=drafts.map(d=>smartDocumentDefaults(enrichDocumentDraft(documentDateFallback(d,doc.document_date),text+'\n'+recovery.combined+'\n'+(recovery.raw||'')),doc));currentDocDrafts=drafts;const low=drafts.filter(d=>d.extraction_quality==='low').length;await updateRowSafely('documents',doc.id,{document_date:detectedDocumentDate(drafts,doc.document_date||null),due_date:(()=>{const x=[...new Set(drafts.map(d=>d.due_date).filter(Boolean))];return x.length===1?x[0]:null})(),extracted_text:null,extracted_data:{drafts},analysis_status:'review'});if(!opts.batch)renderDocDrafts(drafts,doc);else pendingDocumentDraftBatches.push({doc,drafts});document.getElementById('docProgress').textContent=low?`Lectura parcial: ${low} propuesta(s) necesitan revisión manual.`:`Lectura terminada: ${drafts.length} propuesta(s).`}
+ }else drafts=applyFilenameEvidence(drafts,doc);drafts=drafts.map(d=>{const evidence=text+'\n'+recovery.combined+'\n'+(recovery.raw||'');return smartDocumentDefaults(retailReceiptEvidence(enrichDocumentDraft(documentDateFallback(d,doc.document_date),evidence),doc,evidence),doc)});currentDocDrafts=drafts;const low=drafts.filter(d=>d.extraction_quality==='low').length;await updateRowSafely('documents',doc.id,{document_date:detectedDocumentDate(drafts,doc.document_date||null),due_date:(()=>{const x=[...new Set(drafts.map(d=>d.due_date).filter(Boolean))];return x.length===1?x[0]:null})(),extracted_text:null,extracted_data:{drafts},analysis_status:'review'});if(!opts.batch)renderDocDrafts(drafts,doc);else pendingDocumentDraftBatches.push({doc,drafts});document.getElementById('docProgress').textContent=low?`Lectura parcial: ${low} propuesta(s) necesitan revisión manual.`:`Lectura terminada: ${drafts.length} propuesta(s).`}
 function simplifyDocumentReview(drafts){
  document.getElementById('docNextWithoutSaving').textContent=pendingDocumentDraftBatches.length?'Siguiente sin guardar ('+pendingDocumentDraftBatches.length+')':'Cerrar sin crear movimiento';
  document.querySelectorAll('#docDrafts .draft-card').forEach(card=>{
