@@ -1,3 +1,9 @@
+## Compromisos sin repeticiones — build 30127 (2026-10-23)
+
+- Versión 3.0.0-rc.1.90. Inicio elimina el bloque de hitos redundante; cada compromiso conserva su lista y acceso al movimiento. Dinero conserva hitos, pero no repite el mismo cobro como próximo ingreso y cobro habitual.
+- Regresión ejecutada: mismo id/ocurrencia en ambos tipos de hito se representa una vez. Pruebas locales disponibles: 150/150; hashes PWA regenerados. Suite completa y comprobación del despliegue pendientes al redactar.
+- Sin cambios económicos ni de esquema. Producción no modificada. Resto de requisitos de la misión pendientes conforme a registros siguientes.
+
 ## QA autenticada del alta doméstica — build 30126 (2026-10-23)
 
 - Acceso seguro completado y cabecera 3.0.0-rc.1.89 / 30126 comprobada en Staging.

@@ -70,7 +70,7 @@
 /* Tesorería 30124: totales y explicación directa */
 .treasury-result-breakdown{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;color:var(--muted);font-size:13px}.treasury-result-breakdown strong{color:var(--ink)}.treasury-flow-total{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}.treasury-flow-total strong{font-size:22px}.treasury-hero-card.clickable{text-align:left;width:100%;cursor:pointer}
 
-/* Movimientos 30126: filtros combinables por naturaleza y estado */
+/* Movimientos 30127: filtros combinables por naturaleza y estado */
 .movement-filter-stack{display:grid;gap:8px;margin-bottom:12px}.movement-filter-stack .movement-filter-tabs{margin:0}.movement-filter-stack .movement-filter-tabs:first-child:before{content:'Naturaleza';font-size:12px;font-weight:800;color:var(--muted);margin-right:8px;align-self:center}.movement-filter-stack .movement-filter-tabs:last-child:before{content:'Estado';font-size:12px;font-weight:800;color:var(--muted);margin-right:8px;align-self:center}@media(max-width:700px){.movement-filter-stack .movement-filter-tabs{overflow-x:auto;display:flex;flex-wrap:nowrap;padding-bottom:2px}.movement-filter-stack .movement-filter-tabs:before{position:sticky;left:0;background:var(--card);z-index:1;padding-right:4px}.movement-filter-stack button{white-space:nowrap}}
 .simple-hidden{display:none!important}.simple-entry fieldset>legend,.simple-entry fieldset>p,.simple-entry .field>small{display:none}.simple-entry fieldset{border:0;padding:8px 0}.simple-entry #movementAdvanced{margin-top:12px}
 </style>
@@ -194,7 +194,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.89 · Build 30126<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.90 · Build 30127<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -223,9 +223,9 @@
       <button class="btn" onclick="showView('stats')">Informes</button>
     </div>
     <div id="homeAttentionStrip" class="home-attention-strip hidden" role="status"><strong id="lateTotal">0 €</strong><span id="lateCount"></span><button class="btn ghost" type="button" onclick="openDashboardDetail('late')">Revisar</button></div>
-    <div class="grid two home-primary">
+    <div class="home-primary">
       <div class="card today-actions"><div class="section-title"><div><h2>Necesita tu atención</h2><p class="muted">Pagos vencidos o movimientos que toca resolver hoy.</p></div></div><div id="todayActionList" class="list"></div></div>
-      <div class="card"><div class="section-title"><div><h2>Lo siguiente</h2><p class="muted">Qué debes preparar y qué cobros esperas.</p></div></div><div id="homeMilestones" class="milestone-grid"></div></div>
+
     </div>
     <div class="grid two">
       <div class="card"><div class="section-title"><h2>Pagos de los próximos siete días</h2><span class="muted" id="priorityInfo"></span></div><div id="priorityList" class="list"></div></div>
@@ -534,7 +534,8 @@ function interpaymentForecast(){
 }
 function milestoneMovement(kind,x){if(!x)return '<div class="milestone"><span class="milestone-kicker">'+escapeHtml(kind)+'</span><strong>Sin fecha próxima</strong><small>No hay movimientos pendientes de este tipo.</small></div>';return '<button type="button" class="milestone" onclick="openMovementDetail(\''+x.id+'\',\''+originalDateOf(x)+'\')"><span class="milestone-kicker">'+escapeHtml(kind)+'</span><strong>'+escapeHtml(x.concept)+'</strong><small>'+escapeHtml(fmt(x.occurrenceDate))+'</small><span class="amount '+x.type+'">'+(x.type==='income'?'+':'−')+euro(x.amount)+'</span></button>'}
 function habitualMilestone(){const f=interpaymentForecast();if(!f)return '<div class="milestone"><span class="milestone-kicker">Cobro habitual</span><strong>Sin previsión</strong><small>No hay un ingreso habitual de actividad económica pendiente.</small></div>';const exact=!!f.first.state?.rescheduled_date;const days=exact?(Math.max(0,Math.round((f.first.occurrenceDate-startOfDay(new Date()))/86400000))+' días'):f.daysMin===f.daysMax?(f.daysMin+' día'+(f.daysMin===1?'':'s')):(f.daysMin+'–'+f.daysMax+' días'),window=exact?fmt(f.first.occurrenceDate):f.windowStart.getTime()===f.windowEnd.getTime()?fmt(f.windowStart):(fmt(f.windowStart)+'–'+fmt(f.windowEnd));return '<button type="button" class="milestone" onclick="openMovementDetail(\''+f.first.id+'\',\''+originalDateOf(f.first)+'\')"><span class="milestone-kicker">Cobro habitual · '+escapeHtml(days)+'</span><strong>'+escapeHtml(f.first.concept)+'</strong><small>'+(exact?'Fecha reprogramada: ':'Ventana estimada: ')+escapeHtml(window)+'</small><span class="amount income">+'+euro(f.expected)+'</span></button>'}
-function renderMilestones(targetId){const el=document.getElementById(targetId);if(!el)return;const today=startOfDay(new Date()),end=addDays(today,370),rows=occurrencesBetween(today,end).filter(x=>x.status==='pending'&&x.occurrenceDate>=today).sort((a,b)=>a.occurrenceDate-b.occurrenceDate),nextExpense=rows.find(x=>x.type==='expense'),nextIncome=rows.find(x=>x.type==='income');el.innerHTML=milestoneMovement('Próximo pago',nextExpense)+milestoneMovement('Próximo ingreso',nextIncome)+habitualMilestone()}
+function renderMilestones(targetId){const el=document.getElementById(targetId);if(!el)return;const today=startOfDay(new Date()),end=addDays(today,370),rows=occurrencesBetween(today,end).filter(x=>x.status==='pending'&&x.occurrenceDate>=today).sort((a,b)=>a.occurrenceDate-b.occurrenceDate),nextExpense=rows.find(x=>x.type==='expense'),nextIncome=rows.find(x=>x.type==='income'),habitual=interpaymentForecast(),sameIncome=habitual?.first&&nextIncome&&habitual.first.id===nextIncome.id&&originalDateOf(habitual.first)===originalDateOf(nextIncome);el.innerHTML=milestoneMovement('Próximo pago',nextExpense)+milestoneMovement('Próximo ingreso',nextIncome)+(habitual&&!sameIncome?habitualMilestone():'')}
+
 function renderInterpaymentSummary(){renderMilestones('homeMilestones');renderMilestones('treasuryMilestones')}
 
 function dashboardBuckets(){const today=startOfDay(new Date()),end7=addDays(today,7),all=occurrencesBetween(new Date(today.getFullYear()-5,0,1),new Date(today.getFullYear()+2,11,31)),pending=all.filter(x=>x.status==='pending'),late=pending.filter(x=>x.type==='expense'&&x.occurrenceDate<today),todayPayments=pending.filter(x=>x.type==='expense'&&dateKey(x.occurrenceDate)===dateKey(today)),todayAll=pending.filter(x=>dateKey(x.occurrenceDate)===dateKey(today)),dueActions=pending.filter(x=>x.occurrenceDate<=today).sort((a,b)=>a.occurrenceDate-b.occurrenceDate||a.concept.localeCompare(b.concept)),week=pending.filter(x=>x.type==='expense'&&x.occurrenceDate<=end7),ts=treasurySummary();return {today,pending,late,todayPayments,todayAll,dueActions,week,ts}}
@@ -1487,14 +1488,14 @@ function renderBudgets(){
   }).join(''):'<div class="card empty">Todavía no hay presupuestos. Crea uno arriba, por ejemplo «Vacaciones».</div>';
 }
 
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30126'}[name]||'DOMUS';if(name==='dashboard'){renderTreasury3();renderDashboard();renderMilestones('homeMilestones')}if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury'){renderTreasury();renderMilestones('treasuryMilestones')}if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30127'}[name]||'DOMUS';if(name==='dashboard'){renderTreasury3();renderDashboard();renderMilestones('homeMilestones')}if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury'){renderTreasury();renderMilestones('treasuryMilestones')}if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30126';
+const APP_BUILD='30127';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{
