@@ -1,3 +1,9 @@
+## Build 30130 · 2026-10-23 · correcciones lector tickets y recibos (Staging)
+
+- Recibos Tele Taxi Jerez: importe solo desde etiqueta IMPORTE, fecha corta DD/MM/AA, recibo y fiscalidad 10% cuando cuadre; nunca tomar kilómetros/base como total. Estado pagado para recibo del servicio realizado.
+- Tickets de supermercados con nombre explícito de comercio en archivo: recuperar comercio, alimentación y ámbito doméstico cuando el OCR produce cabecera incoherente. Tickets de compra ya realizada: estado pagado.
+- Limitación pendiente: con OCR de baja confianza (ej. 32%) no se garantiza recuperación si las etiquetas no están reconocidas; requiere revisión del motor visual antes de confirmación. Sin cambios en producción.
+
 ## Tickets supermercados y conciliación OCR — build 30129 (2026-10-23)
 
 - Versión 3.0.0-rc.1.92. Staging únicamente.
