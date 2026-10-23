@@ -976,6 +976,22 @@ function knownDocumentDraft(text,doc){
  }
 
  const rhd=rhdDocumentDrafts(src,doc);if(rhd.length)return rhd[0];
+ // Recibos de taxi: los importes y fechas se toman de etiquetas del propio documento.
+ // Nunca interpretar una distancia, tarifa o base imponible como importe pagado.
+ if(/TELE\s*TAXI\s*JEREZ|TAXI\s+JEREZ/i.test(src)&&/\b(?:IMPORTE|RECIBO|LICENCIA)\b/i.test(src)){
+  const amountRaw=src.match(/\bIMPORTE\s*[:.]?\s*(\d{1,5}[,.]\d{2})\s*(?:EUR|€)?/i);
+  const dateRaw=src.match(/\bFECHA\s*[:.]?\s*(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})\b/i);
+  const amount=amountRaw?moneyFrom(amountRaw[1]):null;
+  let taxiDate='';
+  if(dateRaw){const yy=Number(dateRaw[3]),year=yy<100?2000+yy:yy,month=Number(dateRaw[2]),day=Number(dateRaw[1]),v=new Date(year,month-1,day);if(v.getFullYear()===year&&v.getMonth()===month-1&&v.getDate()===day)taxiDate=dateKey(v)}
+  if(amount!=null&&taxiDate){
+   const receipt=src.match(/\b(?:N[º°o.]?\s*)?RECIBO\s*[:.]?\s*(\d{3,})/i);
+   const baseRaw=src.match(/\b10\s*%\s+(\d+[,.]\d{2})\s+(\d+[,.]\d{2})\s+(\d+[,.]\d{2})/i);
+   const base=baseRaw?moneyFrom(baseRaw[1]):null,vat=baseRaw?moneyFrom(baseRaw[2]):null;
+   const taxOk=base!=null&&vat!=null&&Math.abs(base+vat-amount)<.015;
+   return {type:'expense',status:'done',concept:'Taxi en Jerez de la Frontera',supplier:'Tele Taxi Jerez',counterparty:'Tele Taxi Jerez',invoice_number:receipt?.[1]||'',date:taxiDate,document_date:taxiDate,due_date:'',amount,person_id:null,expense_scope:null,movement_role:'standard',tax_base:taxOk?base:null,vat_rate:taxOk?10:null,vat_amount:taxOk?vat:null,extraction_quality:'high',document_family:'taxi_receipt',deterministic_reader:true,field_sources:{amount:'IMPORTE del recibo',date:'FECHA del recibo',supplier:'cabecera TELE TAXI JEREZ',status:'recibo de servicio realizado'}};
+  }
+ }
  // Fuel receipts/invoices: identify the family deterministically, while generic fiscal reader extracts date/total.
  const fuel=/\b(diesel|diesel e\+|gasoleo|gasoil|combustible|gasolina|repsol|cepsa|moeve|bp\b|galp|shell|ballenoil|petroprix)\b/i.test(hay);
  if(fuel){
@@ -1112,6 +1128,19 @@ function retailReceiptEvidence(d,doc,text){
 function smartDocumentDefaults(d,doc){
  const out={...d,field_sources:{...(d.field_sources||{})}},file=String(doc?.file_name||''),docType=String(doc?.document_type||'').toLowerCase();
  const sbill=file.match(/^SBILL(\d+)_([0-9]{4})_([0-9]{2})_([0-9]{4})\.pdf$/i);
+ // Nombre de archivo explícito de comercio conocido prevalece sobre cabecera OCR ilegible.
+ const filenameMerchant=filenameDocumentEvidence(file).merchant;
+ if(out.type==='expense'&&/^(?:mercadona|supeco|aldi|lidl)$/i.test(filenameMerchant)&&!new RegExp('^'+filenameMerchant+'\\b','i').test(String(out.supplier||''))){
+  out.supplier=filenameMerchant;out.counterparty=filenameMerchant;out.concept=filenameMerchant;
+  out.counterparty_id=window.DOMUSClassification.matchCounterparty(filenameMerchant);
+  out.field_sources.supplier='comercio identificado en el nombre del archivo';
+  out.field_sources.concept='comercio identificado en el nombre del archivo';
+  out.category_id=categories.find(x=>x.active!==false&&(!x.kind||x.kind==='both'||x.kind==='expense')&&normDocText(x.name).trim()==='alimentacion')?.id||out.category_id;
+  out.expense_scope=out.expense_scope||'domestic';
+ }
+ if(out.type==='expense'&&(/ticket|receipt|recibo/i.test(docType+' '+String(out.document_kind||''))||/^(?:mercadona|supeco|aldi|lidl)$/i.test(filenameMerchant)))&&!out.payment_evidence_warning){
+  out.status='done';out.field_sources.status='ticket de compra ya realizada';
+ }
  if(sbill){
    out.type='income';out.concept='Factura OTOQI';out.counterparty='Otoqi';out.supplier='Otoqi';
    out.invoice_number='SBILL'+sbill[1]+'/'+sbill[2]+'/'+sbill[3]+'/'+sbill[4];
