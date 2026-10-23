@@ -1,3 +1,12 @@
+## Recordatorio voluntario y formato CSV recordado — build 30131 (2026-10-23)
+
+- Versión 3.0.0-rc.1.94. Inicio ofrece el día 1 revisar el banco del mes pasado. Revisar abre el importador, Más tarde espera hasta mañana, Este mes no lo descarta hasta el siguiente mes. La elección persiste por usuario/hogar en este dispositivo; no bloquea otras tareas ni modifica datos económicos.
+- Columnas CSV confirmadas se recuerdan por usuario/hogar/cuenta en este dispositivo. Reutilizar exige mismos encabezados, orden y formato; si cambian se propone detección nueva y mapeo visible. No se guarda el contenido bancario en estas preferencias. Almacenamiento denegado no impide uso de la aplicación.
+- Retirada explicación de saldo calculado del panel opcional de importación; mantiene funciones históricas de conciliación accesibles para la transición 3.0.
+- Pruebas de la implementación previa a integración ejecutadas: 191/191, cero fallos; incluyen renovación mensual, posposición, persistencia tras recrear controlador, aislamiento de usuario/hogar/cuenta, ruta de revisión, formato desconocido en archivo posterior y encabezados cambiados. PWA verifica hashes y rechaza actualización incompleta con nuevos módulos incluidos.
+- Integrado sobre main bffc26682ccaab6119947bb644564ce02b58936b, conservando las correcciones OCR de supermercados y recibos de taxi de 30129/30130. Corregido un paréntesis sobrante en smartDocumentDefaults de 30130 que impedía compilar el script principal; 54/54 pruebas documentales pasan tras corregirlo.
+- Sin migración ni modificación económica. Publicación/CI/QA autenticada de esta build pendientes de verificación. No confundir las pruebas unitarias de fecha con una sesión real el día 1. Persistencia multidispositivo del recordatorio/formato no implementada.
+
 ## Build 30130 · 2026-10-23 · correcciones lector tickets y recibos (Staging)
 
 - Recibos Tele Taxi Jerez: importe solo desde etiqueta IMPORTE, fecha corta DD/MM/AA, recibo y fiscalidad 10% cuando cuadre; nunca tomar kilómetros/base como total. Estado pagado para recibo del servicio realizado.

@@ -194,7 +194,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.93 · Build 30130<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.94 · Build 30131<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -222,6 +222,7 @@
       <button class="btn" onclick="showView('movements')">Movimientos</button>
       <button class="btn" onclick="showView('stats')">Informes</button>
     </div>
+    <div id="monthlyBankReminder" class="card hidden" role="region" aria-label="Revisión mensual voluntaria"></div>
     <div id="homeAttentionStrip" class="home-attention-strip hidden" role="status"><strong id="lateTotal">0 €</strong><span id="lateCount"></span><button class="btn ghost" type="button" onclick="openDashboardDetail('late')">Revisar</button></div>
     <div class="home-primary">
       <div class="card today-actions"><div class="section-title"><div><h2>Necesita tu atención</h2><p class="muted">Pagos vencidos o movimientos que toca resolver hoy.</p></div></div><div id="todayActionList" class="list"></div></div>
@@ -553,7 +554,7 @@ function scopeForecastRows(scope,horizon){const today=startOfDay(new Date()),end
 
 function openPersonForecast(personId,horizon,type){const p=people.find(x=>x.id===personId),name=personId==='__household__'?'TOTAL HOGAR':(p?.name||'Comunes / sin asignar'),b=horizonBucketsForPerson(personId||null),list=b[horizon].filter(x=>x.type===type),hl={short:'acumulado hasta 7 días',month:'acumulado hasta fin de mes',medium:'acumulado hasta 30 días',long:'acumulado hasta fin de año'}[horizon];openSummary(`${type==='income'?'Ingresos':'Gastos'} · ${name} · ${hl}`,list)}
 function flowTotals(rows){const income=amountOf(rows,'income'),expense=amountOf(rows,'expense');return {income,expense,net:income-expense}}
-function renderDashboard(){if(treasuryLoadedContext!==user?.id+'|'+household?.id){document.getElementById('todayActionList').innerHTML='<div class="empty">'+(treasuryLoadError?'No se pudieron cargar los datos. Pulsa Sincronizar.':'Cargando datos…')+'</div>';return}const b=dashboardBuckets(),{today,pending,late,dueActions}=b;
+function renderDashboard(){window.renderMonthlyBankReminder?.(user?.id,household?.id);if(treasuryLoadedContext!==user?.id+'|'+household?.id){document.getElementById('todayActionList').innerHTML='<div class="empty">'+(treasuryLoadError?'No se pudieron cargar los datos. Pulsa Sincronizar.':'Cargando datos…')+'</div>';return}const b=dashboardBuckets(),{today,pending,late,dueActions}=b;
  const lateExpense=amountOf(late,'expense'),attention=document.getElementById('homeAttentionStrip');document.getElementById('lateTotal').textContent=euro(lateExpense);document.getElementById('lateCount').textContent=late.length?late.length+' movimiento(s) vencido(s) necesitan revisión':'Nada vencido';attention.classList.toggle('hidden',!late.length);
  document.getElementById('todayActionList').innerHTML=dueActions.length?dueActions.map(renderItem).join(''):'<div class="empty">No tienes nada pendiente para hoy.</div>';
 
@@ -1138,7 +1139,7 @@ function smartDocumentDefaults(d,doc){
   out.category_id=categories.find(x=>x.active!==false&&(!x.kind||x.kind==='both'||x.kind==='expense')&&normDocText(x.name).trim()==='alimentacion')?.id||out.category_id;
   out.expense_scope=out.expense_scope||'domestic';
  }
- if(out.type==='expense'&&(/ticket|receipt|recibo/i.test(docType+' '+String(out.document_kind||''))||/^(?:mercadona|supeco|aldi|lidl)$/i.test(filenameMerchant)))&&!out.payment_evidence_warning){
+ if(out.type==='expense'&&(/ticket|receipt|recibo/i.test(docType+' '+String(out.document_kind||''))||/^(?:mercadona|supeco|aldi|lidl)$/i.test(filenameMerchant))&&!out.payment_evidence_warning){
   out.status='done';out.field_sources.status='ticket de compra ya realizada';
  }
  if(sbill){
@@ -1562,14 +1563,14 @@ function renderBudgets(){
 }
 
 function openBankImport(){showView('treasury');const input=document.getElementById('treasuryCsv'),panel=input?.closest('details');if(panel){panel.open=true;panel.scrollIntoView({block:'start',behavior:'smooth'});document.getElementById('treasuryCsvAccount')?.focus()}}
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30130'}[name]||'DOMUS';if(name==='dashboard'){renderTreasury3();renderDashboard();renderMilestones('homeMilestones')}if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury'){renderTreasury();renderMilestones('treasuryMilestones')}if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30131'}[name]||'DOMUS';if(name==='dashboard'){renderTreasury3();renderDashboard();renderMilestones('homeMilestones')}if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury'){renderTreasury();renderMilestones('treasuryMilestones')}if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30130';
+const APP_BUILD='30131';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{
