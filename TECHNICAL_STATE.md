@@ -1,3 +1,15 @@
+## Tickets originales y contraste fiscal — build 30133 (2026-10-24)
+
+- Versión 3.0.0-rc.1.96. Reconoce separador decimal con espacio OCR (6, 62), TOTAL (€), y tabla TIP/BASE/IVA/TOT. No añade una coma ausente. Los totales de BASE/CUOTA se excluyen del importe pagado. Sin total etiquetado no conserva un número arbitrario de la primera lectura.
+- Relectura adicional en español, sin filtro de contraste y con segmentación de bloque uniforme, dentro de la recuperación existente. No sustituye automáticamente la evidencia anterior; pasa por los mismos controles de contradicción. Worker terminado también ante error. Motor TransportERP vendorizado y lectores profesionales conservados.
+- Original Mercadona 20261022.pdf y foto IMG_9083.jpeg recuperados para inspección y OCR, sin subirlos al repositorio público. Ticket: total/cargo 84,50, subtotal fiscal 77,67; recibo taxi 6,62, fecha 22/10/26. Extraído espacio decimal en OCR nativo del taxi; la simple sustitución por 62 nunca se acepta.
+- Comprobación local con bytes originales: PDF rasterizado a 2000 px; Tesseract.js 7 y modelo español tessdata_fast, con equivalente de escala/grises/contraste y recortes del lector, más lectura sin filtro. No es una sesión de producción ni el mismo Tesseract.js 5/modelo remoto del navegador. Confianza inicial 71% Mercadona y 35% taxi. Flujo de interpretación local sobre esas lecturas: Mercadona 84,50 / Mercadona / 22-10-2026 / realizado; taxi comercio reconocido, importe vacío y fecha vacía, ambos señalados para corrección. No se presenta 62 como seguro.
+- Recorte central experimental del taxi no recuperó suficiente evidencia: no integrado. Textura de fondo sigue perjudicando OCR; no se atribuye al cambio una recuperación visual completa del taxi.
+- Validación local: 202/202 pruebas correctas; integridad de hashes PWA y sintaxis incluidas.
+- Regresiones nuevas: subtotal fiscal separado, moneda entre paréntesis, espacio decimal real, tabla fiscal del taxi, cifras contradictorias y número inicial sin total. UI local pendiente: Playwright no tiene navegador instalado y descarga de Chromium devuelve archivo inválido; no se atribuye validación visual ni autenticada.
+- Build anterior 30132 comprobada publicada en version.json; Pages 40101905559 y CI 40101906122 success. No usar fetch_commit_workflow_runs para concluir ausencia de workflows de push: ese conector filtra a pull_request; consultar colección Actions por SHA.
+- No se modifica Supabase, no se crean movimientos ni se cambia producción. Clasificación documental completa, mejor comprensión visual y QA autenticada siguen pendientes. No declarar terminada la misión integral.
+
 ## Revisión por campo del lector — build 30132 (2026-10-24)
 
 - 3.0.0-rc.1.95. Adaptador DOMUS posterior a reglas y defaults; no modifica el motor vendorizado de TransportERP ni sus lectores profesionales. Total etiquetado reemplaza cifra inicial; conflictos entre totales/pagos o base + IVA vacían importe. OCR menor de 60 exige corroboración o corrección del total. No se reconstruyen decimales por intuición.

@@ -194,7 +194,7 @@
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.95 · Build 30132<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.96 · Build 30133<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -776,7 +776,11 @@ async function documentRecoveryReadings(blob,mime,name){
    ocrCanvasRegion(canvas,.22,.68,'fecha'),
    ocrCanvasRegion(canvas,.62,1,'totales')
   ]);
-  return {header,middle,footer,combined:[header,middle,footer].filter(Boolean).join('\n')};
+  // A different segmentation without contrast can preserve digits lost by preprocessing.
+  // Keep this as additional evidence; it must pass the same conflict checks as other readings.
+  let rawReceipt='',rawReceiptConfidence=null,worker;
+  try{worker=await Tesseract.createWorker('spa',1,{logger:m=>{if(m.progress)document.getElementById('docProgress').textContent='Relectura sin filtro '+Math.round(m.progress*100)+' %'}});await worker.setParameters({tessedit_pageseg_mode:'6'});const r=await worker.recognize(canvas);rawReceipt=r.data?.text||'';rawReceiptConfidence=r.data?.confidence??null}catch(error){console.warn('Relectura sin filtro no disponible',error)}finally{await worker?.terminate?.()}
+  return {header,middle,footer,rawReceipt,rawReceiptConfidence,combined:[header,middle,footer,rawReceipt].filter(Boolean).join('\n')};
  }catch(error){console.warn('Relectura documental no disponible',error);return {header:'',middle:'',footer:'',combined:''}}
 }
 async function documentRawDateReading(blob,mime){
@@ -980,9 +984,9 @@ function knownDocumentDraft(text,doc){
  // Recibos de taxi: los importes y fechas se toman de etiquetas del propio documento.
  // Nunca interpretar una distancia, tarifa o base imponible como importe pagado.
  if(/TELE\s*TAXI\s*JEREZ|TAXI\s+JEREZ/i.test(src)&&/\b(?:IMPORTE|RECIBO|LICENCIA)\b/i.test(src)){
-  const amountRaw=src.match(/\bIMPORTE\s*[:.]?\s*(\d{1,5}[,.]\d{2})\s*(?:EUR|€)?/i);
+  const amountRaw=src.match(/\bIMPORTE\s*[:.]?\s*(\d{1,5}[,.][ \t]*\d{2})\s*(?:EUR|€)?/i);
   const dateRaw=src.match(/\bFECHA\s*[:.]?\s*(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})\b/i);
-  const amount=amountRaw?moneyFrom(amountRaw[1]):null;
+  const amount=amountRaw?moneyFrom(amountRaw[1].replace(/\s/g,'')):null;
   let taxiDate='';
   if(dateRaw){const yy=Number(dateRaw[3]),year=yy<100?2000+yy:yy,month=Number(dateRaw[2]),day=Number(dateRaw[1]),v=new Date(year,month-1,day);if(v.getFullYear()===year&&v.getMonth()===month-1&&v.getDate()===day)taxiDate=dateKey(v)}
   if(amount!=null&&taxiDate){
@@ -1126,21 +1130,45 @@ function retailReceiptEvidence(d,doc,text){
  if(pay.conflict)out.payment_evidence_warning=pay.conflict;
  return out;
 }
+function receiptMonetaryEvidence(text){
+ // Join OCR whitespace around an existing decimal separator; never insert a missing one.
+ const src=String(text||'').replace(/(\d)[,.][ \t]+(\d{2})(?!\d)/g,'$1,$2');
+ const unique=a=>[...new Set(a)],money=s=>moneyFrom(s),numbers=s=>[...s.matchAll(/\b\d{1,6}[,.]\d{2}(?!\d)/g)].map(m=>money(m[0]));
+ const totals=[],payments=[],bases=[],taxes=[],tableTotals=[];
+ const lines=src.split(/\r?\n/);let fiscalTable=false;
+ for(let i=0;i<lines.length;i++){
+  const line=lines[i].trim(),ns=numbers(line);
+  if(/BASE\s*(?:IMPONIBLE|€|EUR).*?(?:CUOTA|IVA)|TIP\s+BASE.*IVA.*TOT/i.test(line))fiscalTable=true;
+  const payment=/^(?:TARJ(?:ETA)?\.?\s+BANCARIA|PAGO CON TARJETA|PAGADO|COBRADO)\s*[:=]?/i.test(line);
+  if(payment){fiscalTable=false;if(ns.length===1)payments.push(ns[0]);continue}
+  if(/^IMPORTE(?:\s+TOTAL)?\s*[:=]?/i.test(line)){fiscalTable=false;if(ns.length===1)totals.push(ns[0]);continue}
+  if(fiscalTable){
+   if(/^\d{1,2}\s*%/.test(line)&&ns.length===3&&Math.abs(ns[0]+ns[1]-ns[2])<.015)tableTotals.push(ns[2]);
+   // A total under BASE/CUOTA is a tax subtotal, not the amount charged.
+   continue;
+  }
+  if(/^T[O0]TA[L1I](?:\s+(?:A PAGAR|EUR|FACTURA|COMPRA))?\s*(?:\([€£e]?\))?\s*[:=€]?\s*/i.test(line)){
+   if(ns.length===1)totals.push(ns[0]);
+   else if(ns.length===0&&/^\s*\d{1,6}[,.]\d{2}\s*(?:€|EUR)?\s*$/i.test(lines[i+1]||''))totals.push(...numbers(lines[i+1]));
+  }
+  const base=line.match(/^BASE(?:\s+IMPONIBLE)?\s*[:=]?\s*(\d{1,6}[,.]\d{2})(?!\d)/i);
+  const tax=line.match(/^(?:IVA|CUOTA IVA)\s*(?:\d{1,2}\s*%\s*)?[:=]?\s*(\d{1,6}[,.]\d{2})(?!\d)/i);
+  if(base)bases.push(money(base[1]));if(tax)taxes.push(money(tax[1]));
+ }
+ const bs=unique(bases),ts=unique(taxes),table=unique(tableTotals),fiscal=bs.length===1&&ts.length===1?Math.round((bs[0]+ts[0])*100)/100:table.length===1?table[0]:null;
+ return {totals:unique(totals),payments:unique(payments),fiscal};
+}
 function documentCriticalEvidence(d,text){
  // DOMUS adapter: preserve the vendored TransportERP engine and professional readers.
  if(d.deterministic_reader&&d.document_family!=='taxi_receipt')return d;
  const out={...d,field_sources:{...(d.field_sources||{})}},src=String(text||''),issues={};
- const unique=a=>[...new Set(a)],values=pattern=>unique([...src.matchAll(pattern)].map(m=>moneyFrom(m[1])).filter(Number.isFinite));
- const totals=values(/(?:^|\n)\s*(?:TOTAL(?:\s+(?:A PAGAR|EUR|FACTURA|COMPRA))?|IMPORTE(?:\s+TOTAL)?)\s*[:=€]?\s*(\d{1,6}[,.]\d{2})(?!\d)/gi);
- const payments=values(/(?:TARJ(?:ETA)?\.?\s+BANCARIA|PAGADO|COBRADO|PAGO CON TARJETA)\s*[:=]?\s*(\d{1,6}[,.]\d{2})(?!\d)/gi);
- const bases=values(/BASE(?:\s+IMPONIBLE)?\s*[:=]?\s*(\d{1,6}[,.]\d{2})(?!\d)/gi);
- const taxes=values(/(?:IVA|CUOTA IVA)\s*(?:\d{1,2}\s*%\s*)?[:=]?\s*(\d{1,6}[,.]\d{2})(?!\d)/gi);
- const fiscal=bases.length===1&&taxes.length===1?Math.round((bases[0]+taxes[0])*100)/100:null;
+ const evidence=receiptMonetaryEvidence(src),{totals,payments,fiscal}=evidence;
  const corroborated=totals.filter(n=>payments.includes(n)||fiscal===n);
  if(totals.length>1||payments.length>1||(totals.length&&payments.length&&!totals.some(n=>payments.includes(n)))||(fiscal!=null&&totals.length&&!totals.includes(fiscal))){
   out.amount=null;issues.amount='Importes contradictorios: comprueba el total en el documento.';
  }else if(corroborated.length===1){out.amount=corroborated[0];out.field_sources.amount='total contrastado con pago o base + IVA'}
  else if(totals.length===1){out.amount=totals[0];out.field_sources.amount='total etiquetado del documento'}
+ else{out.amount=null;issues.amount='No se ha identificado un total etiquetado: comprueba el importe.'}
  const confidence=out.ocr_confidence??lastDocumentOcrConfidence,mode=out.ocr_mode||lastDocumentOcrMode;
  const low=mode==='ocr'&&confidence!=null&&confidence<60;
  if(low&&corroborated.length!==1){out.amount=null;issues.amount='OCR poco fiable: introduce el total que aparece en el documento.'}
@@ -1155,6 +1183,7 @@ function documentCriticalEvidence(d,text){
  if(low&&!known&&name&&!issues.counterparty)issues.counterparty='Comprueba el proveedor: la confianza del OCR es baja.';
  out.critical_issues=issues;
  if(Object.keys(issues).length)out.extraction_quality='low';
+ else if(low)out.extraction_quality='medium';
  return out;
 }
 function smartDocumentDefaults(d,doc){
@@ -1595,14 +1624,14 @@ function renderBudgets(){
 }
 
 function openBankImport(){showView('treasury');const input=document.getElementById('treasuryCsv'),panel=input?.closest('details');if(panel){panel.open=true;panel.scrollIntoView({block:'start',behavior:'smooth'});document.getElementById('treasuryCsvAccount')?.focus()}}
-function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30132'}[name]||'DOMUS';if(name==='dashboard'){renderTreasury3();renderDashboard();renderMilestones('homeMilestones')}if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury'){renderTreasury();renderMilestones('treasuryMilestones')}if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
+function showView(name){['dashboard','calendar','movements','treasury','budgets','stats','reports','documents','settings'].forEach(v=>{const el=document.getElementById(v+'View');if(el)el.classList.toggle('hidden',name==='stats'?!['stats','reports'].includes(v):v!==name)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===name));const secondary=['budgets','stats','documents','settings'].includes(name),moreBtn=document.getElementById('bottomMoreBtn'),moreMenu=document.getElementById('bottomMore');if(moreBtn){moreBtn.classList.toggle('active',secondary);moreBtn.setAttribute('aria-expanded','false')}if(moreMenu)moreMenu.classList.add('hidden');document.getElementById('pageTitle').textContent={dashboard:'Inicio',calendar:'Agenda',movements:'Movimientos',treasury:'Dinero',budgets:'Planes',stats:'Informes',documents:'Documentos',settings:'Ajustes · 3.0 RC1 · Build 30133'}[name]||'DOMUS';if(name==='dashboard'){renderTreasury3();renderDashboard();renderMilestones('homeMilestones')}if(name==='calendar')renderCalendar(mobileCalendarMedia.matches?calendarDate:new Date());if(name==='movements')renderMovements();if(name==='treasury'){renderTreasury();renderMilestones('treasuryMilestones')}if(name==='budgets')renderBudgets();if(name==='stats')renderStats();if(name==='documents')renderDocuments();if(name==='settings')renderSettings();requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'auto'}))}
 
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
 const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document.getElementById('bottomMore');
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30132';
+const APP_BUILD='30133';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{

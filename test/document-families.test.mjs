@@ -140,3 +140,23 @@ test('low confidence cannot promote an uncorroborated number to a safe total',()
 test('professional deterministic invoice readers retain their contract',()=>{
  const c=setup();const d={deterministic_reader:true,document_family:'onlogist_income',amount:114.95};assert.equal(c.documentCriticalEvidence(d,'TOTAL 14,25\nTOTAL 114,95'),d);
 });
+
+test('Mercadona actual native OCR excerpt excludes fiscal totals from the paid amount',()=>{
+ const c=setup();const text='ME RGADONA PS\nHe) 84,5)\nTARJETA BANCARIA 9450\nIVA BASE IMPONIBLE (e) CUOTA (e)\n4% 28,04 1,12\n10% 42,81 4,28\n21% 6,82 1,43\nTOTAL 11,61 6,83\nImporte: 84,50 € DEBIT NASTERCARO';
+ const d=c.documentCriticalEvidence({amount:34.5,counterparty:'Mercadona',date:'2026-10-22',ocr_mode:'ocr',ocr_confidence:72},text);assert.equal(d.amount,84.5);assert.equal(d.critical_issues.amount,undefined);
+});
+test('parenthesized currency total and card agree despite a separate tax subtotal',()=>{
+ const c=setup();const text='Mercadona\nTOTAL (€) 84,50\nTARJETA BANCARIA 84,50\nIVA BASE IMPONIBLE (€) CUOTA (€)\n4% 28,04 1,12\n10% 42,81 4,28\n21% 6,82 1,43\nTOTAL 77,67 6,83';
+ const d=c.documentCriticalEvidence({amount:34.5,date:'2026-10-22',ocr_mode:'ocr',ocr_confidence:32},text);assert.equal(d.amount,84.5);assert.equal(d.extraction_quality,'medium');assert.equal(d.payer_person_id,undefined);
+});
+test('taxi actual native OCR decimal whitespace retains 6.62 and its short date',()=>{
+ const c=setup();const d=read(c,'TAXI JEREZ\nFECHA: 22/10/26\nNS RECIBO: 5087\nIMPORTE: 6, 62ÉUR','photo.jpeg');assert.equal(d.amount,6.62);assert.equal(d.document_date,'2026-10-22');assert.equal(d.document_family,'taxi_receipt');
+});
+test('taxi fiscal table corroborates total without guessing a missing decimal',()=>{
+ const c=setup();const d=c.documentCriticalEvidence({document_family:'taxi_receipt',deterministic_reader:true,amount:62,date:'2026-10-22',ocr_mode:'ocr',ocr_confidence:32},'TELE TAXI JEREZ\nIMPORTE: 6, 62 EUR\nTIP BASE € IVA € TOT.€\n10% 6,02 0,60 6,62');assert.equal(d.amount,6.62);assert.equal(d.critical_issues.amount,undefined);
+ const bad=c.documentCriticalEvidence({amount:62,date:'2026-10-22',ocr_mode:'ocr',ocr_confidence:32},'TELE TAXI JEREZ\nIMPORTE 62 EUR');assert.equal(bad.amount,null);
+});
+test('multiple service totals and contradictory fiscal proof stay unresolved',()=>{
+ const c=setup();for(const text of ['TOTAL (€) 34,50\nTOTAL (€) 84,50','IMPORTE 62,00\nTIP BASE € IVA € TOT.€\n10% 6,02 0,60 6,62']){const d=c.documentCriticalEvidence({amount:62,date:'2026-10-22'},text);assert.equal(d.amount,null);assert.ok(d.critical_issues.amount)}
+});
+test('an unlabelled first-pass number is never offered as an identified total',()=>{const c=setup();const d=c.documentCriticalEvidence({amount:62,date:'2026-10-22',ocr_mode:'ocr',ocr_confidence:80},'Tele Taxi Jerez\nTeléfono 956344860\nRecibo 5087\n4,3 km');assert.equal(d.amount,null);assert.ok(d.critical_issues.amount)});
