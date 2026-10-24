@@ -3,7 +3,7 @@
 - Versión 3.0.0-rc.1.97. Corregido el flujo mostrado en la captura del usuario: alert() de éxito detenía la ejecución antes de continueDocumentDraftReview y dejaba debajo el formulario con Crear movimiento hasta pulsar Aceptar.
 - Alta, actualización y vinculación avanzan/cierra la revisión justo después de persistir la confirmación, antes de refrescar datos. Éxito se anuncia en docProgress con role=status y aria-live=polite; desaparece el aviso modal de éxito. Los avisos de error y la confirmación previa de sustitución se conservan.
 - Última propuesta confirmada cierra el modal y vacía el formulario obsoleto. Si quedan propuestas del documento se conservan y se muestran; si hay documentos en cola se abre el siguiente. Botón para posponer: «Dejar para después», evitando «Cerrar sin crear movimiento» tras guardar otras propuestas.
-- Suite local completa: 205/205 pruebas correctas, cero fallos.
+- Suite local completa: 205/205 pruebas correctas, cero fallos. Publicación verificada: commit 765dabd2b065e2a9fbb23fd053b8f1bd157ca33b; CI 40117633837 success; Pages 40117633683 con build/deploy/report success. Endpoint publicado sirve 3.0.0-rc.1.97 / 30134.
 - Regresiones ejecutadas sin escritura remota: cierre y limpieza, conservación de propuesta editada, avance al siguiente documento, guardado simulado con refresco todavía pendiente y ausencia de alert de éxito. QA autenticada no realizada; navegador remoto sin sesión disponible. No se modifican movimientos del usuario, esquema, Supabase ni producción.
 
 ## Tickets originales y contraste fiscal — build 30133 (2026-10-24)
