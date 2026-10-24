@@ -160,3 +160,23 @@ test('multiple service totals and contradictory fiscal proof stay unresolved',()
  const c=setup();for(const text of ['TOTAL (€) 34,50\nTOTAL (€) 84,50','IMPORTE 62,00\nTIP BASE € IVA € TOT.€\n10% 6,02 0,60 6,62']){const d=c.documentCriticalEvidence({amount:62,date:'2026-10-22'},text);assert.equal(d.amount,null);assert.ok(d.critical_issues.amount)}
 });
 test('an unlabelled first-pass number is never offered as an identified total',()=>{const c=setup();const d=c.documentCriticalEvidence({amount:62,date:'2026-10-22',ocr_mode:'ocr',ocr_confidence:80},'Tele Taxi Jerez\nTeléfono 956344860\nRecibo 5087\n4,3 km');assert.equal(d.amount,null);assert.ok(d.critical_issues.amount)});
+
+function reviewFlowContext(drafts,queue=[]){
+ const nodes={docAnalysisModal:{classList:{remove:()=>nodes.closed=true}},docDrafts:{innerHTML:'old form'},docProgress:{setAttribute(){},textContent:''}};
+ const c=setup();Object.assign(c,{currentDocDrafts:drafts,currentDocumentId:'doc',pendingDocumentDraftBatches:queue,documents:[{id:'doc',file_name:'test.pdf'}],document:{getElementById:id=>nodes[id]},renderDocDrafts:(next,doc)=>{c.shown={drafts:next,doc}}});
+ for(const name of ['continueDocumentDraftReview','openNextDocumentDraftBatch']){const a=html.indexOf('function '+name+'('),b=html.indexOf('\nfunction ',a+10);vm.runInContext(html.slice(a,b<0?undefined:b),c)}
+ return {c,nodes};
+}
+test('last confirmed proposal closes the review and removes its stale create button',()=>{
+ const {c,nodes}=reviewFlowContext([{review_status:'confirmed'}]);c.continueDocumentDraftReview('Movimiento creado y vinculado al documento.');assert.equal(nodes.closed,true);assert.equal(nodes.docDrafts.innerHTML,'');assert.match(nodes.docProgress.textContent,/Movimiento creado/);
+});
+test('confirmation preserves unconfirmed proposals and advances only after this document is complete',()=>{
+ const drafts=[{review_status:'confirmed'},{amount:31.2,concept:'edited proposal'}],next={doc:{id:'next'},drafts:[{amount:9.44}]},{c,nodes}=reviewFlowContext(drafts,[next]);c.continueDocumentDraftReview('Guardado');assert.equal(nodes.closed,undefined);assert.equal(c.shown.drafts[1].concept,'edited proposal');assert.equal(c.pendingDocumentDraftBatches.length,1);drafts[1].review_status='confirmed';c.continueDocumentDraftReview('Guardado');assert.equal(c.pendingDocumentDraftBatches.length,0);assert.equal(c.shown.doc.id,'next');assert.equal(nodes.closed,undefined);
+});
+test('successful insertion closes before refresh resolves and needs no alert acceptance',async()=>{
+ const {c,nodes}=reviewFlowContext([{}]);const values={ddType0:'expense',ddStatus0:'pending',ddDate0:'2026-10-24',ddConcept0:'Test',ddAmount0:'10'};
+ c.document.getElementById=id=>nodes[id]||{value:values[id]||'',checked:false,selectedOptions:[]};
+ let release,alerts=[];Object.assign(c,{savingDocumentDraft:false,household:{id:'h'},user:{id:'u'},reviewOpenDocumentDrafts:()=>{},duplicateCandidates:()=>[],duplicateWarning:()=>true,draftTransportReference:()=>null,insertSeriesSafely:async()=>({id:'s'}),autoLinkDocumentRelations:async()=>{},insertDocumentLinkSafely:async()=>{},updateRowSafely:async()=>{},refreshAll:()=>new Promise(r=>release=r),alert:m=>alerts.push(m),friendlyCloudError:String});Object.assign(c.window.DOMUSClassification,{counterpartyFields:()=>({}),labelFields:()=>({})});
+ let a=html.indexOf('function documentConfirmationState('),b=html.indexOf('function continueDocumentDraftReview',a);vm.runInContext(html.slice(a,b),c);a=html.indexOf('async function createMovementFromDocument(');b=html.indexOf('function normalizedRef(',a);vm.runInContext(html.slice(a,b),c);
+ const pending=c.createMovementFromDocument(0);await new Promise(r=>setImmediate(r));assert.equal(nodes.closed,true);assert.equal(c.currentDocDrafts[0].review_status,'confirmed');assert.deepEqual(alerts,[]);assert.equal(c.savingDocumentDraft,true);release();await pending;assert.equal(c.savingDocumentDraft,false);
+});
