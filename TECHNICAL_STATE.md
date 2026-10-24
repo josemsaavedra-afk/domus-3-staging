@@ -8,6 +8,7 @@
 - Validación local: 202/202 pruebas correctas; integridad de hashes PWA y sintaxis incluidas.
 - Regresiones nuevas: subtotal fiscal separado, moneda entre paréntesis, espacio decimal real, tabla fiscal del taxi, cifras contradictorias y número inicial sin total. UI local pendiente: Playwright no tiene navegador instalado y descarga de Chromium devuelve archivo inválido; no se atribuye validación visual ni autenticada.
 - Build anterior 30132 comprobada publicada en version.json; Pages 40101905559 y CI 40101906122 success. No usar fetch_commit_workflow_runs para concluir ausencia de workflows de push: ese conector filtra a pull_request; consultar colección Actions por SHA.
+- Publicación verificada: commit 9ac503b2217cc424ee7e283f45e48bdd86cb6c29; CI 40116865431 y Pages 40116865077 success. version.json sirve 3.0.0-rc.1.96 / 30133. Navegador remoto abre acceso sin errores de DOMUS registrados (solo error de extensión); no hay sesión autenticada reutilizable, por lo que la revisión dentro de la app queda pendiente.
 - No se modifica Supabase, no se crean movimientos ni se cambia producción. Clasificación documental completa, mejor comprensión visual y QA autenticada siguen pendientes. No declarar terminada la misión integral.
 
 ## Revisión por campo del lector — build 30132 (2026-10-24)
