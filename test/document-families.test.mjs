@@ -124,3 +124,19 @@ test('IBAN contradiction preserves explicit payment and multiple accounts preven
  const c=paymentConflictSetup();let d=c.enrichDocumentDraft({type:'expense',payer_person_id:'chosen',account_id:'card-bank'},'IBAN ES00 0000 0000 0000 0000 0002');assert.equal(d.payer_person_id,'chosen');assert.equal(d.account_id,'card-bank');assert.match(d.payment_evidence_warning,/IBAN/);
  const p=c.documentPaymentEvidence('Tarjeta: ****1234\nES00 0000 0000 0000 0000 0001\nES00 0000 0000 0000 0000 0002',{});assert.equal(p.account_id,undefined);assert.equal(p.payer_person_id,undefined);assert.match(p.conflict,/varias cuentas/);
 });
+
+test('critical fields reconcile labelled totals instead of preserving the first OCR amount',()=>{
+ const c=setup();const d=c.documentCriticalEvidence({amount:34.5,type:'expense',ocr_mode:'ocr',ocr_confidence:72,date:'2026-10-22'},'Mercadona\nTOTAL 84,50\nTARJ. BANCARIA 84,50');assert.equal(d.amount,84.5);assert.equal(d.counterparty,'Mercadona');assert.equal(d.payer_person_id,undefined);assert.equal(d.account_id,undefined);
+});
+test('taxi decimal is corroborated by fiscal arithmetic without guessing digits',()=>{
+ const c=setup();const d=c.documentCriticalEvidence({amount:62,ocr_mode:'ocr',ocr_confidence:32,date:'2026-10-22'},'Tele Taxi Jerez\nIMPORTE 6,62\nBASE IMPONIBLE 6,02\nIVA 10% 0,60\n4,3 km\nRecibo 5087');assert.equal(d.amount,6.62);assert.equal(d.counterparty,'Tele Taxi Jerez');assert.equal(d.critical_issues.amount,undefined);
+});
+test('contradictory totals and corrupt supplier need targeted human verification',()=>{
+ const c=setup();const d=c.documentCriticalEvidence({amount:34.5,counterparty:'CO q Y Y a NN Fo E - a',ocr_mode:'ocr',ocr_confidence:32},'TOTAL 34,50\nPAGADO 84,50');assert.equal(d.amount,null);assert.equal(d.counterparty,'');assert.equal(d.concept,'');assert.ok(d.critical_issues.amount);assert.ok(d.critical_issues.counterparty);assert.ok(d.critical_issues.document_date);assert.equal(d.extraction_quality,'low');
+});
+test('low confidence cannot promote an uncorroborated number to a safe total',()=>{
+ const c=setup();const d=c.documentCriticalEvidence({amount:62,ocr_mode:'ocr',ocr_confidence:32,date:'2026-10-22'},'Tele Taxi Jerez\nIMPORTE 62,00\n4,3 km');assert.equal(d.amount,null);assert.ok(d.critical_issues.amount);
+});
+test('professional deterministic invoice readers retain their contract',()=>{
+ const c=setup();const d={deterministic_reader:true,document_family:'onlogist_income',amount:114.95};assert.equal(c.documentCriticalEvidence(d,'TOTAL 14,25\nTOTAL 114,95'),d);
+});

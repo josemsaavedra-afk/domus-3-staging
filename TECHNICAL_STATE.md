@@ -1,3 +1,13 @@
+## Revisión por campo del lector — build 30132 (2026-10-24)
+
+- 3.0.0-rc.1.95. Adaptador DOMUS posterior a reglas y defaults; no modifica el motor vendorizado de TransportERP ni sus lectores profesionales. Total etiquetado reemplaza cifra inicial; conflictos entre totales/pagos o base + IVA vacían importe. OCR menor de 60 exige corroboración o corrección del total. No se reconstruyen decimales por intuición.
+- Nombre comercial impreso reconocido para supermercados y Tele Taxi Jerez. Cadenas con múltiples palabras de una letra o caracteres corruptos se vacían; proveedor, fecha e importe dudosos muestran aviso y comprobación individual obligatoria antes del alta. Detalles avanzados bajo «Revisar detalles».
+- Auditoría: Tesseract español tras escala/grises/contraste; PDF.js para PDFs. Relectura dirigida OCR de cabecera 0–38%, centro 22–68% y pie 62–100%; recuperación adicional de fecha sin filtro en inglés. Porcentaje mostrado: confianza global de Tesseract, NO probabilidad de cada campo. Interpretación mediante regex/heurísticas y reglas/catálogos/historial; no se observa llamada a modelo de IA en este pipeline.
+- Causa de persistencia de importes: analyzeBlob retenía el primer importe no nulo tanto al fusionar relectura como al consultar motor TransportERP. Corrección minorista dependía del nombre de archivo; suspiciousIssuer no rechazaba cadenas de muchas letras aisladas. Nuevo control contrasta evidencias después de esas etapas. Defaults ya proponen tickets como realizados; fallos anteriores de clasificación y nombres impedían activar las rutas esperadas.
+- Suite local completa: 196/196 pruebas, cero fallos; incluye integridad PWA y 59 documentales. Publicación pendiente de comprobación.
+- Pruebas nuevas sobre texto sintético de los casos reportados: 84,50 frente a 34,50; 6,62 frente a 62; 6,02 + 0,60; contradicciones, emisor corrupto, baja confianza y conservación del contrato profesional. NO equivalen a ejecutar OCR sobre originales.
+- No se modifica Supabase ni se crean movimientos. Producción intacta. Pendientes: OCR original Mercadona (PDF localizado, sin texto extraíble), foto taxi, QA autenticada sin escritura económica, clasificación documental completa y revisión visual/IA. Esta entrega es una protección parcial, no el cierre del motor documental ni de la misión.
+
 ## Recordatorio voluntario y formato CSV recordado — build 30131 (2026-10-23)
 
 - Versión 3.0.0-rc.1.94. Inicio ofrece el día 1 revisar el banco del mes pasado. Revisar abre el importador, Más tarde espera hasta mañana, Este mes no lo descarta hasta el siguiente mes. La elección persiste por usuario/hogar en este dispositivo; no bloquea otras tareas ni modifica datos económicos.
