@@ -180,3 +180,17 @@ test('successful insertion closes before refresh resolves and needs no alert acc
  let a=html.indexOf('function documentConfirmationState('),b=html.indexOf('function continueDocumentDraftReview',a);vm.runInContext(html.slice(a,b),c);a=html.indexOf('async function createMovementFromDocument(');b=html.indexOf('function normalizedRef(',a);vm.runInContext(html.slice(a,b),c);
  const pending=c.createMovementFromDocument(0);await new Promise(r=>setImmediate(r));assert.equal(nodes.closed,true);assert.equal(c.currentDocDrafts[0].review_status,'confirmed');assert.deepEqual(alerts,[]);assert.equal(c.savingDocumentDraft,true);release();await pending;assert.equal(c.savingDocumentDraft,false);
 });
+
+test('v5 original receipt readings resolve 84.50 despite an isolated footer reading of 834.50',()=>{
+ const c=setup(),readings=[{source:'first',text:'VANJETA BANCARIA 84.50\nIVA BASE IMPONIBLE (€) CUOTA (€)\nTOTAL 11,61 6,93\nImporte: 84,50 € DEBIT MASTERCARD'},{source:'footer',text:'VANJETA BANCARIA 84.50\nImporte: 834,50 € DEBIT MASTERCARD'},{source:'raw',text:'Importe: 84,50 € DEBIT MASTERCARD'}];
+ const d=c.documentCriticalEvidence({amount:null,date:'2026-10-22',ocr_mode:'ocr',ocr_confidence:72},readings.map(r=>r.text).join('\n'),readings);assert.equal(d.amount,84.5);assert.equal(d.critical_issues.amount,undefined);assert.equal(d.amount_evidence.selected,84.5);assert.equal(d.amount_evidence.readings[1].totals[0],834.5);
+});
+test('two independently corroborated different amounts remain a real conflict',()=>{
+ const c=setup(),readings=[{source:'first',text:'TOTAL 34,50\nTARJETA BANCARIA 34,50'},{source:'footer',text:'TOTAL 84,50\nTARJETA BANCARIA 84,50'}];const d=c.documentCriticalEvidence({date:'2026-10-22'},'',readings);assert.equal(d.amount,null);assert.match(d.critical_issues.amount,/34,50.*84,50/);
+});
+test('repeating the same OCR text does not manufacture independent corroboration',()=>{
+ const c=setup(),text='TOTAL 84,50\nTARJETA BANCARIA 84,50',r=c.receiptReadingAgreement([{source:'a',text},{source:'b',text}]);assert.equal(r.selected,null);assert.equal(r.sources.length,1);
+});
+test('a single payment reading and a contradictory fiscal proof never resolve by majority',()=>{
+ const c=setup();const readings=[{source:'first',text:'TOTAL 84,50\nTARJETA BANCARIA 84,50'},{source:'footer',text:'Importe 84,50\nBASE IMPONIBLE 90,00\nIVA 10% 9,00'}];assert.equal(c.receiptReadingAgreement(readings).selected,null);assert.equal(c.documentCriticalEvidence({date:'2026-10-22'},'',readings).amount,null);
+});
