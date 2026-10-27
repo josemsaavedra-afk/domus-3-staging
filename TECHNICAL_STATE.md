@@ -1,3 +1,13 @@
+## Tesorería: solo gastos hasta el próximo cobro habitual — build 30137 (2026-10-27)
+
+- Corrección solicitada por usuario en DOMUS 3.0 Staging; no se adopta como especificación de DOMUS 4.0.
+- El indicador suma exclusivamente gastos pendientes con vencimiento anterior a la fecha efectiva prevista del siguiente ingreso habitual. Incluye vencidos sin pagar en el primer tramo; no mezcla ningún ingreso (habitual ni variable), ni resta cobros, ni añade el ingreso de cierre al detalle.
+- El listado del tramo muestra únicamente los gastos incluidos en el importe. Los gastos con fecha igual al día del cobro pasan al tramo siguiente para no presuponer el orden horario de cobro/pago.
+- La fecha de corte procede del vencimiento efectivo del movimiento habitual; no se fija automáticamente en los días 10/25 ni se inventa el ajuste por fines de semana. La política real de adelanto/retraso debe estar reflejada en la fecha prevista o reprogramada del ingreso.
+- Se modificó src/treasury/ui.js; build 30137 con index.html, sw.js, version.json y asset-manifest.js coherentes, hashes SHA-256 recalculados para PWA.
+- Regresión aislada de la función real ejecutada: ingresos 1.700 + 80 y gastos 1.542,35 arrojan solo 1.542,35; vencidos incluidos, cobro de cierre excluido, pagos del mismo día en siguiente tramo, sin duplicados entre tramos. Comprobaciones de referencias del manifiesto correctas.
+- No se modificaron movimientos, datos de Supabase ni producción. Pendiente verificar ejecución del despliegue Pages y prueba visual autenticada con datos reales; no declarar la cifra exacta de la captura sin leer los 17 movimientos.
+
 ## Tesorería: tramos hasta el siguiente ingreso habitual — build 30136 (2026-10-27)
 
 - Versión 3.0.0-rc.1.99. Solo Staging; producción intacta.
