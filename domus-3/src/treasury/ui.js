@@ -93,6 +93,34 @@ function operationalTreasury(vm,available,confirmedCount,totalAccounts){
  const cut10Rows=vm.open.filter(r=>r.date<=cutoff10),cut25Rows=vm.open.filter(r=>r.date<=cutoff25),cut10=treasuryTotals(cut10Rows),cut25=treasuryTotals(cut25Rows);
  return {settlementRows,today,monthStart,monthEnd,overdueRows,todayRows,currentMonthOpenRows,realMonthRows,commitmentRows,overdue,todayTotals,currentMonthOpen,realMonth,plannedMonth,commitment,projected,projectedComplete,cutoff10,cutoff25,cut10Rows,cut25Rows,cut10,cut25,cutoff10Balance:projectedComplete?available+cut10.net:null,cutoff25Balance:projectedComplete?available+cut25.net:null};
 }
+// Los tramos se calculan con vencimientos pendientes, sin confundirlos con saldos bancarios.
+function habitualIncomeIntervals(vm, limit=3){
+ const habitual=vm.open.filter(r=>r.type==='income'&&r.date>=vm.today&&r.source?.income_source_type==='habitual');
+ const dates=[...new Set(habitual.map(r=>r.date))].sort().slice(0,limit);
+ let from=vm.today;
+ return dates.map((until,index)=>{
+   const rows=vm.open.filter(r=>r.date<=until&&(index===0||r.date>dates[index-1]));
+   const closingIncome=rows.filter(r=>r.type==='income'&&r.date===until&&r.source?.income_source_type==='habitual');
+   const beforeIncome=rows.filter(r=>!closingIncome.includes(r));
+   const totals=treasuryTotals(beforeIncome),closing=treasuryTotals(closingIncome);
+   const overdue=beforeIncome.filter(r=>r.date<vm.today);
+   const result={from,until,rows:beforeIncome,closingIncome,totals,closing,overdueCount:overdue.length,need:Math.max(0,totals.expense-totals.income)};
+   from=until;
+   return result;
+ });
+}
+function habitualIntervalCards(intervals){
+ if(!intervals.length)return '<div class="card"><h3>Hasta el siguiente ingreso habitual</h3><p class="muted">No hay ningún ingreso habitual pendiente con fecha futura registrada. Revisa sus vencimientos; no se supone una fecha de cobro.</p></div>';
+ return '<div class="treasury-flow-grid">'+intervals.map((r,i)=>`<button class="card treasury-hero-card clickable" type="button" data-treasury-interval="${i}">
+   <span class="label">${i===0?'Desde hoy':'Tramo siguiente'} · hasta ${date(r.until)}</span>
+   <strong class="treasury-hero-value">${euro(r.need)}</strong>
+   <small>Necesario para cubrir pagos antes del ingreso habitual</small>
+   <div class="treasury-result-breakdown"><span>Por pagar <strong>−${euro(r.totals.expense)}</strong></span><span>Otros cobros <strong>+${euro(r.totals.income)}</strong></span></div>
+   <small>Ingreso habitual al cierre: +${euro(r.closing.income)} · ${r.closingIncome.length} mov.</small>
+   ${r.overdueCount?'<small>Incluye '+r.overdueCount+' vencido(s) sin resolver</small>':''}
+   <small>Ver movimientos del tramo</small>
+ </button>`).join('')+'</div>';
+}
 function operationalCards(op){
  const projectedText=op.projected==null?'Sin saldo base':euro(op.projected),projectedSub=op.projected==null?'Confirma saldos bancarios para calcularlo':(op.projectedComplete?'Saldo calculado + pendientes hasta fin de mes':'Proyección parcial: faltan cuentas por confirmar');
  return `<div class="treasury-overview-grid">
@@ -209,6 +237,11 @@ export function renderTreasury3(snapshot) {
 <button class="card treasury-hero-card clickable" type="button" data-treasury-operational="monthPlanned"><span class="label">Resultado previsto</span><strong class="treasury-hero-value">${euro(op.plannedMonth.net)}</strong><small>${esc(monthLabel)} · Ver movimientos</small></button>
   </div>
   <p class="muted">Resultado realizado: cobrado menos pagado. Resultado previsto: todos los ingresos menos todos los gastos del mes, realizados y pendientes. Estas cifras no son saldos bancarios.</p>
+  <section class="treasury-income-intervals">
+    <h3>Hasta el siguiente ingreso habitual</h3>
+    <p class="muted">Tramos de pagos pendientes y otros cobros hasta cada ingreso habitual. El importe necesario no es un saldo bancario ni incluye el ingreso habitual que cierra el tramo.</p>
+    ${habitualIntervalCards(habitualIncomeIntervals(vm))}
+  </section>
   <details class="card"><summary>Importar y comparar un extracto (opcional)</summary>
     <p>Compara pagos y cobros con tus movimientos. Esta revisión es voluntaria y no calcula saldos bancarios.</p>
 
@@ -313,6 +346,11 @@ export function renderTreasury3(snapshot) {
   };
   const labels={settlement:'Pendientes de liquidación',monthIncomePending:'Por cobrar · '+monthLabel,monthIncomeReal:'Cobrado · '+monthLabel,monthExpensePending:'Por pagar · '+monthLabel,monthExpenseReal:'Pagado · '+monthLabel,monthReal:'Realizado · '+monthLabel,monthPlanned:'Total previsto del mes · '+monthLabel,overdue:'Vencidos pendientes',today:'Vencen hoy',cut10:'Movimientos hasta '+date(op.cutoff10),cut25:'Movimientos hasta '+date(op.cutoff25)};
   root.querySelectorAll('[data-treasury-operational]').forEach(button=>button.onclick=()=>show(labels[button.dataset.treasuryOperational],rowsByKey[button.dataset.treasuryOperational]||[]));
+  const incomeIntervals=habitualIncomeIntervals(vm);
+  root.querySelectorAll('[data-treasury-interval]').forEach(button=>button.onclick=()=>{
+    const interval=incomeIntervals[Number(button.dataset.treasuryInterval)];
+    if(interval)show('Hasta ingreso habitual del '+date(interval.until),[...interval.rows,...interval.closingIncome].sort((a,b)=>a.date.localeCompare(b.date)));
+  });
   if(window.__domusTreasuryReadAdapter){
     root.querySelectorAll('[data-enqueue-checkpoint],[data-enqueue-import],[data-enqueue-confirmations],[data-sync-treasury]').forEach(button=>{button.disabled=true;button.title='Guardado remoto no disponible en este adaptador';});
   }
