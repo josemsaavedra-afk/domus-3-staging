@@ -134,6 +134,22 @@ function accountRows(vm) { const rows=vm.accountRows.filter(row=>row.id); if (!r
 function accountCards(vm){const rows=vm.accountRows.filter(row=>row.id);if(!rows.length)return '<div class="empty">No hay cuentas configuradas.</div>';return rows.map(row=>`<article class="treasury-account-card"><div><strong>${esc(row.name)}</strong><small>${row.confirmedBalance==null?esc(row.balanceReason):date(row.referenceDate)+' · '+row.movements+' movimiento(s) posteriores'}</small></div><span>${row.confirmedBalance==null?'—':euro(row.confirmedBalance)}</span></article>`).join('')}
 function movementRows(rows) { if (!rows.length) return '<tr><td colspan="5" class="empty">Sin movimientos en este desglose.</td></tr>'; return rows.map(row => `<tr><td>${date(row.date)}${row.originalDate&&row.originalDate!==row.date?`<small class="muted">Prevista original: ${date(row.originalDate)}</small>`:''}</td><td><span class="pill">${esc(LABEL[row.status] || row.status)}</span></td><td>${esc(row.concept)}</td><td>${row.type === 'income' ? 'Ingreso' : 'Pago'}</td><td class="amount ${row.type}">${row.type === 'income' ? '+' : '−'}${euro(row.amount)}</td></tr>`).join(''); }
 function movementCards(rows){if(!rows.length)return '<div class="empty">Sin movimientos en este desglose.</div>';return rows.map(row=>`<article class="treasury-mobile-movement"><div class="treasury-mobile-movement-top"><div><strong>${esc(row.concept)}</strong><small>${date(row.date)} · ${esc(LABEL[row.status]||row.status)}</small>${row.originalDate&&row.originalDate!==row.date?`<small>Fecha prevista original: ${date(row.originalDate)}</small>`:''}</div><span class="amount ${row.type}">${row.type==='income'?'+':'−'}${euro(row.amount)}</span></div><div class="treasury-mobile-movement-type">${row.type==='income'?'Ingreso':'Pago'}</div></article>`).join('')}
+// Selección efímera para cuadrar listados: no altera ni persiste movimientos.
+function temporarySelectionSummary(rows,selected){
+ const chosen=rows.filter((_,i)=>selected.has(i));
+ const all=treasuryTotals(rows),current=treasuryTotals(chosen);
+ const homogeneous=rows.length>0&&rows.every(row=>row.type===rows[0].type);
+ const value=totals=>homogeneous?(rows[0].type==='income'?totals.income:totals.expense):totals.net;
+ return {count:chosen.length,all:value(all),selected:value(current)};
+}
+function selectableMovementRows(rows,selected){
+ if(!rows.length)return '<tr><td colspan="6" class="empty">Sin movimientos en este desglose.</td></tr>';
+ return rows.map((row,i)=>`<tr data-treasury-select-row="${i}"${selected.has(i)?'':' style="opacity:.48"'}><td><input type="checkbox" data-treasury-select="${i}" aria-label="Incluir ${esc(row.concept)} en el cálculo" ${selected.has(i)?'checked':''}></td><td>${date(row.date)}${row.originalDate&&row.originalDate!==row.date?`<small class="muted">Prevista original: ${date(row.originalDate)}</small>`:''}</td><td><span class="pill">${esc(LABEL[row.status]||row.status)}</span></td><td>${esc(row.concept)}</td><td>${row.type==='income'?'Ingreso':'Pago'}</td><td class="amount ${row.type}">${row.type==='income'?'+':'−'}${euro(row.amount)}</td></tr>`).join('');
+}
+function selectableMovementCards(rows,selected){
+ if(!rows.length)return '<div class="empty">Sin movimientos en este desglose.</div>';
+ return rows.map((row,i)=>`<article class="treasury-mobile-movement" data-treasury-select-row="${i}"${selected.has(i)?'':' style="opacity:.48"'}><div class="treasury-mobile-movement-top"><div><label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" data-treasury-select="${i}" aria-label="Incluir ${esc(row.concept)} en el cálculo" ${selected.has(i)?'checked':''}><strong>${esc(row.concept)}</strong></label><small>${date(row.date)} · ${esc(LABEL[row.status]||row.status)}</small>${row.originalDate&&row.originalDate!==row.date?`<small>Fecha prevista original: ${date(row.originalDate)}</small>`:''}</div><span class="amount ${row.type}">${row.type==='income'?'+':'−'}${euro(row.amount)}</span></div><div class="treasury-mobile-movement-type">${row.type==='income'?'Ingreso':'Pago'}</div></article>`).join('');
+}
 function reconciliationRows(session) { return session.rows.map(row => { const locked = row.decision !== 'pendiente'; return `<tr><td>${date(row.statement.date)}</td><td>${esc(row.statement.concept)}</td><td class="amount ${row.statement.signedAmount < 0 ? 'expense' : 'income'}">${euro(row.statement.signedAmount)}</td><td><span class="pill">${esc(locked ? row.decision : row.matchStatus.replaceAll('_', ' '))}</span></td><td>${row.candidates.length ? `<select class="treasury-review-select" data-review-select="${esc(row.statement.id)}" ${locked ? 'disabled' : ''}><option value="">Seleccionar…</option>${row.candidates.map(candidate => `<option value="${esc(candidate.id)}" ${candidate.id === row.selectedMovementId ? 'selected' : ''}>${esc(candidate.concept)}${candidate.id === row.candidates[0]?.id ? ` · ${row.score}%` : ''}</option>`).join('')}</select>` : '<strong>Sin coincidencia</strong><br><small class="muted">No se crea movimiento</small>'}</td><td><div class="actions"><button class="btn primary" type="button" data-review-confirm="${esc(row.statement.id)}" ${locked || !row.selectedMovementId ? 'disabled' : ''}>Conciliar</button><button class="btn" type="button" data-review-discard="${esc(row.statement.id)}" ${locked ? 'disabled' : ''}>Descartar</button></div></td></tr>`; }).join(''); }
 function balanceCaptureRows(accounts, asOf) { if (!accounts.length) return '<div class="empty">No hay cuentas configuradas.</div>'; return accounts.map(account => { const checkpoint = checkpointFor(account.id); return `<div class="treasury-balance-form" data-balance-account="${esc(account.id)}"><h3>${esc(account.name || 'Cuenta sin nombre')}</h3><div class="treasury-balance-grid"><label>Saldo que muestra el banco<input data-opening-amount type="number" step="0.01" value="${checkpoint?.amount ?? ''}" placeholder="0,00"></label><label>Fecha de ese saldo<input data-opening-date type="date" max="${esc(asOf)}" value="${checkpoint?.date ?? esc(asOf)}"></label><button class="btn" type="button" data-save-opening>Aplicar saldo</button></div><details class="treasury-balance-check"><summary>Comprobar más adelante si DOMUS cuadra con el banco</summary><div class="treasury-balance-grid"><label>Saldo bancario a comprobar<input data-closing-amount type="number" step="0.01" placeholder="0,00"></label><label>Fecha del saldo bancario<input data-closing-date type="date" max="${esc(asOf)}" value="${esc(asOf)}"></label><button class="btn" type="button" data-check-balance ${checkpoint ? '' : 'disabled'}>Comprobar cuadre</button><button class="btn" type="button" data-download-checkpoint>Descargar copia técnica</button></div></details><div data-balance-result class="muted">${checkpoint ? `${checkpoint.persisted ? "Saldo guardado" : "Saldo pendiente de guardar"}: ${euro(checkpoint.amount)} a ${date(checkpoint.date)}.` : 'Introduce el saldo actual y la fecha. DOMUS empezará a calcular desde ese punto.'}</div></div>`; }).join(''); }
 
@@ -255,7 +271,7 @@ export function renderTreasury3(snapshot) {
     </div>
   </div>
 
-  <div id="treasury3Detail" class="card hidden"><div class="section-title treasury-detail-head"><h2 id="treasury3DetailTitle">Desglose</h2><button class="btn" type="button" id="treasury3Close">Cerrar</button></div><div id="treasury3DetailMobile" class="treasury-detail-mobile"></div><div class="table-wrap treasury-detail-table" tabindex="0" role="region" aria-label="Detalle de tesorería"><table class="table"><thead><tr><th>Fecha</th><th>Estado</th><th>Concepto</th><th>Tipo</th><th>Importe</th></tr></thead><tbody id="treasury3DetailBody"></tbody></table></div></div>`;
+  <div id="treasury3Detail" class="card hidden"><div class="section-title treasury-detail-head"><h2 id="treasury3DetailTitle">Desglose</h2><button class="btn" type="button" id="treasury3Close">Cerrar</button></div><div class="treasury-selection-summary" aria-live="polite" style="display:flex;flex-wrap:wrap;align-items:center;gap:.7rem;margin:1rem 0"><strong id="treasury3SelectedTotal"></strong><span id="treasury3FullTotal" class="muted"></span><button class="btn" type="button" id="treasury3SelectAll">Marcar todos</button><button class="btn" type="button" id="treasury3SelectNone">Desmarcar todos</button><small class="muted">Selección temporal: se restablece al cerrar.</small></div><div id="treasury3DetailMobile" class="treasury-detail-mobile"></div><div class="table-wrap treasury-detail-table" tabindex="0" role="region" aria-label="Detalle de tesorería"><table class="table"><thead><tr><th>✓</th><th>Fecha</th><th>Estado</th><th>Concepto</th><th>Tipo</th><th>Importe</th></tr></thead><tbody id="treasury3DetailBody"></tbody></table></div></div>`;
 
   const accountSelect = document.createElement('select');
   accountSelect.id = 'treasuryCsvAccount'; accountSelect.className = 'treasury-review-select'; accountSelect.setAttribute('aria-label', 'Cuenta del extracto');
@@ -329,9 +345,33 @@ export function renderTreasury3(snapshot) {
   };
   bindBalanceCapture(root,snapshot,vm,renderGeneration);
   persistencePanel?.render(root);
-  root.querySelector('#treasury3Close').onclick=()=>root.querySelector('#treasury3Detail').classList.add('hidden');
   const detail=root.querySelector('#treasury3Detail'),title=root.querySelector('#treasury3DetailTitle'),body=root.querySelector('#treasury3DetailBody'),mobile=root.querySelector('#treasury3DetailMobile');
-  const show=(label,rows)=>{title.textContent=label+' · '+rows.length+' movimientos · '+euro(treasuryTotals(rows).net);body.innerHTML=movementRows(rows);mobile.innerHTML=movementCards(rows);detail.classList.remove('hidden');detail.scrollIntoView({behavior:'smooth',block:'start'});};
+  let detailRows=[],selected=new Set();
+  const updateSelection=()=>{
+    const totals=temporarySelectionSummary(detailRows,selected);
+    root.querySelector('#treasury3SelectedTotal').textContent='Seleccionado: '+euro(totals.selected)+' · '+totals.count+' de '+detailRows.length;
+    root.querySelector('#treasury3FullTotal').textContent='Total completo: '+euro(totals.all);
+    body.innerHTML=selectableMovementRows(detailRows,selected);
+    mobile.innerHTML=selectableMovementCards(detailRows,selected);
+  };
+  detail.onchange=event=>{
+    const input=event.target.closest('input[data-treasury-select]');
+    if(!input)return;
+    const index=Number(input.dataset.treasurySelect);
+    if(!Number.isInteger(index)||index<0||index>=detailRows.length)return;
+    if(input.checked)selected.add(index);else selected.delete(index);
+    updateSelection();
+  };
+  root.querySelector('#treasury3SelectAll').onclick=()=>{selected=new Set(detailRows.map((_,i)=>i));updateSelection();};
+  root.querySelector('#treasury3SelectNone').onclick=()=>{selected.clear();updateSelection();};
+  root.querySelector('#treasury3Close').onclick=()=>{detail.classList.add('hidden');detailRows=[];selected.clear();};
+  const show=(label,rows)=>{
+    detailRows=rows.slice();selected=new Set(detailRows.map((_,i)=>i));
+    title.textContent=label+' · '+rows.length+' movimientos';
+    updateSelection();
+    detail.classList.remove('hidden');
+    detail.scrollIntoView({behavior:'smooth',block:'start'});
+  };
   const rowsByKey={
     settlement:op.settlementRows,
     monthReal:op.realMonthRows,
