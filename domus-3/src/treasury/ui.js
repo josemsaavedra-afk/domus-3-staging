@@ -95,30 +95,28 @@ function operationalTreasury(vm,available,confirmedCount,totalAccounts){
 }
 // Los tramos se calculan con vencimientos pendientes, sin confundirlos con saldos bancarios.
 function habitualIncomeIntervals(vm, limit=3){
+ // El ingreso habitual es solo el límite del tramo: nunca se suma ni aparece en el detalle.
+ // Se usan las fechas efectivas de los movimientos; no se presupone el día 10 o 25.
  const habitual=vm.open.filter(r=>r.type==='income'&&r.date>=vm.today&&r.source?.income_source_type==='habitual');
  const dates=[...new Set(habitual.map(r=>r.date))].sort().slice(0,limit);
- let from=vm.today;
  return dates.map((until,index)=>{
-   const rows=vm.open.filter(r=>r.date<=until&&(index===0||r.date>dates[index-1]));
-   const closingIncome=rows.filter(r=>r.type==='income'&&r.date===until&&r.source?.income_source_type==='habitual');
-   const beforeIncome=rows.filter(r=>!closingIncome.includes(r));
-   const totals=treasuryTotals(beforeIncome),closing=treasuryTotals(closingIncome);
-   const overdue=beforeIncome.filter(r=>r.date<vm.today);
-   const result={from,until,rows:beforeIncome,closingIncome,totals,closing,overdueCount:overdue.length,need:Math.max(0,totals.expense-totals.income)};
-   from=until;
-   return result;
+   // El primer tramo incluye vencidos aún pendientes. Los posteriores no repiten gastos.
+   // Los gastos del propio día del cobro se dejan para el siguiente tramo.
+   const from=index===0?vm.today:dates[index-1];
+   const rows=vm.open.filter(r=>r.type==='expense'&&r.date<until&&(index===0||r.date>=from));
+   const totals=treasuryTotals(rows);
+   const overdueCount=rows.filter(r=>r.date<vm.today).length;
+   return {from,until,rows,totals,overdueCount,need:totals.expense};
  });
 }
 function habitualIntervalCards(intervals){
- if(!intervals.length)return '<div class="card"><h3>Hasta el siguiente ingreso habitual</h3><p class="muted">No hay ningún ingreso habitual pendiente con fecha futura registrada. Revisa sus vencimientos; no se supone una fecha de cobro.</p></div>';
+ if(!intervals.length)return '<div class="card"><h3>Gastos hasta el próximo cobro habitual</h3><p class="muted">No hay ningún ingreso habitual pendiente con fecha futura registrada. Revisa la fecha efectiva prevista del cobro; no se supone una fecha fija.</p></div>';
  return '<div class="treasury-flow-grid">'+intervals.map((r,i)=>`<button class="card treasury-hero-card clickable" type="button" data-treasury-interval="${i}">
-   <span class="label">${i===0?'Desde hoy':'Tramo siguiente'} · hasta ${date(r.until)}</span>
+   <span class="label">${i===0?'Gastos hasta el próximo cobro habitual':'Gastos del tramo siguiente'} · ${date(r.until)}</span>
    <strong class="treasury-hero-value">${euro(r.need)}</strong>
-   <small>Necesario para cubrir pagos antes del ingreso habitual</small>
-   <div class="treasury-result-breakdown"><span>Por pagar <strong>−${euro(r.totals.expense)}</strong></span><span>Otros cobros <strong>+${euro(r.totals.income)}</strong></span></div>
-   <small>Ingreso habitual al cierre: +${euro(r.closing.income)} · ${r.closingIncome.length} mov.</small>
-   ${r.overdueCount?'<small>Incluye '+r.overdueCount+' vencido(s) sin resolver</small>':''}
-   <small>Ver movimientos del tramo</small>
+   <small>${r.rows.length} gastos pendientes antes del cobro habitual</small>
+   ${r.overdueCount?'<small>Incluye '+r.overdueCount+' vencido(s) sin pagar</small>':''}
+   <small>Ver únicamente los gastos incluidos</small>
  </button>`).join('')+'</div>';
 }
 function operationalCards(op){
@@ -238,8 +236,8 @@ export function renderTreasury3(snapshot) {
   </div>
   <p class="muted">Resultado realizado: cobrado menos pagado. Resultado previsto: todos los ingresos menos todos los gastos del mes, realizados y pendientes. Estas cifras no son saldos bancarios.</p>
   <section class="treasury-income-intervals">
-    <h3>Hasta el siguiente ingreso habitual</h3>
-    <p class="muted">Tramos de pagos pendientes y otros cobros hasta cada ingreso habitual. El importe necesario no es un saldo bancario ni incluye el ingreso habitual que cierra el tramo.</p>
+    <h3>Gastos hasta el próximo cobro habitual</h3>
+    <p class="muted">Solo gastos pendientes anteriores a la fecha efectiva del siguiente cobro habitual, incluidos los vencidos sin pagar. Ningún ingreso se suma ni se descuenta.</p>
     ${habitualIntervalCards(habitualIncomeIntervals(vm))}
   </section>
   <details class="card"><summary>Importar y comparar un extracto (opcional)</summary>
@@ -349,7 +347,7 @@ export function renderTreasury3(snapshot) {
   const incomeIntervals=habitualIncomeIntervals(vm);
   root.querySelectorAll('[data-treasury-interval]').forEach(button=>button.onclick=()=>{
     const interval=incomeIntervals[Number(button.dataset.treasuryInterval)];
-    if(interval)show('Hasta ingreso habitual del '+date(interval.until),[...interval.rows,...interval.closingIncome].sort((a,b)=>a.date.localeCompare(b.date)));
+    if(interval)show('Gastos pendientes hasta el cobro habitual del '+date(interval.until),interval.rows.slice().sort((a,b)=>a.date.localeCompare(b.date)));
   });
   if(window.__domusTreasuryReadAdapter){
     root.querySelectorAll('[data-enqueue-checkpoint],[data-enqueue-import],[data-enqueue-confirmations],[data-sync-treasury]').forEach(button=>{button.disabled=true;button.title='Guardado remoto no disponible en este adaptador';});
