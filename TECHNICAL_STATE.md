@@ -1,3 +1,13 @@
+## Tesorería: tramos hasta el siguiente ingreso habitual — build 30136 (2026-10-27)
+
+- Versión 3.0.0-rc.1.99. Solo Staging; producción intacta.
+- Nuevo bloque visible inmediatamente debajo del resumen mensual: próximos tres tramos delimitados por ingresos pendientes con `income_source_type=habitual` y vencimiento futuro.
+- Cada tramo indica fecha del ingreso habitual de cierre, importe de ese ingreso, pagos pendientes hasta esa fecha, otros cobros previstos y necesidad neta de cobertura (máximo de 0 y pagos menos otros cobros).
+- El ingreso habitual de cierre se informa separadamente, sin sumarlo como disponibilidad anterior al cobro. Los vencidos pendientes se incluyen en el primer tramo y se avisan.
+- Los tramos son clicables y muestran sus movimientos, incluido el ingreso habitual de cierre. No crean ni modifican datos.
+- Sin próximos ingresos habituales registrados, se presenta un aviso sin inventar fechas. La necesidad de cobertura no se presenta como saldo bancario.
+- Revisión de sintaxis JavaScript del módulo realizada. Validación en sesión autenticada del navegador pendiente.
+
 ## Concordancia entre lecturas y trazabilidad de importe — build 30135 (2026-10-24)
 
 - Versión 3.0.0-rc.1.98. Captura de usuario en 30134: Mercadona sigue sin importe por contradicción. La protección funciona, pero la recuperación de 30133 no bastaba; la prueba con Tesseract.js 7 no equivalía al comportamiento de Tesseract.js 5 del cliente.
