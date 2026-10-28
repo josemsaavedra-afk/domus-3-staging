@@ -1,3 +1,10 @@
+## ONLOGIST — liquidación vinculada y despliegue Staging, build 30142 (2026-10-28)
+
+- Regla confirmada por usuario: seguros y comisiones se liquidan con su autofactura de ingreso correspondiente; penalizaciones, con la siguiente. No aplicar 29 días a seguros/comisiones como plazo independiente.
+- `domus-3/index.html`: el concepto de seguros y comisiones incluye número VS/V26 cuando se identifica; `applyLinkedSettlementDate` propone fecha de la autofactura de ingreso cuando hay exactamente un vínculo por referencia, sin sobrescribir vencimientos expresos. En el selector de ingresos asociados, seleccionar uno propone su fecha y permite edición; cero o varios requieren revisión. No se marca ningún gasto como pagado automáticamente.
+- Pruebas unitarias aisladas de funciones reales: un ingreso enlazado, múltiples ingresos, ninguno, fecha expresa, penalización: correctas. Sin cambios en datos reales ni producción.
+- Build 30142: index, service worker, version.json y manifest SHA256 sincronizados en main. La comprobación web de GitHub Pages aún devolvía build 30141 inmediatamente después del commit; **no declarar 30142 desplegada sin comprobar el sitio público**.
+
 ## Tesorería — barra flotante de selección, build 30139 (2026-10-28)
 
 - Petición confirmada por el usuario: al marcar/desmarcar gastos o ingresos, mantener visibles el total completo y el total seleccionado sin volver al inicio del listado.
