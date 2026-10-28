@@ -728,7 +728,30 @@ function renderReports(){
  document.querySelectorAll('[data-report-group]').forEach(el=>el.onclick=()=>openReportChart(Number(el.dataset.reportGroup),el.textContent));
 }
 function openStoredDocumentDraft(id){const doc=documents.find(d=>d.id===id);if(!doc?.extracted_data?.drafts?.length)return;pendingDocumentDraftBatches=[];renderDocDrafts(structuredClone(doc.extracted_data.drafts),doc)}
-function renderDocuments(){const el=document.getElementById('documentsList');if(!el)return;el.innerHTML=documents.length?documents.map(d=>`<div class="doc-row"><div><strong>${escapeHtml(d.file_name)}</strong><div class="meta">${d.document_date?fmt(parseDate(d.document_date)):''} · ${escapeHtml(d.document_type)} · ${escapeHtml(d.analysis_status||'pending')} · ${d.file_retained&&d.storage_path?'copia en nube':'original en iCloud/local'}</div></div><div class="actions">${d.extracted_data?.drafts?.length?`<button type="button" class="btn" onclick="openStoredDocumentDraft('${d.id}')">Revisar propuesta</button>`:''}${d.file_retained&&d.storage_path?`<button class="btn" onclick="openDocument('${String(d.storage_path).replaceAll("'","")}')">Abrir copia</button>`:''}</div></div>`).join(''):'<div class="empty">'+(documentLoadState==='ready'?'Todavía no hay referencias de documentos.':documentLoadState==='error'?'No se pudieron cargar las referencias. Vuelve a intentarlo.':'Cargando referencias de documentos…')+'</div>';/* La fecha alternativa permanece vacía hasta que el usuario la indique. */}
+function documentArchiveState(d){
+ const drafts=Array.isArray(d.extracted_data?.drafts)?d.extracted_data.drafts:[];
+ const confirmed=drafts.filter(x=>x.review_status==='confirmed'&&x.confirmed_series_id&&series.some(m=>m.id===x.confirmed_series_id));
+ const missing=drafts.filter(x=>x.review_status==='confirmed'&&(!x.confirmed_series_id||!series.some(m=>m.id===x.confirmed_series_id)));
+ const unconfirmed=drafts.filter(x=>x.review_status!=='confirmed');
+ const duplicates=unconfirmed.flatMap(x=>duplicateCandidates(x)).filter(x=>x.exactInvoice);
+ if(missing.length)return {label:'REVISAR VÍNCULO',color:'#8b4500',bg:'#fff0d6',detail:'La propuesta figura confirmada, pero no se ha localizado su movimiento. Revisar antes de crear otro.'};
+ if(drafts.length&&confirmed.length===drafts.length)return {label:'CREADO',color:'#11633b',bg:'#e4f5e9',detail:confirmed.length+' movimiento(s) creados y vinculados'};
+ if(drafts.length&&confirmed.length)return {label:'PARCIAL',color:'#8b4500',bg:'#fff0d6',detail:confirmed.length+' creado(s), '+unconfirmed.length+' pendiente(s)'};
+ if(duplicates.length)return {label:'POSIBLE DUPLICADO',color:'#8b4500',bg:'#fff0d6',detail:'Ya existe una factura con el mismo número y emisor. Revisar antes de crear.'};
+ if(d.analysis_status==='error')return {label:'ERROR DE LECTURA',color:'#a4262c',bg:'#ffebed',detail:'No se ha generado un movimiento; revisa el documento'};
+ if(d.analysis_status==='processing')return {label:'PROCESANDO',color:'#555',bg:'#f1f1f1',detail:'Lectura todavía sin terminar'};
+ if(drafts.length)return {label:'PENDIENTE',color:'#735400',bg:'#fff5d8',detail:unconfirmed.length+' propuesta(s) sin confirmar; no están en movimientos'};
+ if(d.series_id&&series.some(m=>m.id===d.series_id))return {label:'VINCULADO',color:'#11633b',bg:'#e4f5e9',detail:'Documento asociado a un movimiento existente'};
+ return {label:'SIN PROPUESTA',color:'#a4262c',bg:'#ffebed',detail:'No hay propuesta confirmada; revisa la lectura'};
+}
+function renderDocuments(){const el=document.getElementById('documentsList');if(!el)return;
+ const states=documents.map(d=>({d,state:documentArchiveState(d)}));
+ const done=states.filter(x=>x.state.label==='CREADO'||x.state.label==='VINCULADO').length;
+ const pending=states.filter(x=>['PENDIENTE','PARCIAL','POSIBLE DUPLICADO'].includes(x.state.label)).length;
+ const errors=states.filter(x=>['ERROR DE LECTURA','SIN PROPUESTA','REVISAR VÍNCULO'].includes(x.state.label)).length;
+ el.innerHTML=documents.length?'<div class="msg info" role="status">'+documents.length+' documentos · '+done+' creados/vinculados · '+pending+' pendientes de revisión · '+errors+' requieren atención. Subir un documento no crea un movimiento.</div>'+states.map(({d,state})=>`<div class="doc-row" style="border-left:5px solid ${state.color};padding-left:12px"><div><strong>${escapeHtml(d.file_name)}</strong> <span style="display:inline-block;border-radius:7px;padding:3px 8px;font-weight:700;color:${state.color};background:${state.bg}">${state.label}</span><div class="meta">${d.document_date?fmt(parseDate(d.document_date)):''} · ${escapeHtml(d.document_type||'Documento')} · ${d.file_retained&&d.storage_path?'copia en nube':'original en iCloud/local'}</div><div class="meta">${escapeHtml(state.detail)}</div></div><div class="actions">${d.extracted_data?.drafts?.length?`<button type="button" class="btn" onclick="openStoredDocumentDraft('${d.id}')">${state.label==='CREADO'?'Ver confirmación':'Revisar propuesta'}</button>`:''}${d.file_retained&&d.storage_path?`<button class="btn" onclick="openDocument('${String(d.storage_path).replaceAll("'","")}')">Abrir copia</button>`:''}</div></div>`).join(''):'<div class="empty">'+(documentLoadState==='ready'?'Todavía no hay referencias de documentos.':documentLoadState==='error'?'No se pudieron cargar las referencias. Vuelve a intentarlo.':'Cargando referencias de documentos…')+'</div>';
+ /* La fecha alternativa permanece vacía hasta que el usuario la indique. */
+}
 let selectedDocumentFiles=[];function selectDocumentFiles(inp){selectedDocumentFiles=[...(inp.files||[])];document.getElementById('docSelectedFile').textContent=selectedDocumentFiles.length?`${selectedDocumentFiles.length} archivo(s): `+selectedDocumentFiles.slice(0,4).map(f=>f.name).join(', ')+(selectedDocumentFiles.length>4?'…':''):'Ningún archivo seleccionado.'}
 async function prepareDocumentCatalogs(){
  if(documentCatalogsReady)return;
