@@ -1359,7 +1359,7 @@ function enrichDocumentDraft(d,text=''){
 }
 function draftTransportReference(d){return (d.document_reference_keys||[]).map(normalizedRef).find(ref=>/^\d{7,8}$/.test(ref))||null}
 function unresolvedIncomeReferences(d){const all=[...new Set([...(d.linked_income_references||[]),...(d.document_reference_keys||[])].map(normalizedRef))],invoices=all.filter(x=>/^G\d{6}(?:-\d+){2,}$/.test(x)),refs=invoices.length?invoices:all.filter(x=>/^\d{7,8}$/.test(x));return refs.filter(ref=>!series.some(s=>s.type==='income'&&referenceKeys({...s,concept:(s.concept||'')+' '+(s.transport_number||'')}).includes(ref)))}
-function draftLinkedIncomeIds(d){if(Array.isArray(d.reviewed_linked_income_ids))return d.reviewed_linked_income_ids.filter(id=>series.some(s=>s.id===id&&s.type==='income'));const refs=[...(d.linked_income_references||[]),...(d.document_reference_keys||[])].map(normalizedRef).filter(Boolean);if(!refs.length)return [];return series.filter(s=>s.type==='income'&&refs.some(ref=>referenceKeys({...s,concept:(s.concept||'')+' '+(s.transport_number||'')}).includes(ref))).map(s=>s.id)}
+function draftLinkedIncomeIds(d){if(Array.isArray(d.reviewed_linked_income_ids))return d.reviewed_linked_income_ids.filter(id=>series.some(s=>s.id===id&&s.type==='income'));const isOnlogist=['onlogist_commission','onlogist_insurance'].includes(d.document_family);const refs=(isOnlogist?(d.linked_income_references||[]):[...(d.linked_income_references||[]),...(d.document_reference_keys||[])]).map(normalizedRef).filter(ref=>!isOnlogist||/^G\d{6}(?:-\d+){2,}$/.test(ref));if(!refs.length)return [];return series.filter(s=>s.type==='income'&&refs.some(ref=>referenceKeys({...s,concept:(s.concept||'')+' '+(s.transport_number||'')}).includes(ref))).map(s=>s.id)}
 // Las comisiones y seguros se descuentan de la autofactura de ingreso asociada.
 // Nunca deducir la asociación solo por fecha, importe o por el número VS/V26.
 function settlementIncomeDate(income){
@@ -1382,7 +1382,11 @@ async function autoLinkDocumentRelations(seriesId,draft){
  if(!seriesId||!draft)return;
  const refs=draftReferenceKeys(draft);if(!refs.length)return;
  if(draft.type==='expense'&&['commission','insurance','prefinance_fee'].includes(draft.movement_role)){
-   const incomes=series.filter(s=>s.type==='income'&&refs.some(ref=>referenceKeys({...s,concept:(s.concept||'')+' '+(s.transport_number||'')}).includes(ref)));
+   const isOnlogist=['onlogist_commission','onlogist_insurance'].includes(draft.document_family);
+   const explicitG=(draft.linked_income_references||[]).map(normalizedRef).filter(ref=>/^G\d{6}(?:-\d+){2,}$/.test(ref));
+   const effectiveRefs=isOnlogist?explicitG:refs;
+   const incomes=series.filter(s=>s.type==='income'&&effectiveRefs.some(ref=>referenceKeys({...s,concept:(s.concept||'')+' '+(s.transport_number||'')}).includes(ref)));
+   if(isOnlogist&&incomes.length!==1)return; // No asociar automáticamente si falta o es ambiguo.
    for(const income of incomes)await insertMovementLink(income.id,seriesId,draft.movement_role);
    return;
  }
@@ -1424,6 +1428,7 @@ function simplifyDocumentReview(drafts){
   if(extra.children.length&&!details.parentElement)grid.appendChild(details);
   const roleInput=document.getElementById('ddRole'+i);if(roleInput)roleInput.value=drafts[i]?.movement_role||'standard';
   const linkedInput=document.getElementById('ddLinked'+i);
+  if(linkedInput&&['onlogist_commission','onlogist_insurance'].includes(drafts[i]?.document_family)){const ids=draftLinkedIncomeIds(drafts[i]);if(ids.length===1)linkedInput.value=ids[0];}
   const linkField=linkedInput?.closest('.field');
   if(linkField&&['commission','insurance'].includes(roleInput?.value)){
    const top=document.getElementById('ddConcept'+i)?.closest('.field');
