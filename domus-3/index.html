@@ -1264,6 +1264,13 @@ function smartDocumentDefaults(d,doc){
   // de seguros y comisiones no siguen necesariamente los 29 días del ingreso.
   if(!out.due_date)out.field_sources.due_date='Sin vencimiento expreso: indicar fecha prevista de descuento si se conoce';
  }
+ // Seguros y comisiones ONLOGIST: se compensan en la liquidación del ingreso,
+ // sin transferencia bancaria independiente ni cuenta de cargo ficticia.
+ if(out.type==='expense'&&['onlogist_insurance','onlogist_commission'].includes(out.document_family)){
+  const compensation=(paymentMethods||[]).find(m=>m.active!==false&&/compensaci[oó]n en liquidaci[oó]n/i.test(String(m.name||'')));
+  if(compensation){out.payment_method_id=compensation.id;out.field_sources.payment_method_id='descuento en la autofactura de ingreso vinculada'}
+  out.account_id=null;out.field_sources.account_id='sin cargo bancario separado: la cuenta corresponde al ingreso neto';
+ }
  // ONLOGIST autofacturas: reglas operativas predeterminadas, editables en revisión.
  if(out.type==='income'&&out.document_family==='onlogist_income'){
   const inv=String(out.invoice_number||'').trim();
@@ -1402,10 +1409,18 @@ function simplifyDocumentReview(drafts){
   const extra=document.createElement('div');extra.className='draft-grid';details.appendChild(extra);
   for(const field of [...grid.children]){if(field.querySelector?.('[id^="ddActivity"],[id^="ddTags"],[id^="ddCounterpartyId"],[id^="ddCustomer"],[id^="ddRetention"],[id^="ddTaxBase"],[id^="ddVat"]')||field.textContent.startsWith('Datos fiscales del documento'))extra.appendChild(field)}
   if(extra.children.length)grid.appendChild(details);
-  for(const prefix of ['ddInvoice','ddScope','ddRole','ddLinked']){const field=document.getElementById(prefix+i)?.closest('.field');if(field)extra.appendChild(field)}
+  for(const prefix of ['ddInvoice','ddScope','ddRole']){const field=document.getElementById(prefix+i)?.closest('.field');if(field)extra.appendChild(field)}
   if(extra.children.length&&!details.parentElement)grid.appendChild(details);
   const roleInput=document.getElementById('ddRole'+i);if(roleInput)roleInput.value=drafts[i]?.movement_role||'standard';
   const linkedInput=document.getElementById('ddLinked'+i);
+  const linkField=linkedInput?.closest('.field');
+  if(linkField&&['commission','insurance'].includes(roleInput?.value)){
+   const top=document.getElementById('ddConcept'+i)?.closest('.field');
+   if(top?.parentElement)top.parentElement.insertBefore(linkField,top.nextSibling);
+   const explanation=document.createElement('small');explanation.className='muted';
+   explanation.textContent='Asociación comprobable: si la factura de ingreso se reconoce por referencia aparecerá seleccionada. Si no, elige la factura correspondiente. No se supone que esté vinculada.';
+   linkField.appendChild(explanation);
+  }
   const settlementNote=document.createElement('small');settlementNote.className='muted';settlementNote.id='ddSettlementNote'+i;
   linkedInput?.parentElement?.appendChild(settlementNote);
   const updateSettlement=(autofill=false)=>{
@@ -1413,6 +1428,12 @@ function simplifyDocumentReview(drafts){
    const ids=[...(linkedInput?.selectedOptions||[])].map(x=>x.value);
    const income=ids.length===1?series.find(x=>x.id===ids[0]&&x.type==='income'):null;
    const date=settlementIncomeDate(income);
+   const account=document.getElementById('ddAccount'+i);
+   const method=document.getElementById('ddPayment'+i);
+   const compensation=(paymentMethods||[]).find(m=>m.active!==false&&/compensaci[oó]n en liquidaci[oó]n/i.test(String(m.name||'')));
+   if(compensation&&method&&autofill)method.value=compensation.id;
+   // Los gastos compensados no son transferencias ni cargos en Sabadell.
+   if(autofill&&account)account.value='';
    if(date){if(autofill)document.getElementById('ddDue'+i).value=date;settlementNote.textContent='Descuento previsto junto a '+(income.invoice_number||income.concept)+' · '+date+'. Puedes modificar la fecha.'}
    else settlementNote.textContent=ids.length>1?'Hay varios ingresos seleccionados: comprueba la fecha antes de crear.':'Sin autofactura de ingreso identificada: el gasto quedará pendiente de asociación; no se supone una fecha.';
   };
