@@ -1323,7 +1323,7 @@ function enrichDocumentDraft(d,text=''){
  const out={...d},hay=(String(out.concept||'')+' '+String(out.counterparty||'')+' '+String(out.invoice_number||'')+' '+String(text||'')).toLowerCase(),inv=String(out.invoice_number||'').trim().toUpperCase();
  if(!out.deterministic_reader){
  if(/^G\d{6}(?:-|$)/.test(inv)||/\bautofactura\b/.test(hay))out.type='income';
- if(/^V26/.test(inv)||/comisi[oó]n/.test(hay)){out.type='expense';out.expense_scope='business';out.movement_role='commission'}
+ if(/^[VZ]26/.test(inv)||/comisi[oó]n/.test(hay)){out.type='expense';out.expense_scope='business';out.movement_role='commission'}
  if(/^VS-?26/.test(inv)||/seguro|insurance/.test(hay)){out.type='expense';out.expense_scope='business';out.movement_role='insurance'}
  if(/prefinanc|financiaci[oó]n|rhd/.test(hay)&&out.type==='expense'){out.expense_scope='business';out.movement_role='prefinance_fee'}
  }
@@ -1331,6 +1331,17 @@ function enrichDocumentDraft(d,text=''){
  if(out.person_id&&text&&!out.field_sources?.person_id)out.field_sources={...(out.field_sources||{}),person_id:'nombre o alias identificado en el documento'};
  applyDocumentClassification(out,text);
  const referenceText=String(text||'')+' '+String(out.concept||'')+' '+String(out.invoice_number||'');const refs=out.reference_scope==='invoice_group'?[]:[...new Set([...(referenceText.toUpperCase().match(/G\d{6}(?:-\d+){2,}/g)||[]),...referencedTransportNumbers(referenceText)])];out.document_reference_keys=[...new Set([...(out.document_reference_keys||[]),...refs])];
+ // Una factura VS/V26/Z26 contiene en su concepto el identificador G de la
+ // autofactura de ingreso: conservarlo por separado del número fiscal propio.
+ if(out.type==='expense'&&['commission','insurance'].includes(out.movement_role)){
+  const own=normalizedRef(out.invoice_number);
+  const incomeRefs=[...new Set((String(text||'').toUpperCase().match(/G\d{6}(?:-\s*\d+){2,}/g)||[]).map(v=>normalizedRef(v.replace(/\s+/g,''))).filter(v=>v!==own))];
+  if(incomeRefs.length){
+   out.linked_income_references=[...new Set([...(out.linked_income_references||[]),...incomeRefs])];
+   out.document_reference_keys=[...new Set([...(out.document_reference_keys||[]),...incomeRefs])];
+   out.field_sources={...(out.field_sources||{}),linked_income_references:'autofactura G indicada en el concepto de la factura de seguro/comisión'};
+  }
+ }
  const role=out.movement_role||'standard',name=String(out.counterparty||out.supplier||out.concept||'').toLowerCase();
  const confirmedDocumentSeries=new Set((typeof documents==='undefined'?[]:documents).flatMap(doc=>[...(doc.analysis_status==='confirmed'&&doc.series_id?[doc.series_id]:[]),...(doc.extracted_data?.drafts||[]).filter(d=>d.review_status==='confirmed'&&d.confirmed_series_id).map(d=>d.confirmed_series_id)]));
  const similar=series.filter(s=>confirmedDocumentSeries.has(s.id)&&s.type===out.type&&name&&normDocText(s.counterparty||s.concept||'').trim()===normDocText(name).trim()&&(s.movement_role||'standard')===role);
