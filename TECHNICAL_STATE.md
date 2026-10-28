@@ -1,3 +1,9 @@
+## DOMUS 3.0 Staging — Build 30143, Z26 y Agenda (2026-10-28)
+
+- Lector documental ONLOGIST: acepta prefijos de comisión V26 y Z26 en referencia principal y referencias relacionadas. Ambos siguen el criterio de comisión de total neto; no se cambia seguro VS ni autofactura G.
+- Agenda: al abrir, se reinicia a la fecha actual, no a un mes persistido; el scroll de la página se restablece antes de pintar el calendario. Botón Hoy lleva al día actual (en escritorio mediante selector `data-calendar-date`, en móvil selecciona día actual). Se mantiene navegación mensual.
+- Build 30143 / rc.1.106: index, SW, version y manifest SHA256 sincronizados. Pendiente comprobar la propagación de GitHub Pages y una prueba visual autenticada; no se modificó producción ni datos de movimientos.
+
 ## ONLOGIST — liquidación vinculada y despliegue Staging, build 30142 (2026-10-28)
 
 - Regla confirmada por usuario: seguros y comisiones se liquidan con su autofactura de ingreso correspondiente; penalizaciones, con la siguiente. No aplicar 29 días a seguros/comisiones como plazo independiente.
