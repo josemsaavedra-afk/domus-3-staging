@@ -1,3 +1,11 @@
+## Tesorería — barra flotante de selección, build 30139 (2026-10-28)
+
+- Petición confirmada por el usuario: al marcar/desmarcar gastos o ingresos, mantener visibles el total completo y el total seleccionado sin volver al inicio del listado.
+- En DOMUS 3.0 Staging, src/treasury/ui.js mueve el resumen temporal al final del listado y usa position:sticky con separación inferior para el menú móvil y zona segura del iPhone. Se oculta al cerrar el detalle, y la selección se restablece cada vez que se abre. No persiste en base de datos.
+- La build 30139 actualiza index.html, sw.js, version.json y asset-manifest.js; hashes SHA-256 recalculados y comprobados para index.html y src/treasury/ui.js.
+- Verificación estática correcta. No se ha podido confirmar el estado real de GitHub Pages ni realizar prueba visual móvil autenticada desde esta ejecución; la publicación y el comportamiento en iPhone quedan pendientes de verificación. No se modificó producción ni Supabase.
+- Para DOMUS 4.0 se ha acordado conceptualmente incluir el indicador de gastos hasta próximo ingreso habitual con calendario configurable, y la selección temporal. No está implementado en 4.0.
+
 ## Tesorería: solo gastos hasta el próximo cobro habitual — build 30137 (2026-10-27)
 
 - Corrección solicitada por usuario en DOMUS 3.0 Staging; no se adopta como especificación de DOMUS 4.0.
