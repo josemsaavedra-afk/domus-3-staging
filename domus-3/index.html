@@ -1254,6 +1254,16 @@ function documentCriticalEvidence(d,text,readings=[]){
 }
 function smartDocumentDefaults(d,doc){
  const out={...d,field_sources:{...(d.field_sources||{})}},file=String(doc?.file_name||''),docType=String(doc?.document_type||'').toLowerCase();
+ // ONLOGIST: conservar siempre el número fiscal en el concepto, sin inferir cobros o pagos.
+ if(['onlogist_commission','onlogist_insurance'].includes(out.document_family)&&out.type==='expense'){
+  const inv=String(out.invoice_number||'').trim();
+  const family=out.document_family==='onlogist_insurance'?'Seguro Onlogist':'Comisión Onlogist';
+  out.concept=inv?family+' · '+inv:family;
+  out.field_sources.concept=inv?'ONLOGIST · familia documental y número de factura':'ONLOGIST · familia documental; número pendiente de verificar';
+  // El vencimiento solo se propone si figura en la factura; las deducciones
+  // de seguros y comisiones no siguen necesariamente los 29 días del ingreso.
+  if(!out.due_date)out.field_sources.due_date='Sin vencimiento expreso: indicar fecha prevista de descuento si se conoce';
+ }
  // ONLOGIST autofacturas: reglas operativas predeterminadas, editables en revisión.
  if(out.type==='income'&&out.document_family==='onlogist_income'){
   const inv=String(out.invoice_number||'').trim();
