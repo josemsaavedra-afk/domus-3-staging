@@ -1408,16 +1408,16 @@ function simplifyDocumentReview(drafts){
   const linkedInput=document.getElementById('ddLinked'+i);
   const settlementNote=document.createElement('small');settlementNote.className='muted';settlementNote.id='ddSettlementNote'+i;
   linkedInput?.parentElement?.appendChild(settlementNote);
-  const updateSettlement=()=>{
+  const updateSettlement=(autofill=false)=>{
    if(!['commission','insurance'].includes(roleInput?.value)){settlementNote.textContent='';return}
    const ids=[...(linkedInput?.selectedOptions||[])].map(x=>x.value);
    const income=ids.length===1?series.find(x=>x.id===ids[0]&&x.type==='income'):null;
    const date=settlementIncomeDate(income);
-   if(date){document.getElementById('ddDue'+i).value=date;settlementNote.textContent='Descuento previsto junto a '+(income.invoice_number||income.concept)+' · '+date+'. Puedes modificar la fecha.'}
+   if(date){if(autofill)document.getElementById('ddDue'+i).value=date;settlementNote.textContent='Descuento previsto junto a '+(income.invoice_number||income.concept)+' · '+date+'. Puedes modificar la fecha.'}
    else settlementNote.textContent=ids.length>1?'Hay varios ingresos seleccionados: comprueba la fecha antes de crear.':'Sin autofactura de ingreso identificada: el gasto quedará pendiente de asociación; no se supone una fecha.';
   };
-  linkedInput?.addEventListener('change',updateSettlement);
-  roleInput?.addEventListener('change',updateSettlement);
+  linkedInput?.addEventListener('change',()=>updateSettlement(true));
+  roleInput?.addEventListener('change',()=>updateSettlement(false));
   updateSettlement();
   const typeInput=document.getElementById('ddType'+i),updateType=()=>{const income=typeInput?.value==='income',status=document.getElementById('ddStatus'+i);if(status){const done=status.querySelector('option[value="done"]');if(done)done.textContent=income?'Cobrado':'Pagado'}for(const prefix of ['ddRole','ddLinked']){const input=document.getElementById(prefix+i);input?.parentElement?.classList.toggle('hidden',income)}const pref=document.getElementById('ddPref'+i);pref?.closest('.field')?.classList.toggle('hidden',!income);document.getElementById('ddPrefBox'+i)?.classList.toggle('hidden',!income||!pref?.checked)};updateType();typeInput?.addEventListener('change',updateType);
   for(const [key,message] of Object.entries(drafts[i]?.critical_issues||{})){const prefix={amount:'ddAmount',counterparty:'ddCounterparty',document_date:'ddDate'}[key],input=document.getElementById(prefix+i);if(!input)continue;input.setAttribute('aria-invalid','true');const note=document.createElement('small');note.className='msg error';note.textContent=message;input.parentElement.appendChild(note);const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.id='ddCritical_'+key+i;label.append(check,document.createTextNode(' He comprobado este dato en el documento.'));input.parentElement.appendChild(label)}
