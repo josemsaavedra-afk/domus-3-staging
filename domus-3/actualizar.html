@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073b3a"><title>Actualizar DOMUS 3</title>
+<style>body{font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f7f7;color:#183b3b;margin:0;padding:28px 18px}.card{background:white;border-radius:18px;padding:24px;max-width:540px;margin:40px auto;box-shadow:0 8px 25px #0001}h1{font-size:25px;margin-top:0}button{background:#087f5b;color:#fff;border:0;border-radius:12px;font-size:17px;font-weight:700;padding:15px 20px;width:100%;margin-top:16px}button:disabled{background:#999}p{line-height:1.5}#status{min-height:28px;font-weight:650}small{color:#526363}</style></head><body><main class="card"><h1>Actualizar DOMUS 3</h1><p>Esta herramienta repara la caché de actualización de DOMUS cuando el iPhone conserva una versión antigua.</p><p><strong>No elimina tus movimientos, documentos ni datos de acceso.</strong> Solo reinicia los archivos temporales de esta aplicación.</p><button id="go" type="button">Actualizar DOMUS ahora</button><p id="status" role="status" aria-live="polite"></p><small>Utilízala en el mismo navegador o ventana donde DOMUS muestra la versión antigua. No cierres una edición sin guardar.</small></main><script>
+document.getElementById('go').addEventListener('click',async()=>{
+const b=document.getElementById('go'),status=document.getElementById('status');b.disabled=true;b.textContent='Actualizando…';status.textContent='Restableciendo el actualizador…';
+try{
+const base=new URL('./',location.href);
+if('serviceWorker' in navigator){for(const reg of await navigator.serviceWorker.getRegistrations()){if(reg.scope===base.href)await reg.unregister();}}
+if('caches' in window){for(const key of await caches.keys()){if(key.startsWith('domus3:'+base.pathname+':'))await caches.delete(key);}}
+status.textContent='Caché de DOMUS renovada. Abriendo la versión actual…';
+location.replace(new URL('./?actualizado='+Date.now(),base).href);
+}catch(err){status.textContent='No se pudo completar: '+String(err.message||err)+'. Inténtalo de nuevo.';b.disabled=false;b.textContent='Reintentar actualización';}
+});
+</script></body></html>
