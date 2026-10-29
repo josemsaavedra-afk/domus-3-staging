@@ -1418,7 +1418,7 @@ function documentIncomeOptions(d){
   const value=String(x.document_date||x.start_date||'').slice(0,10);
   const other=/^\d{4}-\d{2}-\d{2}$/.test(value)?new Date(value+'T12:00:00').getTime():NaN;
   return Number.isFinite(other)&&Math.abs(other-time)<=90*86400000;
- }).slice(0,60);
+ }).sort((a,b)=>Number(linked.has(b.id))-Number(linked.has(a.id))||String(b.start_date).localeCompare(String(a.start_date))).slice(0,60);
 }
 async function analyzeBlob(doc,blob,opts={}){currentDocumentId=doc.id;document.getElementById('docProgress').textContent='Leyendo '+doc.file_name+'…';const text=await extractTextFromBlob(blob,doc.mime_type||blob.type,doc.file_name);let drafts=analyzeTextToDrafts(text,doc),recovery={header:'',middle:'',footer:'',combined:''};
  if(lastDocumentOcrMode==='ocr'&&drafts.some(d=>!d.date||!d.supplier||!d.concept||d.extraction_quality!=='high')){
@@ -1454,7 +1454,7 @@ function simplifyDocumentReview(drafts){
    const top=document.getElementById('ddConcept'+i)?.closest('.field');
    if(top?.parentElement)top.parentElement.insertBefore(linkField,top.nextSibling);
    const explanation=document.createElement('small');explanation.className='muted';
-   explanation.textContent=linkedInput.selectedOptions.length===1?'Autofactura identificada por referencia y marcada automáticamente. Comprueba el número antes de confirmar.':'Sin asociación automática confirmada: se muestran solo autofacturas ONLOGIST de fechas cercanas. Selecciona la correcta o deja sin asociar.';
+   explanation.textContent=linkedInput.selectedOptions.length===1?'Autofactura identificada por referencia y marcada automáticamente: '+linkedInput.selectedOptions[0].textContent+'. Comprueba el número antes de confirmar.':'Sin asociación automática confirmada: se muestran solo autofacturas ONLOGIST de fechas cercanas. Selecciona la correcta o deja sin asociar.';
    linkField.appendChild(explanation);
   }
   const settlementNote=document.createElement('small');settlementNote.className='muted';settlementNote.id='ddSettlementNote'+i;
