@@ -1931,11 +1931,26 @@ async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{
     const reg=await navigator.serviceWorker.register('./sw.js?v='+APP_BUILD,{scope:'./',updateViaCache:'none'});
-    try{await reg.update()}catch(_){ }
+    try{await reg.update()}catch(err){console.warn('PWA: no se pudo comprobar la actualización',err);}
 
-  }catch(err){console.warn('PWA: no se pudo registrar el actualizador');}
+  }catch(err){console.warn('PWA: no se pudo registrar el actualizador',err);}
 }
 registerAppWorker();
+// Cuando se activa una versión verificada, actualizar la pantalla si no hay una edición abierta.
+// Nunca recargar mientras se está editando o guardando un movimiento.
+let domusWorkerReloading=false;
+if('serviceWorker' in navigator){
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{
+  if(domusWorkerReloading)return;
+  const editing=!!document.querySelector('.modal.show,dialog[open]')||!!document.querySelector('form:focus-within input:not([type=hidden]),form:focus-within textarea');
+  if(editing||typeof savingDocumentDraft!=='undefined'&&savingDocumentDraft){
+   domusActionFeedback('Nueva versión instalada. Termina tu edición y vuelve a abrir DOMUS para verla.','info',12000);
+   return;
+  }
+  domusWorkerReloading=true;
+  location.reload();
+ });
+}
 
 document.addEventListener('keydown',e=>{const modal=document.getElementById('movementModal');if(!modal.classList.contains('show'))return;if(e.key==='Escape'){e.preventDefault();closeForm();return}if(e.key==='Tab'){const controls=[...modal.querySelectorAll('button,input,select,textarea,[tabindex]')].filter(el=>!el.disabled&&el.type!=='hidden'&&el.tabIndex>=0&&el.getClientRects().length);const first=controls[0],last=controls.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}}});
 function closeModalFromBackdrop(event){
