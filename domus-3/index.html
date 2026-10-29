@@ -457,7 +457,29 @@ const dateKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-$
 const parseDate=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};const startOfDay=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function msg(id,text,type='info'){document.getElementById(id).innerHTML=text?`<div class="msg ${type}">${escapeHtml(text)}</div>`:''}
-function setBusy(el,b){if(el)el.disabled=b}
+function setBusy(el,b){
+ if(!el)return;
+ if(b){
+  if(el.dataset.domusBusy!=='1'){
+   el.dataset.domusBusy='1';
+   el.dataset.domusOriginalLabel=el.textContent||'';
+  }
+  el.disabled=true;
+  el.classList.add('domus-syncing');
+  if(!el.matches('[data-create-draft]')&&!el.dataset.syncing?.includes('1')){
+   const label=el.dataset.domusOriginalLabel||'';
+   el.textContent=/guardar|crear|añadir|agregar|registrar|aplicar|actualizar/i.test(label)?'⟳ Guardando…':'⟳ Procesando…';
+  }
+ }else{
+  el.disabled=false;
+  if(el.dataset.domusBusy==='1'){
+   el.textContent=el.dataset.domusOriginalLabel||el.textContent;
+   delete el.dataset.domusOriginalLabel;
+   delete el.dataset.domusBusy;
+   el.classList.remove('domus-syncing');
+  }
+ }
+}
 
 let passwordRecoveryMode=false,recoveryUserId=null,recoverySaving=false;
 function showPasswordRecovery(){passwordRecoveryMode=true;recoveryUserId=user?.id||null;showOnly('auth');document.getElementById('authForm').classList.add('hidden');document.getElementById('passwordRecoveryForm').classList.remove('hidden');msg('authMsg','Enlace verificado. Define ahora la contraseña nueva.','ok');document.getElementById('recoveryPassword').focus?.()}
@@ -511,11 +533,35 @@ async function syncFromButton(button){
 }
 // Todos los botones dan señal inmediata de que la pulsación ha sido recibida.
 // El resalte no implica que una operación remota se haya completado.
+// Acuse de recibo global: no confundir pulsación con operación completada.
+// La confirmación de guardado la emite cada operación cuando termina.
 document.addEventListener('click',event=>{
- const btn=event.target.closest?.('button.btn');
+ const btn=event.target.closest?.('button');
  if(!btn||btn.disabled)return;
+ const action=(btn.getAttribute('onclick')||'')+' '+(btn.textContent||'')+' '+(btn.id||'');
+ const isMutation=/guardar|crear|añadir|agregar|registrar|eliminar|borrar|activar|desactivar|convertir|cancelar|importar|subir|marcar pagado|marcar cobrado|markDone|setMasterActive|setPaymentMethodActive|toggleDocumentPaymentRule|matchDocumentToMovement|linkReviewedDocumentDraft|convertBudget|cancelBudget|importSelectedDocuments|addSettingItem|addPaymentMethod|addCategory|addCounterparty|addLabelMaster/i.test(action);
+ if(isMutation&&btn.dataset.domusClickUntil&&Date.now()<Number(btn.dataset.domusClickUntil)){
+  event.preventDefault();event.stopImmediatePropagation();
+  domusActionFeedback('Orden ya recibida. Espera a que termine antes de repetir.','info',2500);
+  return;
+ }
+ if(isMutation){
+  btn.dataset.domusClickUntil=String(Date.now()+1100);
+  if(!btn.closest('form')&&!btn.matches('[data-create-draft]')){
+   domusActionFeedback('Orden recibida. Procesando…','info',1800);
+  }
+ }
  btn.classList.add('domus-pressed');
- setTimeout(()=>btn.classList.remove('domus-pressed'),650);
+ setTimeout(()=>btn.classList.remove('domus-pressed'),900);
+},true);
+document.addEventListener('submit',event=>{
+ const form=event.target;
+ if(!(form instanceof HTMLFormElement))return;
+ const btn=event.submitter||form.querySelector('[type="submit"]');
+ if(btn&&!btn.disabled){
+  btn.classList.add('domus-pressed');
+  domusActionFeedback('Orden recibida. Comprobando y guardando…','info',2200);
+ }
 },true);
 
 let refreshFlight=null;
