@@ -149,6 +149,14 @@
 @media(max-width:700px){.treasury3-panels{grid-template-columns:minmax(0,1fr)}#treasury3Root .section-title>div{width:100%}#treasury3Root .section-title select{flex:1;min-width:140px}.treasury-status-card{padding:12px}.treasury-status-card .value{font-size:18px;overflow-wrap:anywhere}main{padding:14px}.table-wrap{border-radius:8px}.table-wrap:focus-visible{outline:2px solid var(--brand)}}
 .movement-section{border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0;background:#fff}.movement-section legend{font-weight:750;padding:0 6px}.movement-section p{margin:0 0 12px}.movement-section summary{cursor:pointer;font-weight:650}.movement-section .form-grid{margin-top:10px}.movement-section small{display:block;line-height:1.4;margin-top:5px}@media(max-width:600px){.movement-section{padding:12px}.movement-section .form-grid{grid-template-columns:1fr}}
 </style>
+/* Confirmación de pulsación: recepción visual, no confirmación anticipada de guardado. */
+button.btn.domus-pressed{outline:3px solid #f0b44b;outline-offset:2px;filter:brightness(.94);transition:filter .12s,outline .12s}
+button.btn.domus-syncing{background:#d97706!important;color:#fff!important;cursor:progress}
+button.btn.domus-sync-ok{background:#087f5b!important;color:#fff!important}
+button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
+#domusActionFeedback{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;max-width:min(92vw,480px);padding:12px 18px;border-radius:12px;background:#263238;color:#fff;box-shadow:0 8px 28px #0003;font-size:14px;font-weight:600;text-align:center;pointer-events:none}
+#domusActionFeedback[data-kind="error"]{background:#b42318}#domusActionFeedback[data-kind="ok"]{background:#087f5b}
+
 </head>
 <body>
 <div id="authScreen" class="auth-wrap">
@@ -210,7 +218,7 @@
   </nav>
 </aside>
 <main>
-  <div class="topbar"><div><h1 id="pageTitle">Inicio</h1><div id="todayLabel" class="date"></div><div id="syncStatusTop" class="sync-status"><span class="sync-dot"></span><span>Sincronizado</span></div></div><div class="actions"><button class="btn primary" onclick="openForm()">+ Nuevo movimiento</button><button class="btn secondary-mobile-hide" onclick="refreshAll()">Sincronizar</button></div></div>
+  <div class="topbar"><div><h1 id="pageTitle">Inicio</h1><div id="todayLabel" class="date"></div><div id="syncStatusTop" class="sync-status"><span class="sync-dot"></span><span>Sincronizado</span></div></div><div class="actions"><button class="btn primary" onclick="openForm()">+ Nuevo movimiento</button><button class="btn secondary-mobile-hide" onclick="syncFromButton(this)">Sincronizar</button></div></div>
 
   <section id="dashboardView">
     <div class="card home-intro"><div><span class="home-kicker">Agenda del hogar</span><h2>Qué tenemos por delante</h2><p class="muted">Pagos, cobros y tareas próximas. Consulta los resultados del mes en Dinero.</p></div></div>
@@ -481,6 +489,36 @@ async function loadCounterpartyCatalog(hid){try{const {readAllPages}=await impor
 async function requireCounterpartySchema(){if(!navigator.onLine)throw new Error('Conecta para guardar el maestro de terceros.');const {data,error}=await sb.rpc('domus3_counterparties_version');if(error||data!==31)throw new Error('El maestro de terceros requiere la migración Alpha 31. El texto histórico sigue disponible.');}
 const beginnerSetupChecked=new Set();
 async function ensureBeginnerExamples(hid){if(!navigator.onLine||beginnerSetupChecked.has(hid))return;const {error}=await sb.rpc('domus_rc1_seed_examples',{p_household_id:hid});if(error)throw error;beginnerSetupChecked.add(hid);}
+// Feedback explícito de la acción de sincronización, sin anunciar éxito si falló.
+let domusFeedbackTimer=null;
+function domusActionFeedback(message,kind='info',duration=2600){
+ let el=document.getElementById('domusActionFeedback');
+ if(!el){el=document.createElement('div');el.id='domusActionFeedback';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}
+ el.textContent=message;el.dataset.kind=kind;el.hidden=false;
+ clearTimeout(domusFeedbackTimer);domusFeedbackTimer=setTimeout(()=>{el.hidden=true},duration);
+}
+async function syncFromButton(button){
+ if(button?.dataset.syncing==='1'){domusActionFeedback('Sincronización en curso…');return}
+ const old=button?.textContent||'Sincronizar';
+ if(button){button.dataset.syncing='1';button.classList.add('domus-syncing');button.textContent='⟳ Sincronizando…';button.disabled=true}
+ domusActionFeedback('Sincronizando datos…','info',12000);
+ try{
+  if(!household?.id||!user?.id){domusActionFeedback('Inicia sesión para sincronizar','error');return}
+  await refreshAll();
+  if(treasuryLoadError){domusActionFeedback('No se pudo completar la sincronización','error',5000);button?.classList.add('domus-sync-error')}
+  else{domusActionFeedback('Datos actualizados correctamente','ok',3500);button?.classList.add('domus-sync-ok')}
+ }catch(err){domusActionFeedback('Error al sincronizar: '+friendlyCloudError(err),'error',5000);button?.classList.add('domus-sync-error')}
+ finally{if(button){button.disabled=false;button.dataset.syncing='0';button.textContent=old;button.classList.remove('domus-syncing');setTimeout(()=>button.classList.remove('domus-sync-ok','domus-sync-error'),2400)}}
+}
+// Todos los botones dan señal inmediata de que la pulsación ha sido recibida.
+// El resalte no implica que una operación remota se haya completado.
+document.addEventListener('click',event=>{
+ const btn=event.target.closest?.('button.btn');
+ if(!btn||btn.disabled)return;
+ btn.classList.add('domus-pressed');
+ setTimeout(()=>btn.classList.remove('domus-pressed'),650);
+},true);
+
 let refreshFlight=null;
 function refreshAll(){
  if(!household?.id||!user?.id)return Promise.resolve();
