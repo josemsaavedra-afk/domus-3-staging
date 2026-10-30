@@ -1364,3 +1364,11 @@ Base: main d5616b7; RC1 30039 preservado. Estado: IMPLEMENTADO, pendiente de com
 - Al limpiar, borrar **solo el objeto binario** del almacenamiento de DOMUS; conservar indefinidamente la ficha, metadatos extraídos, número y fecha de factura, estado, trazabilidad y vínculos con movimientos. Marcar que el original ya no está disponible en DOMUS.
 - Nunca limpiar originales de documentos pendientes, parcialmente confirmados, con errores, sin respaldo confirmado o sujetos a revisión. Evitar borrados por duplicidad y preservar la opción de restaurar desde iCloud si hiciera falta.
 - **Estado:** requisito registrado para un build posterior; no implementado ni desplegado por esta anotación.
+
+
+## Regla DriiveMe: facturas -1 / -2 (30/10/2026)
+- La factura `#NNNNNN-1` recoge los ingresos ordinarios de traslados.
+- La factura `#NNNNNN-2` es **también una factura de ingreso**, habitualmente reembolso de combustible adelantado o costes repercutidos; no clasificar como gasto por el rótulo «Costes de transporte».
+- Si `-2` presenta importe, crear ingreso independiente por su número, comprobar duplicados y tratar normalmente como ingreso sin IVA según la documentación concreta. El ticket/factura original de combustible se contabiliza separadamente como gasto, si procede.
+- Si la página `-2` no presenta líneas ni importe (caso `#336569-2`, periodo 01–09/10/2026), **no crear movimiento cero ni inventar importe**. `#336569-1` sí tiene ingreso 194,81 € registrado y cobrado 10/10/2026.
+- Estado: criterio operativo documentado; pendiente de automatización en lector universal.
