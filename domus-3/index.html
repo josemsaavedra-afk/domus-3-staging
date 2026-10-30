@@ -909,6 +909,11 @@ async function importSelectedDocuments(){
     const inserted=await sb.from('documents').insert({household_id:household.id,series_id:document.getElementById('docSeries').value||null,file_name:file.name,storage_path:null,mime_type:file.type||null,file_size:file.size,document_type:document.getElementById('docType').value,document_date:document.getElementById('docDate').value||null,notes:document.getElementById('docNotes').value.trim()||null,analysis_status:'processing',file_retained:false,source_kind:'icloud'}).select('*').single();
     if(inserted.error)throw inserted.error;
     row=inserted.data;
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-110)||'documento';
+    const storagePath=household.id+'/'+row.id+'/'+safeName;
+    const saved=await sb.storage.from('household-documents').upload(storagePath,file,{upsert:false,contentType:file.type||'application/octet-stream'});
+    if(saved.error){console.warn('No se pudo conservar el original',saved.error)}
+    else{await updateRowSafely('documents',row.id,{storage_path:storagePath,file_retained:true,source_kind:'domus_storage'});row.storage_path=storagePath;row.file_retained=true}
     await analyzeBlob(row,file,{batch:true});processed++;
    }catch(err){
     failures.push(file.name+': '+friendlyCloudError(err));
