@@ -824,8 +824,10 @@ function canReanalyzeDocument(d){
 async function rereadArchivedDocument(d,opts={}){
  if(!canReanalyzeDocument(d))throw new Error('No hay una fuente conservada para releer este documento o ya existen movimientos confirmados.');
  if(d.storage_path){
-  try{return await analyzeBlob(d,await getDocumentBlob(d),opts)}
+  let blob;
+  try{blob=await getDocumentBlob(d)}
   catch(error){const text=documentSourceText(d);if(!text)throw error;console.warn('Se usa el texto archivado porque el PDF no está accesible',error);return await analyzeBlob(d,null,{...opts,sourceText:text})}
+  return await analyzeBlob(d,blob,opts);
  }
  return await analyzeBlob(d,null,{...opts,sourceText:documentSourceText(d)});
 }
