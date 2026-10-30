@@ -826,9 +826,6 @@ async function reanalyzeArchivedDocument(id){
    if(d.file_name&&file.name!==d.file_name&&!confirm('El nombre del archivo no coincide con el documento archivado. ¿Continuar con este archivo?'))return;
    blob=file;
   }
-  const text=await extractTextFromBlob(blob,d.mime_type||blob.type,d.file_name);
-  const proposed=analyzeTextToDrafts(text,d);
-  if(!proposed.length)throw new Error('No se han podido generar propuestas; se conserva la revisión anterior.');
   await analyzeBlob(d,blob);
   await refreshAll();
  }catch(error){alert('No se ha completado la relectura: '+(error?.message||error))}
