@@ -810,26 +810,52 @@ function renderReports(){
  renderReportCharts(rows);
  document.querySelectorAll('[data-report-group]').forEach(el=>el.onclick=()=>openReportChart(Number(el.dataset.reportGroup),el.textContent));
 }
+function documentSourceText(d){
+ const stored=String(d?.extracted_text||'').trim();
+ if(stored)return stored;
+ const drafts=Array.isArray(d?.extracted_data?.drafts)?d.extracted_data.drafts:[];
+ const recovered=drafts.map(x=>x.extraction_text).filter(x=>typeof x==='string'&&x.trim().length>60);
+ return recovered.length?recovered[0]:null;
+}
+function canReanalyzeDocument(d){
+ const drafts=Array.isArray(d?.extracted_data?.drafts)?d.extracted_data.drafts:[];
+ return !drafts.some(x=>x.review_status==='confirmed'||x.confirmed_series_id)&&!!(d?.storage_path||documentSourceText(d));
+}
+async function rereadArchivedDocument(d,opts={}){
+ if(!canReanalyzeDocument(d))throw new Error('No hay una fuente conservada para releer este documento o ya existen movimientos confirmados.');
+ if(d.storage_path){
+  try{return await analyzeBlob(d,await getDocumentBlob(d),opts)}
+  catch(error){const text=documentSourceText(d);if(!text)throw error;console.warn('Se usa el texto archivado porque el PDF no está accesible',error);return await analyzeBlob(d,null,{...opts,sourceText:text})}
+ }
+ return await analyzeBlob(d,null,{...opts,sourceText:documentSourceText(d)});
+}
 async function reanalyzeArchivedDocument(id){
  const d=documents.find(x=>x.id===id);if(!d)return;
- const drafts=d.extracted_data?.drafts||[];
- if(drafts.some(x=>x.review_status==='confirmed'||x.confirmed_series_id)){alert('Hay movimientos confirmados. No se pueden reemplazar sus propuestas automáticamente.');return}
  const btn=document.getElementById('reanalyze-'+id);
  if(btn){btn.disabled=true;btn.textContent='Releyendo…'}
- try{
-  let blob;
-  if(d.file_retained&&d.storage_path)blob=await getDocumentBlob(d);
-  else{
-   const input=document.createElement('input');input.type='file';input.accept='.pdf,image/*';
-   const file=await new Promise(resolve=>{input.onchange=()=>resolve(input.files?.[0]||null);input.oncancel=()=>resolve(null);input.click()});
-   if(!file)return;
-   if(d.file_name&&file.name!==d.file_name&&!confirm('El nombre del archivo no coincide con el documento archivado. ¿Continuar con este archivo?'))return;
-   blob=file;
-  }
-  await analyzeBlob(d,blob);
-  await refreshAll();
- }catch(error){alert('No se ha completado la relectura: '+(error?.message||error))}
+ try{await prepareDocumentCatalogs();await rereadArchivedDocument(d);await refreshAll()}
+ catch(error){alert('No se ha podido releer: '+(error?.message||error))}
  finally{if(btn){btn.disabled=false;btn.textContent='Volver a analizar'}}
+}
+async function reanalyzePendingDocuments(){
+ const eligible=documents.filter(d=>canReanalyzeDocument(d)&&documentArchiveState(d).label!=='CREADO');
+ const missing=documents.filter(d=>['PENDIENTE','SIN PROPUESTA','ERROR DE LECTURA'].includes(documentArchiveState(d).label)&&!canReanalyzeDocument(d));
+ if(!eligible.length)return alert('No hay documentos pendientes con PDF o texto original conservado. '+missing.length+' documento(s) antiguos carecen de fuente recuperable.');
+ const btn=document.getElementById('reanalyzePendingBtn');setBusy(btn,true);
+ let ok=0,failed=0;const problems=[];pendingDocumentDraftBatches=[];
+ try{
+  await prepareDocumentCatalogs();
+  for(let i=0;i<eligible.length;i++){
+   const d=eligible[i];document.getElementById('docProgress').textContent='Releyendo '+(i+1)+'/'+eligible.length+': '+d.file_name;
+   try{await rereadArchivedDocument(d,{batch:true});ok++}
+   catch(error){failed++;problems.push(d.file_name+': '+(error?.message||error))}
+  }
+  pendingDocumentDraftBatches=[];await refreshAll();
+  const summary=ok+' documento(s) reanalizados; '+failed+' errores; '+missing.length+' documentos históricos sin fuente conservada.';
+  document.getElementById('docProgress').textContent=summary;
+  if(problems.length)alert(summary+'\n'+problems.slice(0,5).join('\n'));
+ }catch(error){alert('No se pudo completar la relectura: '+(error?.message||error))}
+ finally{pendingDocumentDraftBatches=[];setBusy(btn,false)}
 }
 function openStoredDocumentDraft(id){const doc=documents.find(d=>d.id===id);if(!doc?.extracted_data?.drafts?.length)return;pendingDocumentDraftBatches=[];renderDocDrafts(structuredClone(doc.extracted_data.drafts),doc)}
 function documentArchiveState(d){
@@ -853,7 +879,7 @@ function renderDocuments(){const el=document.getElementById('documentsList');if(
  const done=states.filter(x=>x.state.label==='CREADO'||x.state.label==='VINCULADO').length;
  const pending=states.filter(x=>['PENDIENTE','PARCIAL','POSIBLE DUPLICADO'].includes(x.state.label)).length;
  const errors=states.filter(x=>['ERROR DE LECTURA','SIN PROPUESTA','REVISAR VÍNCULO'].includes(x.state.label)).length;
- el.innerHTML=documents.length?'<div class="msg info" role="status">'+documents.length+' documentos · '+done+' creados/vinculados · '+pending+' pendientes de revisión · '+errors+' requieren atención. Subir un documento no crea un movimiento.</div>'+states.map(({d,state})=>`<div class="doc-row" style="border-left:5px solid ${state.color};padding-left:12px"><div><strong>${escapeHtml(d.file_name)}</strong> <span style="display:inline-block;border-radius:7px;padding:3px 8px;font-weight:700;color:${state.color};background:${state.bg}">${state.label}</span><div class="meta">${d.document_date?fmt(parseDate(d.document_date)):''} · ${escapeHtml(d.document_type||'Documento')} · ${d.file_retained&&d.storage_path?'copia en nube':'original en iCloud/local'}</div><div class="meta">${escapeHtml(state.detail)}</div></div><div class="actions">${d.extracted_data?.drafts?.length?`<button type="button" class="btn" onclick="openStoredDocumentDraft('${d.id}')">${state.label==='CREADO'?'Ver confirmación':'Revisar propuesta'}</button>`:''}${d.extracted_data?.drafts?.length&&d.extracted_data.drafts.every(x=>x.review_status!=='confirmed'&&!x.confirmed_series_id)?`<button type="button" class="btn" id="reanalyze-${d.id}" onclick="reanalyzeArchivedDocument('${d.id}')">Volver a analizar</button>`:''}${d.file_retained&&d.storage_path?`<button class="btn" onclick="openDocument('${String(d.storage_path).replaceAll("'","")}')">Abrir copia</button>`:''}</div></div>`).join(''):'<div class="empty">'+(documentLoadState==='ready'?'Todavía no hay referencias de documentos.':documentLoadState==='error'?'No se pudieron cargar las referencias. Vuelve a intentarlo.':'Cargando referencias de documentos…')+'</div>';
+ el.innerHTML=documents.length?'<div class="actions"><button type="button" class="btn" id="reanalyzePendingBtn" onclick="reanalyzePendingDocuments()">Reanalizar pendientes con archivo disponible</button></div><div class="msg info" role="status">'+documents.length+' documentos · '+done+' creados/vinculados · '+pending+' pendientes de revisión · '+errors+' requieren atención. Subir un documento no crea un movimiento.</div>'+states.map(({d,state})=>`<div class="doc-row" style="border-left:5px solid ${state.color};padding-left:12px"><div><strong>${escapeHtml(d.file_name)}</strong> <span style="display:inline-block;border-radius:7px;padding:3px 8px;font-weight:700;color:${state.color};background:${state.bg}">${state.label}</span><div class="meta">${d.document_date?fmt(parseDate(d.document_date)):''} · ${escapeHtml(d.document_type||'Documento')} · ${d.file_retained&&d.storage_path?'copia en nube':'original en iCloud/local'}</div><div class="meta">${escapeHtml(state.detail)}</div></div><div class="actions">${d.extracted_data?.drafts?.length?`<button type="button" class="btn" onclick="openStoredDocumentDraft('${d.id}')">${state.label==='CREADO'?'Ver confirmación':'Revisar propuesta'}</button>`:''}${d.extracted_data?.drafts?.length&&canReanalyzeDocument(d)?`<button type="button" class="btn" id="reanalyze-${d.id}" onclick="reanalyzeArchivedDocument('${d.id}')">Volver a analizar</button>`:''}${d.file_retained&&d.storage_path?`<button class="btn" onclick="openDocument('${String(d.storage_path).replaceAll("'","")}')">Abrir copia</button>`:''}</div></div>`).join(''):'<div class="empty">'+(documentLoadState==='ready'?'Todavía no hay referencias de documentos.':documentLoadState==='error'?'No se pudieron cargar las referencias. Vuelve a intentarlo.':'Cargando referencias de documentos…')+'</div>';
  /* La fecha alternativa permanece vacía hasta que el usuario la indique. */
 }
 let selectedDocumentFiles=[];function selectDocumentFiles(inp){selectedDocumentFiles=[...(inp.files||[])];document.getElementById('docSelectedFile').textContent=selectedDocumentFiles.length?`${selectedDocumentFiles.length} archivo(s): `+selectedDocumentFiles.slice(0,4).map(f=>f.name).join(', ')+(selectedDocumentFiles.length>4?'…':''):'Ningún archivo seleccionado.'}
@@ -1545,7 +1571,7 @@ function documentIncomeOptions(d){
   return Number.isFinite(other)&&Math.abs(other-time)<=90*86400000;
  }).sort((a,b)=>Number(linked.has(b.id))-Number(linked.has(a.id))||String(b.start_date).localeCompare(String(a.start_date))).slice(0,60);
 }
-async function analyzeBlob(doc,blob,opts={}){currentDocumentId=doc.id;document.getElementById('docProgress').textContent='Leyendo '+doc.file_name+'…';const text=await extractTextFromBlob(blob,doc.mime_type||blob.type,doc.file_name);let drafts=analyzeTextToDrafts(text,doc),recovery={header:'',middle:'',footer:'',combined:''};
+async function analyzeBlob(doc,blob,opts={}){currentDocumentId=doc.id;document.getElementById('docProgress').textContent='Leyendo '+doc.file_name+'…';const text=opts.sourceText!=null?String(opts.sourceText):await extractTextFromBlob(blob,doc.mime_type||blob.type,doc.file_name);if(opts.sourceText!=null){lastDocumentOcrMode='archive-text';lastDocumentOcrConfidence=null}let drafts=analyzeTextToDrafts(text,doc),recovery={header:'',middle:'',footer:'',combined:''};
  if(lastDocumentOcrMode==='ocr'&&drafts.some(d=>!d.date||!d.supplier||!d.concept||d.extraction_quality!=='high')){
   document.getElementById('docProgress').textContent='Primera lectura incompleta. Releyendo cabecera, fecha y totales…';
   recovery=await documentRecoveryReadings(blob,doc.mime_type||blob.type,doc.file_name);
@@ -1557,7 +1583,7 @@ async function analyzeBlob(doc,blob,opts={}){currentDocumentId=doc.id;document.g
  if(lastDocumentOcrMode==='ocr'&&drafts.some(d=>!d.date)){recovery.raw=await documentRawDateReading(blob,doc.mime_type||blob.type);drafts=drafts.map(d=>documentRecoveryDate(d,recovery.raw))}
  if(window.DOMUSTransportERPEngine){
   drafts=drafts.map(d=>{if(d.deterministic_reader)return {...d,transporterp_status:'interpreted',transporterp_warnings:[]};const interpreted=window.DOMUSTransportERPEngine.interpretReceipt({filename:doc.file_name,readings:[text,recovery.header,recovery.middle,recovery.footer],firstPass:d}),sources={...(d.field_sources||{})};if(interpreted.provenance.date)sources.date=interpreted.provenance.date;if(interpreted.provenance.issuer){sources.supplier=interpreted.provenance.issuer;sources.concept=interpreted.provenance.issuer}return {...d,amount:d.amount!=null?d.amount:interpreted.amount,date:interpreted.date||d.date||'',supplier:interpreted.issuer||d.supplier||'',counterparty:interpreted.issuer||d.counterparty||'',concept:interpreted.issuer||d.concept||'',counterparty_id:window.DOMUSClassification.matchCounterparty(interpreted.issuer||d.counterparty||d.supplier),field_sources:sources,transporterp_status:interpreted.status,transporterp_warnings:interpreted.warnings}})
- }else drafts=applyFilenameEvidence(drafts,doc);drafts=drafts.map(d=>{const evidence=text+'\n'+recovery.combined+'\n'+(recovery.raw||'');return applyLinkedSettlementDate(documentCriticalEvidence(smartDocumentDefaults(retailReceiptEvidence(enrichDocumentDraft(documentDateFallback(d,doc.document_date),evidence),doc,evidence),doc),evidence,[{source:'primera lectura',text},{source:'cabecera',text:recovery.header},{source:'zona central',text:recovery.middle},{source:'pie',text:recovery.footer},{source:'sin filtro',text:recovery.rawReceipt}]))});currentDocDrafts=drafts;const low=drafts.filter(d=>d.extraction_quality==='low').length;await updateRowSafely('documents',doc.id,{document_date:detectedDocumentDate(drafts,doc.document_date||null),due_date:(()=>{const x=[...new Set(drafts.map(d=>d.due_date).filter(Boolean))];return x.length===1?x[0]:null})(),extracted_text:null,extracted_data:{drafts},analysis_status:'review'});if(!opts.batch)renderDocDrafts(drafts,doc);else pendingDocumentDraftBatches.push({doc,drafts});document.getElementById('docProgress').textContent=low?`Lectura parcial: ${low} propuesta(s) necesitan revisión manual.`:`Lectura terminada: ${drafts.length} propuesta(s).`}
+ }else drafts=applyFilenameEvidence(drafts,doc);drafts=drafts.map(d=>{const evidence=text+'\n'+recovery.combined+'\n'+(recovery.raw||'');return applyLinkedSettlementDate(documentCriticalEvidence(smartDocumentDefaults(retailReceiptEvidence(enrichDocumentDraft(documentDateFallback(d,doc.document_date),evidence),doc,evidence),doc),evidence,[{source:'primera lectura',text},{source:'cabecera',text:recovery.header},{source:'zona central',text:recovery.middle},{source:'pie',text:recovery.footer},{source:'sin filtro',text:recovery.rawReceipt}]))});currentDocDrafts=drafts;const low=drafts.filter(d=>d.extraction_quality==='low').length;await updateRowSafely('documents',doc.id,{document_date:detectedDocumentDate(drafts,doc.document_date||null),due_date:(()=>{const x=[...new Set(drafts.map(d=>d.due_date).filter(Boolean))];return x.length===1?x[0]:null})(),extracted_text:text,extracted_data:{drafts},analysis_status:'review'});if(!opts.batch)renderDocDrafts(drafts,doc);else pendingDocumentDraftBatches.push({doc,drafts});document.getElementById('docProgress').textContent=low?`Lectura parcial: ${low} propuesta(s) necesitan revisión manual.`:`Lectura terminada: ${drafts.length} propuesta(s).`}
 function simplifyDocumentReview(drafts){
  document.getElementById('docNextWithoutSaving').textContent=pendingDocumentDraftBatches.length?'Dejar para después y seguir ('+pendingDocumentDraftBatches.length+')':'Dejar para después';
  document.querySelectorAll('#docDrafts .draft-card').forEach(card=>{
