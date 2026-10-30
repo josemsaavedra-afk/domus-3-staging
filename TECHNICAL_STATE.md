@@ -1354,3 +1354,13 @@ Base: main d5616b7; RC1 30039 preservado. Estado: IMPLEMENTADO, pendiente de com
 - Pendiente para cierre: navegador → archivo de encabezados libres → mapeo → revisión → guardado/sincronización → recuperación; repetir archivo sin duplicar; archivo con fecha inválida sin alterar historial. Son pruebas pendientes, no fallos constatados del importador. Segundo dispositivo físico no repetido en esta sesión; cobertura original preservada.
 
 - Corrección 09/10/2026 — build 30046: la previsión intercobros toma como fuente de verdad la **categoría Ingresos habituales + ámbito Actividad económica**, no el campo técnico `income_source_type`. Caso que reveló el fallo: `Venta palets IVA` ya estaba en categoría `Variables` pero conservaba `income_source_type=habitual`, por lo que seguía apareciendo como próximo cobro habitual. Desde 30046, cambiar la categoría a Variables lo excluye inmediatamente del cálculo; además el formulario sincroniza automáticamente el campo técnico con la categoría para evitar futuras incoherencias.
+
+
+## Pendiente para próximo build — ciclo de vida de originales documentales (30/10/2026)
+
+- **iCloud como archivo permanente opcional; DOMUS como almacén de trabajo temporal.** Conservar el PDF original en almacenamiento privado mientras el documento esté pendiente de lectura, revisión, corrección o vinculación; permitir reanálisis individual y por lotes desde la copia almacenada, sin volver a solicitar el fichero.
+- Una vez confirmado y vinculado el documento, iniciar un plazo configurable de conservación temporal (propuesta inicial: **90 días**), sin eliminar automáticamente el original al vencer.
+- Incorporar una acción independiente **«Limpiar originales archivados»**, con previsualización y confirmación expresa por lotes. Requerir confirmación de respaldo externo en iCloud u otro archivo antes de borrar; no asumir que la selección desde Archivos implica copia persistente en iCloud.
+- Al limpiar, borrar **solo el objeto binario** del almacenamiento de DOMUS; conservar indefinidamente la ficha, metadatos extraídos, número y fecha de factura, estado, trazabilidad y vínculos con movimientos. Marcar que el original ya no está disponible en DOMUS.
+- Nunca limpiar originales de documentos pendientes, parcialmente confirmados, con errores, sin respaldo confirmado o sujetos a revisión. Evitar borrados por duplicidad y preservar la opción de restaurar desde iCloud si hiciera falta.
+- **Estado:** requisito registrado para un build posterior; no implementado ni desplegado por esta anotación.
