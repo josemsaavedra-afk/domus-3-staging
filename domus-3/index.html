@@ -747,7 +747,7 @@ function categoryName(id){return window.DOMUSClassification.categoryLabel(catego
 function renderStats(){if(!document.getElementById('reportMonth').value)setReportRange('month');else renderReports()}
 function setReportRange(kind){const n=new Date();if(kind==='prev')n.setMonth(n.getMonth()-1,1);document.getElementById('reportPeriodType').value=kind==='year'?'year':'month';document.getElementById('reportMonth').value=dateKey(n).slice(0,7);document.getElementById('reportYear').value=n.getFullYear();renderReports()}
 function populateReportFilters(){
- for(const [id,rows,empty,category] of [['reportPerson',people,'Comunes / sin asignar'],['reportPayer',people,'Sin especificar'],['reportAccount',accounts,'Sin cuenta'],['reportCategory',categories,'Sin categoría',true],['reportCounterparty',window.domusCounterparties||[],'Sin tercero vinculado'],['reportActivity',window.domusLabels?.activities||[],'Sin actividad / proyecto'],['reportTag',window.domusLabels?.tags||[],'Sin etiquetas']]){
+ for(const [id,rows,empty,category] of [['reportPerson',people.filter(p=>p.active!==false),'Comunes / sin asignar'],['reportPayer',people.filter(p=>p.active!==false),'Sin especificar'],['reportAccount',accounts,'Sin cuenta'],['reportCategory',categories,'Sin categoría',true],['reportCounterparty',window.domusCounterparties||[],'Sin tercero vinculado'],['reportActivity',window.domusLabels?.activities||[],'Sin actividad / proyecto'],['reportTag',window.domusLabels?.tags||[],'Sin etiquetas']]){
   const el=document.getElementById(id);if(!el)return;const previous=el.value;
   el.innerHTML='<option value="all">Todos</option><option value="none">'+empty+'</option>'+rows.map(x=>'<option value="'+escapeHtml(x.id)+'">'+escapeHtml(category?window.DOMUSClassification.categoryLabel(x):x.name)+(x.active===false?' (inactivo)':'')+'</option>').join('');
   if([...el.options].some(o=>o.value===previous))el.value=previous;
@@ -767,7 +767,7 @@ function reportFinancialFilter(rows,f={},search=()=>[]){
  const match=(value,selected)=>!selected||selected==='all'||(selected==='none'?value==null||value==='':value===selected);
  if(f.from&&f.to&&f.from>f.to)return [];
  return rows.filter(r=>(!f.from||reportFinancialDay(r)>=f.from)&&(!f.to||reportFinancialDay(r)<=f.to)
-  &&match(r.person_id,f.person)&&match(r.payer_person_id,f.payer)&&match(r.account_id,f.account)
+  &&match(canonicalMovementPersonId(r.person_id),f.person)&&match(canonicalMovementPersonId(r.payer_person_id),f.payer)&&match(r.account_id,f.account)
   &&match(r.activity_project_id,f.activity)&&(!f.tag||f.tag==='all'||(f.tag==='none'?!(r.tag_ids||[]).length:(r.tag_ids||[]).includes(f.tag)))
   &&match(r.counterparty_id,f.counterparty)&&match(r.category_id,f.category)&&match(r.type,f.type)&&match(r.status,f.mode)
   &&match(r.expense_scope||'unclassified',f.scope)&&match(r.movement_role||'standard',f.component)
