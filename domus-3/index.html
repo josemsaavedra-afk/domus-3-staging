@@ -1071,6 +1071,23 @@ function otherKnownDocumentDraft(text,doc){
   const amount=paymentRows.length?(rowAmounts.length===1?rowAmounts[0]:null):firstMoneyAfter(src,/Importe\s+EUR[\s\S]{0,180}?\n\s*([\d.]+[,\.]\d{2})/i),date=rowDates.length===1?rowDates[0]:firstDateAfter(src,/\b(\d{2}-\d{2}-20\d{2})\s+\d{2,}/)||data.date;
   return {type:'expense',concept:'Cuota autónomos TGSS',supplier:'TGSS',counterparty:'TGSS',invoice_number:'',date,amount,person_id:personFromDocumentText(src),expense_scope:'business',movement_role:'standard',category_id:(categories||[]).find(c=>c.active!==false&&normDocText(c.name)==='seguridad social')?.id||null,document_family:'bank_debit_proof',document_kind:'bank_debit_proof',deterministic_reader:true,extraction_quality:amount!=null?'high':'medium',review_required:true,related_documents:[],field_sources:{amount:'justificante bancario · Importe EUR, sin comisión',supplier:'acreedor TGSS',date:'fecha del cargo'}};
  }
+ // Facturas propias de palés: recuperar campos explícitos aunque el PDF intercale columnas.
+ if(/recuperaci[oó]n de maderas y palets/i.test(src)&&/facturar\s+a\b/i.test(src)){
+  const number=(src.match(/n[º°o.]?\s*de\s*factura\s*[:\s]*([0-9]{1,5}\s+20[0-9]{4})/i)||src.match(/\b([0-9]{1,5}\s+20[0-9]{4})\b/))?.[1]?.replace(/\s+/g,' ').trim()||'';
+  const customer=(src.match(/recuperaci[oó]n de maderas y palets\s*(?:del\s+sur\s*)?s\.?\s*l\.?/i)||[])[0]||'';
+  const dateMatch=src.match(/\b([0-3]?\d\/[01]?\d\/20\d{2})\b/);
+  const dateValue=dateMatch?dateKey(parseDate(dateMatch[1])):'';
+  const totalMatch=src.match(/total\s+de\s+la\s+factura\s*[:\s]*([0-9., ]+)\s*€/i);
+  const amount=totalMatch?moneyFrom(totalMatch[1]):null;
+  if(number&&customer&&dateValue&&amount!=null){
+   const baseMatch=src.match(/subtotal\s+de\s+la\s+factura\s*[:\s]*([0-9., ]+)\s*€/i);
+   const vatMatch=src.match(/(?:base\s+imponible\s+iva\s*21\s*%|iva)\s*[:\s]*([0-9., ]+)\s*€/i);
+   const retentionMatch=src.match(/retenci[oó]n\s*1\s*%\s*irpf\s*[:\s]*-?\s*([0-9., ]+)\s*€/i);
+   const tax_base=baseMatch?moneyFrom(baseMatch[1]):null,vat_amount=vatMatch?moneyFrom(vatMatch[1]):null,retention_amount=retentionMatch?moneyFrom(retentionMatch[1]):null;
+   const taxOK=tax_base!=null&&vat_amount!=null&&retention_amount!=null&&Math.abs(tax_base+vat_amount-retention_amount-amount)<0.02;
+   return {...data,type:'income',amount,invoice_number:number,date:dateValue,document_date:dateValue,due_date:'',concept:'Recuperación de Maderas y Palets · Factura '+number,customer,counterparty:customer,supplier:src.split(/\r?\n/).find(l=>l.trim())?.trim()||'',person_id:personFromDocumentText(src)||data.person_id,expense_scope:'business',income_source_type:'variable',movement_role:'standard',document_family:'household_issued_invoice',deterministic_reader:true,extraction_quality:taxOK?'high':'medium',review_required:true,tax_base:taxOK?tax_base:null,vat_rate:taxOK?21:null,vat_amount:taxOK?vat_amount:null,retention_rate:taxOK?1:null,retention_amount:taxOK?retention_amount:null,field_sources:{...(data.field_sources||{}),invoice_number:'Nº de factura',date:'fecha de emisión',amount:'Total de la factura',counterparty:'cliente indicado en factura',payment_method:'cobro mixto pendiente de desglose'}};
+  }
+ }
  const billTo=src.search(/facturar\s+a\b/i);if(billTo>=0&&data.amount!=null&&data.invoice_number){const owner=personFromDocumentText(src.slice(0,billTo)),customer=src.slice(billTo).match(/facturar\s+a\s*:?\s*([^\n]+)/i)?.[1]?.trim();if(owner&&customer)return {...data,type:'income',concept:customer,supplier:src.split(/\r?\n/).find(l=>l.trim())?.trim()||'',counterparty:customer,customer,person_id:owner,expense_scope:'business',income_source_type:'variable',movement_role:'standard',document_family:'household_issued_invoice',deterministic_reader:true,extraction_quality:'high',field_sources:{...(data.field_sources||{}),person_id:'emisor antes de Facturar a',counterparty:'cliente indicado en Facturar a',amount:'total de la factura'}};}
  return null;
 }
