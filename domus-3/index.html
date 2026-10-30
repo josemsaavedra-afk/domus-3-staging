@@ -1074,7 +1074,8 @@ function otherKnownDocumentDraft(text,doc){
  // Facturas propias de palés: recuperar campos explícitos aunque el PDF intercale columnas.
  if(/recuperaci[oó]n de maderas y palets/i.test(src)&&/facturar\s+a\b/i.test(src)){
   const number=(src.match(/n[º°o.]?\s*de\s*factura\s*[:\s]*([0-9]{1,5}\s+20[0-9]{4})/i)||src.match(/\b([0-9]{1,5}\s+20[0-9]{4})\b/))?.[1]?.replace(/\s+/g,' ').trim()||'';
-  const customer=/recuperaci[oó]n de maderas y palets/i.test(src)&&/facturar\s+a\s*del\s+sur\s+s\.?l\.?/i.test(src)?'Recuperación de Maderas y Palets del Sur S.L.':((src.match(/recuperaci[oó]n de maderas y palets\s*(?:del\s+sur\s*)?s\.?\s*l\.?/i)||[])[0]||'');
+  const billCustomer=src.match(/facturar\s+a\s*[:\s]*([\s\S]{0,150}?)(?=\b(?:41500|direcci[oó]n|11500|DNI|NIF)\b)/i)?.[1]||'';
+  const customer=billCustomer.replace(/\s+/g,' ').replace(/,$/,'').trim();
   const dateMatch=src.match(/\b([0-3]?\d\/[01]?\d\/20\d{2})\b/);
   const dateValue=dateMatch?dateMatch[1].split('/').reverse().join('-'):'';
   const totalMatch=src.match(/total\s+de\s+la\s+factura\s*[:\s]*([0-9., ]+)\s*€/i);
