@@ -847,7 +847,7 @@ async function recoverLegacyDocumentFiles(){
   let restored=0,skipped=0;const issues=[];
   try{
    await prepareDocumentCatalogs();
-   const available=documents.filter(d=>!d.storage_path&&documentArchiveState(d).label!=='CREADO'&&documentArchiveState(d).label!=='VINCULADO');
+   const available=documents.filter(d=>!d.storage_path&&!['CREADO','VINCULADO'].includes(documentArchiveState(d).label)&&!(d.extracted_data?.drafts||[]).some(x=>x.review_status==='confirmed'||x.confirmed_series_id));
    const used=new Set();
    for(let i=0;i<files.length;i++){
     const file=files[i];
