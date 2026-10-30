@@ -1078,7 +1078,7 @@ function otherKnownDocumentDraft(text,doc){
   const customer=billCustomer.replace(/\s+/g,' ').replace(/,$/,'').trim();
   const dateMatch=src.match(/\b([0-3]?\d\/[01]?\d\/20\d{2})\b/);
   const dateValue=dateMatch?dateMatch[1].split('/').reverse().join('-'):'';
-  const totalMatch=src.match(/total\s+de\s+la\s+factura\s*[:\s]*([0-9., ]+)\s*€/i);
+  const totalMatch=src.match(/(?:^|\n)\s*total\s+de\s+la\s+factura\s*[:\s]*([0-9., ]+)\s*€/im);
   const amount=totalMatch?moneyFrom(totalMatch[1]):null;
   if(number&&customer&&dateValue&&amount!=null){
    const baseMatch=src.match(/subtotal\s+de\s+la\s+factura\s*[:\s]*([0-9., ]+)\s*€/i);
