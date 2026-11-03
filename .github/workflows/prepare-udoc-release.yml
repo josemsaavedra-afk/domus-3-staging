@@ -1,4 +1,4 @@
-name: Prepare DOMUS 30160 review build
+name: Prepare DOMUS 30161 review build
 on:
   push:
     branches: [work/udoc-30159-safe-integration]
@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '22'
       - name: Prepare version and integrity manifest
-        run: python3 scripts/prepare-udoc-release.py 30160
+        run: python3 scripts/prepare-udoc-release.py 30161
       - name: Verify complete application
         run: |
           npm ci --ignore-scripts
@@ -29,5 +29,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add domus-3/version.json domus-3/index.html domus-3/sw.js domus-3/asset-manifest.js
-          git commit -m 'Prepare DOMUS 30160 review build with verified PWA hashes'
+          git commit -m 'Prepare DOMUS 30161 review build with verified PWA hashes'
           git push origin HEAD:work/udoc-30159-safe-integration
