@@ -20,3 +20,9 @@ No fusionar ni desplegar esta rama como build 30159. Para la siguiente versión:
 ## Limitación funcional
 
 La detección SHA-256 exacta opera únicamente dentro del lote de importación actual. Los registros históricos no tienen un hash de contenido verificado en esta implementación; las coincidencias de nombre y tamaño son avisos, no pruebas de igualdad.
+
+## Revisión build 30160
+
+- Build 30160 generado en commit `8988542fbf7210cc29ca4fd7e415fe7c1da1980a` por GitHub Actions, con hashes regenerados.
+- Las ejecuciones del commit de bot 41701172544 y 41701172546 quedaron en `action_required` sin jobs; **no equivalen a éxito**.
+- Este cambio documental dispara una nueva ejecución de pruebas desde un commit ordinario de la rama, sin despliegue.
