@@ -17,8 +17,8 @@ test('30159 remains the published build identifier on this integration branch',(
 
 test('inline JavaScript parses without executing browser code',()=>{
   let count=0;
-  for(const m of html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)){
-    if(/\\bsrc\\s*=/.test(m[1])||/\\btype\\s*=\\s*["']application\\/json/.test(m[1])||!m[2].trim())continue;
+  for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
+    if(/\bsrc\s*=/.test(m[1])||/\btype\s*=\s*["']application\/json/.test(m[1])||!m[2].trim())continue;
     new Script(m[2],{filename:'domus-3/index.html'});
     count++;
   }
@@ -26,11 +26,11 @@ test('inline JavaScript parses without executing browser code',()=>{
 });
 
 test('duplicate detection is non-destructive and only after user consent',()=>{
-  assert.match(html,/crypto\\.subtle\\.digest\\('SHA-256'/);
+  assert.match(html,/crypto\.subtle\.digest\('SHA-256'/);
   assert.match(html,/exactBatchDuplicates/);
   assert.match(html,/possibleDuplicates/);
-  assert.match(html,/if\\(!proceed\\)\\{skippedDuplicates\\+\\+;continue;\\}/);
-  assert.match(html,/seenInBatch\\.push/);
-  assert.match(html,/await sb\\.from\\('documents'\\)\\.insert/);
+  assert.match(html,/if\(!proceed\)\{skippedDuplicates\+\+;continue;\}/);
+  assert.match(html,/seenInBatch\.push/);
+  assert.match(html,/await sb\.from\('documents'\)\.insert/);
   assert.ok(html.indexOf('if(!proceed){skippedDuplicates++;continue;}')<html.indexOf("await sb.from('documents').insert"));
 });
