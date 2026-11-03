@@ -1,0 +1,25 @@
+name: DOMUS 30159 UDOC safe integration
+on:
+  push:
+    branches:
+      - work/udoc-30159-safe-integration
+  pull_request:
+    paths:
+      - 'domus-3/index.html'
+      - 'domus-3/version.json'
+      - 'domus-3/sw.js'
+      - 'domus-3/asset-manifest.js'
+      - 'test/udoc-30159.test.mjs'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify release integrity and document import safeguards
+        run: node --test test/udoc-30159.test.mjs
