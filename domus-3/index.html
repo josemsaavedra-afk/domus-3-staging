@@ -958,7 +958,7 @@ async function prepareDocumentCatalogs(){
 async function importSelectedDocuments(){
  if(!selectedDocumentFiles.length)return alert('Selecciona uno o varios documentos desde Archivos/iCloud, Cámara o Fototeca.');
  const btn=document.getElementById('uploadDocBtn');setBusy(btn,true);pendingDocumentDraftBatches=[];
- const files=[...selectedDocumentFiles],failures=[];let processed=0;
+ const files=[...selectedDocumentFiles],failures=[];let processed=0,skippedDuplicates=0;
  try{
   document.getElementById('docProgress').textContent='Preparando personas y cuentas…';
   await prepareDocumentCatalogs();
@@ -975,7 +975,7 @@ async function importSelectedDocuments(){
     );
     if(possibleDuplicates.length){
       const proceed=confirm('Ya hay '+possibleDuplicates.length+' documento(s) con el mismo nombre y tamaño que «'+file.name+'». Comprueba el archivo antes de crear otro registro. ¿Importar de todas formas?');
-      if(!proceed){processed++;continue;}
+      if(!proceed){skippedDuplicates++;continue;}
     }
     const inserted=await sb.from('documents').insert({household_id:household.id,series_id:document.getElementById('docSeries').value||null,file_name:file.name,storage_path:null,mime_type:file.type||null,file_size:file.size,document_type:document.getElementById('docType').value,document_date:document.getElementById('docDate').value||null,notes:document.getElementById('docNotes').value.trim()||null,analysis_status:'processing',file_retained:false,source_kind:'icloud'}).select('*').single();
     if(inserted.error)throw inserted.error;
@@ -993,7 +993,7 @@ async function importSelectedDocuments(){
   }
   if(!failures.length){selectedDocumentFiles=[];['docFile','docPhoto','docCamera'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});document.getElementById('docSelectedFile').textContent='Ningún archivo seleccionado.'}
   else{selectedDocumentFiles=files.filter(f=>failures.some(e=>e.startsWith(f.name+':')));document.getElementById('docSelectedFile').textContent=selectedDocumentFiles.length+' archivo(s) con incidencia. Comprueba el Archivo de referencia antes de volver a subirlos para evitar duplicados.'}
-  document.getElementById('docProgress').textContent=`${processed}/${files.length} documentos leídos; ${failures.length} con error. Solo se crean movimientos al confirmar cada propuesta.`+(failures.length?' Fallos: '+failures.join(' | '):'');
+  document.getElementById('docProgress').textContent=`${processed}/${files.length} documentos leídos; ${skippedDuplicates} posibles duplicados omitidos; ${failures.length} con error. Solo se crean movimientos al confirmar cada propuesta.`+(failures.length?' Fallos: '+failures.join(' | '):'');
   await refreshAll();
   pendingDocumentDraftBatches.sort((a,b)=>{const rank=x=>x.drafts.some(d=>d.type==='income')?0:x.drafts.some(d=>['commission','insurance','prefinance_fee'].includes(d.movement_role))?2:1;return rank(a)-rank(b)});
   if(pendingDocumentDraftBatches.length)openNextDocumentDraftBatch();
