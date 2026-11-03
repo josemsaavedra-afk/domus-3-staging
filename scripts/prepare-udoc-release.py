@@ -38,7 +38,7 @@ version["version"] = new_version
 version_path.write_text(json.dumps(version, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
 html_path.write_text(html, encoding="utf-8")
 sw_path.write_text(sw, encoding="utf-8")
-assets_match = re.search(r"self\\.DOMUS3_ASSETS=(\\[[^;]+\\]);", manifest)
+assets_match = re.search(r"self\.DOMUS3_ASSETS=(\[[^;]+\]);", manifest)
 if not assets_match:
     raise SystemExit("Cannot find PWA asset list")
 assets = json.loads(assets_match.group(1))
