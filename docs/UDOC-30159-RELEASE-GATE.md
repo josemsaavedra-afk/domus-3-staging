@@ -26,3 +26,8 @@ La detección SHA-256 exacta opera únicamente dentro del lote de importación a
 - Build 30160 generado en commit `8988542fbf7210cc29ca4fd7e415fe7c1da1980a` por GitHub Actions, con hashes regenerados.
 - Las ejecuciones del commit de bot 41701172544 y 41701172546 quedaron en `action_required` sin jobs; **no equivalen a éxito**.
 - Este cambio documental dispara una nueva ejecución de pruebas desde un commit ordinario de la rama, sin despliegue.
+
+## Revisión build 30161
+
+- Build 30161 generado por GitHub Actions en commit `1531c533cb71ffc83ab79e7de3e9ae1fb4a1ba2f`, incluyendo consulta de duplicados en el archivo completo del hogar.
+- Los workflows del commit automatizado muestran `action_required`, por lo que se inicia comprobación con commit ordinario sin alterar los hashes del build.
