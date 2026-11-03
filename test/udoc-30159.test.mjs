@@ -34,3 +34,16 @@ test('duplicate detection is non-destructive and only after user consent',()=>{
   assert.match(html,/await sb\.from\('documents'\)\.insert/);
   assert.ok(html.indexOf('if(!proceed){skippedDuplicates++;continue;}')<html.indexOf("await sb.from('documents').insert"));
 });
+
+test('duplicate lookup searches the full household archive, not the 500 visible records',()=>{
+  const start=html.indexOf('async function importSelectedDocuments()');
+  const end=html.indexOf('async function getDocumentBlob(',start);
+  assert.ok(start>=0&&end>start);
+  const importer=html.slice(start,end);
+  assert.match(importer,/sb\.from\('documents'\)/);
+  assert.match(importer,/\.eq\('household_id',household\.id\)/);
+  assert.match(importer,/\.eq\('file_name',file\.name\)/);
+  assert.match(importer,/\.eq\('file_size',file\.size\)/);
+  assert.match(importer,/if\(duplicateLookup\.error\)throw duplicateLookup\.error/);
+  assert.doesNotMatch(importer,/documents\.filter\(/);
+});
