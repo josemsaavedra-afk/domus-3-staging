@@ -968,11 +968,16 @@ async function importSelectedDocuments(){
    try{
     // Conservative duplicate hint: same name and byte count are not proof of identical content.
     // Never silently discard or automatically overwrite an existing document.
-    const possibleDuplicates=documents.filter(d=>
-      d.household_id===household.id &&
-      d.file_name===file.name &&
-      Number(d.file_size)===file.size
-    );
+    // The on-screen document list is limited to 500 records: query the full
+    // household archive rather than trusting that incomplete client snapshot.
+    const duplicateLookup=await sb.from('documents')
+      .select('id')
+      .eq('household_id',household.id)
+      .eq('file_name',file.name)
+      .eq('file_size',file.size)
+      .limit(5);
+    if(duplicateLookup.error)throw duplicateLookup.error;
+    const possibleDuplicates=duplicateLookup.data||[];
     // SHA-256 proves identical bytes within this import batch; archived records
     // lack a trusted digest, so their name/size match remains only a warning.
     let fileDigest=null;
