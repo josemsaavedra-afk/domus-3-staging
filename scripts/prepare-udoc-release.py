@@ -51,6 +51,6 @@ for asset in assets:
 manifest_path.write_text(
     "self.DOMUS3_BUILD=" + str(new_build) + ";\n" +
     "self.DOMUS3_ASSETS=" + json.dumps(assets, ensure_ascii=False, separators=(",", ":")) + ";\n" +
-    "self.DOMUS3_SHA256=" + json.dumps(hashes, ensure_ascii=False, separators=(",", ":")) + ";\n",
+    "self.DOMUS3_ASSET_HASHES=" + json.dumps(hashes, ensure_ascii=False, separators=(",", ":")) + ";\n",
     encoding="utf-8")
 print("Prepared DOMUS", new_version, "build", new_build, "with", len(assets), "verified assets")
