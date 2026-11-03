@@ -973,13 +973,23 @@ async function importSelectedDocuments(){
       d.file_name===file.name &&
       Number(d.file_size)===file.size
     );
-    const batchDuplicates=seenInBatch.filter(d=>d.name===file.name&&d.size===file.size);
-    if(possibleDuplicates.length||batchDuplicates.length){
-      const count=possibleDuplicates.length+batchDuplicates.length;
-      const proceed=confirm('Se han detectado '+count+' posible(s) duplicado(s) de «'+file.name+'» por nombre y tamaño (incluidos archivos de este lote). No confirma que sean idénticos. ¿Quieres importarlo igualmente?');
+    // SHA-256 proves identical bytes within this import batch; archived records
+    // lack a trusted digest, so their name/size match remains only a warning.
+    let fileDigest=null;
+    if(globalThis.crypto?.subtle&&typeof file.arrayBuffer==='function'){
+      const hash=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+      fileDigest=Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    const exactBatchDuplicates=fileDigest?seenInBatch.filter(d=>d.digest===fileDigest):[];
+    const likelyBatchDuplicates=seenInBatch.filter(d=>d.name===file.name&&d.size===file.size);
+    if(possibleDuplicates.length||exactBatchDuplicates.length||likelyBatchDuplicates.length){
+      const exact=exactBatchDuplicates.length>0;
+      const proceed=confirm(exact
+        ? '«'+file.name+'» tiene exactamente el mismo SHA-256 que otro archivo de este lote. ¿Importarlo de todas formas?'
+        : '«'+file.name+'» coincide en nombre y tamaño con otro documento o archivo del lote. Puede ser distinto. ¿Importarlo de todas formas?');
       if(!proceed){skippedDuplicates++;continue;}
     }
-    seenInBatch.push({name:file.name,size:file.size});
+    seenInBatch.push({name:file.name,size:file.size,digest:fileDigest});
     const inserted=await sb.from('documents').insert({household_id:household.id,series_id:document.getElementById('docSeries').value||null,file_name:file.name,storage_path:null,mime_type:file.type||null,file_size:file.size,document_type:document.getElementById('docType').value,document_date:document.getElementById('docDate').value||null,notes:document.getElementById('docNotes').value.trim()||null,analysis_status:'processing',file_retained:false,source_kind:'icloud'}).select('*').single();
     if(inserted.error)throw inserted.error;
     row=inserted.data;
