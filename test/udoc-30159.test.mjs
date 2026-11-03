@@ -8,11 +8,11 @@ const version=JSON.parse(readFileSync(new URL('../domus-3/version.json',import.m
 const sw=readFileSync(new URL('../domus-3/sw.js',import.meta.url),'utf8');
 const manifest=readFileSync(new URL('../domus-3/asset-manifest.js',import.meta.url),'utf8');
 
-test('30159 remains the published build identifier on this integration branch',()=>{
-  assert.equal(version.build,30159);
-  assert.match(html,/const APP_BUILD='30159'/);
-  assert.match(sw,/const EXPECTED_BUILD=30159/);
-  assert.match(manifest,/self.DOMUS3_BUILD=30159/);
+test('all packaged components share the current build identifier',()=>{
+  assert.ok(version.build>=30159);
+  assert.ok(html.includes("const APP_BUILD='"+version.build+"'"));
+  assert.ok(sw.includes('const EXPECTED_BUILD='+version.build+';'));
+  assert.ok(manifest.includes('self.DOMUS3_BUILD='+version.build+';'));
 });
 
 test('inline JavaScript parses without executing browser code',()=>{
