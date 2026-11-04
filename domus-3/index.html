@@ -1335,7 +1335,28 @@ function knownDocumentDraft(text,doc){
  return null;
 }
 
-function analyzeTextToDrafts(text,doc){if(doc.document_type==='bank_statement'){const r=parseStatementDrafts(text,doc);if(r.length)return r.map(x=>({...x,invoice_number:'',counterparty_id:window.DOMUSClassification.matchCounterparty(x.counterparty)}))}const rhd=rhdDocumentDrafts(text,doc),known=rhd.length?rhd:(otherKnownDocumentDraft(text,doc)||knownDocumentDraft(text,doc));if(known)return (Array.isArray(known)?known:[known]).map(item=>{const proposal=window.DOMUSClassification.documentProposal(text,item.type,{people,accounts,categories});return {...item,...proposal,person_id:item.person_id||proposal.person_id||null,category_id:item.category_id||proposal.category_id||null,expense_scope:item.expense_scope||proposal.expense_scope||null,counterparty:item.counterparty||proposal.counterparty||item.supplier||null,counterparty_id:window.DOMUSClassification.matchCounterparty(item.counterparty||item.supplier||proposal.counterparty)}});const type=doc.document_type==='proof'&&/abono|ingreso|transferencia recibida/i.test(text)?'income':'expense',data=documentData(text),proposal=window.DOMUSClassification.documentProposal(text,type,{people,accounts,categories});return [{type,concept:data.supplier||'',...data,...proposal,date:data.due_date||data.date,field_sources:{...(data.field_sources||{}),...(data.due_date?{date:'vencimiento / fecha prevista de cobro-pago'}:{})},counterparty:proposal.counterparty||(type==='expense'?data.supplier:null)||null,counterparty_id:window.DOMUSClassification.matchCounterparty(proposal.counterparty||(type==='expense'?data.supplier:null))}]}
+function driivemeDocumentDrafts(text){
+ const source=String(text||'');
+ if(!/\bdriive\s*me\b/i.test(source))return null;
+ const references=[...source.matchAll(/^\s*(?:(?:auto)?factura(?:\s+(?:n[º°o.]|n[uú]mero))?\s*[:#]?\s*|#\s*)(\d{5,9}\s*[-–]\s*[12])\s*$/gim)];
+ const unresolved={type:'income',concept:'Driiveme · Revisar número e importe',counterparty:'Driiveme',invoice_number:'',amount:null,document_family:'driiveme_invoice',deterministic_reader:true,review_required:true,extraction_quality:'low'};
+ if(!references.length)return [unresolved];
+ const drafts=new Map();
+ for(const [index,ref] of references.entries()){
+  const invoice=ref[1].replace(/\s/g,'').replace('–','-');
+  const section=source.slice(ref.index+ref[0].length,references[index+1]?.index);
+  const totals=[...new Set([...section.matchAll(/^\s*(?:importe\s+total|total(?:\s+a\s+(?:pagar|cobrar))?)\s*[:=]?\s*(-?\d[\d.,]*[,.]\d{2})\s*(?:€|EUR)?\s*$/gim)].map(match=>match[1].startsWith('-')?null:moneyFrom(match[1])))];
+  if(invoice.endsWith('-2')&&(!totals.length||totals.length===1&&totals[0]===0))continue;
+  const data=documentData(section),amount=totals.length===1&&totals[0]>0?totals[0]:null;
+  const current={...data,type:'income',concept:(invoice.endsWith('-2')?'Driiveme · Reembolso ':'Driiveme · Traslados ')+invoice,counterparty:'Driiveme',invoice_number:invoice,amount,expense_scope:'business',movement_role:'standard',document_family:'driiveme_invoice',deterministic_reader:true,review_required:true};
+  const prior=drafts.get(invoice);
+  if(prior){
+   if(prior.amount!==amount||prior.document_date!==current.document_date)drafts.set(invoice,{...prior,amount:null,tax_base:null,vat_rate:null,vat_amount:null,extraction_quality:'low'});
+  }else drafts.set(invoice,current);
+ }
+ return drafts.size?[...drafts.values()]:[unresolved];
+}
+function analyzeTextToDrafts(text,doc){if(doc.document_type==='bank_statement'){const r=parseStatementDrafts(text,doc);if(r.length)return r.map(x=>({...x,invoice_number:'',counterparty_id:window.DOMUSClassification.matchCounterparty(x.counterparty)}))}const driiveme=driivemeDocumentDrafts(text),rhd=driiveme===null?rhdDocumentDrafts(text,doc):[],known=driiveme??(rhd.length?rhd:(otherKnownDocumentDraft(text,doc)||knownDocumentDraft(text,doc)));if(known)return (Array.isArray(known)?known:[known]).map(item=>{const proposal=window.DOMUSClassification.documentProposal(text,item.type,{people,accounts,categories});return {...item,...proposal,person_id:item.person_id||proposal.person_id||null,category_id:item.category_id||proposal.category_id||null,expense_scope:item.expense_scope||proposal.expense_scope||null,counterparty:item.counterparty||proposal.counterparty||item.supplier||null,counterparty_id:window.DOMUSClassification.matchCounterparty(item.counterparty||item.supplier||proposal.counterparty)}});const type=doc.document_type==='proof'&&/abono|ingreso|transferencia recibida/i.test(text)?'income':'expense',data=documentData(text),proposal=window.DOMUSClassification.documentProposal(text,type,{people,accounts,categories});return [{type,concept:data.supplier||'',...data,...proposal,date:data.due_date||data.date,field_sources:{...(data.field_sources||{}),...(data.due_date?{date:'vencimiento / fecha prevista de cobro-pago'}:{})},counterparty:proposal.counterparty||(type==='expense'?data.supplier:null)||null,counterparty_id:window.DOMUSClassification.matchCounterparty(proposal.counterparty||(type==='expense'?data.supplier:null))}]}
 function filenameDocumentEvidence(name){
  const base=String(name||'').replace(/\.[^.]+$/,'').trim();if(!base)return {merchant:'',date:''};
  let date='',merchant=base;
