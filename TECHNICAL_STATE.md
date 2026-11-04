@@ -1372,3 +1372,10 @@ Base: main d5616b7; RC1 30039 preservado. Estado: IMPLEMENTADO, pendiente de com
 - Si `-2` presenta importe, crear ingreso independiente por su número, comprobar duplicados y tratar normalmente como ingreso sin IVA según la documentación concreta. El ticket/factura original de combustible se contabiliza separadamente como gasto, si procede.
 - Si la página `-2` no presenta líneas ni importe (caso `#336569-2`, periodo 01–09/10/2026), **no crear movimiento cero ni inventar importe**. `#336569-1` sí tiene ingreso 194,81 € registrado y cobrado 10/10/2026.
 - Estado: criterio operativo documentado; pendiente de automatización en lector universal.
+
+## 04/11/2026 — DOMUS Pages y continuidad de UDOC
+
+- Base comprobada: `1441637dbd12d794238f2752c02949ccfbb7db6b`, PR #8 fusionado. Pages sirve 30162 en `/domus-3/`. El HTML y el service worker públicos coinciden byte a byte con main. La mención de 30159 en Ajustes estaba fija en el HTML de 30162. No se reprodujo 30055 en la ruta canónica.
+- Build 30163: suite local 216/216 y verificación de 42 URLs contra servidor HTTP local. Ajustes toma el identificador de la aplicación. El flujo de Pages comprueba después de publicar las dos entradas de navegador, la versión, el service worker y los archivos versionados que requiere la instalación. La prueba en Safari y en la PWA instalada de un iPhone sigue pendiente.
+- DOMUS conserva el motor de TransportERP portado a JavaScript y las protecciones de reanálisis, revisión y duplicados ya integradas. TransportERP mantiene `udoc/` y `universal_documents/` en `0e10b95344ac1892a9f19e50b5aac5b1ed41742b`. El contrato de motor y la aceptación Windows de ese SHA están en verde en Actions. El PR #2 está abierto y en borrador.
+- Siguiente tarea: comprobar paridad entre motores con un corpus sintético compartido y establecer el contrato para propuestas con evidencia por página. Quedan pendientes la integración común de IA, el límite verificable de gasto y la validación en ambas interfaces. Objetivo 01/01/2027 sujeto a esas pruebas. Sin gasto de IA ni cambios en movimientos.

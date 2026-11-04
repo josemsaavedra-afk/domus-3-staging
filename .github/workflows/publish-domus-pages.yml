@@ -5,6 +5,7 @@ on:
     paths:
       - 'domus-3/**'
       - '.github/workflows/publish-domus-pages.yml'
+      - 'scripts/verify-pages-release.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -40,3 +41,7 @@ jobs:
           path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify public DOMUS release
+        env:
+          PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        run: python3 scripts/verify-pages-release.py "${PAGES_URL%/}/domus-3/"
