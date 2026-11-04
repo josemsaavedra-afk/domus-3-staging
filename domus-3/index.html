@@ -911,7 +911,7 @@ async function reanalyzePendingDocuments(){
    catch(error){failed++;problems.push(d.file_name+': '+(error?.message||error))}
   }
   await refreshAll();
-  const summary=ok+' documento(s) reanalizados; '+failed+' errores; '+missing.length+' documentos históricos sin fuente conservada.';
+  const summary=ok+' documento(s) reanalizados; '+failed+' errores; '+missing.length+' documentos históricos sin fuente conservada. Revisa cada propuesta en Archivo de referencias; no se ha creado ningún movimiento.';
   document.getElementById('docProgress').textContent=summary;
   if(problems.length)alert(summary+'\n'+problems.slice(0,5).join('\n'));
   if(pendingDocumentDraftBatches.length)openNextDocumentDraftBatch();
