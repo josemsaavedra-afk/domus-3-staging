@@ -47,3 +47,17 @@ test('duplicate lookup searches the full household archive, not the 500 visible 
   assert.match(importer,/if\(duplicateLookup\.error\)throw duplicateLookup\.error/);
   assert.doesNotMatch(importer,/documents\.filter\(/);
 });
+
+test('archived reanalysis requires a retained source and excludes confirmed movements',()=>{
+  const start=html.indexOf('function canReanalyzeDocument(d)');
+  const end=html.indexOf('async function reanalyzeArchivedDocument(',start);
+  assert.ok(start>=0&&end>start);
+  const section=html.slice(start,end);
+  assert.match(section,/review_status==='confirmed'/);
+  assert.match(section,/confirmed_series_id/);
+  assert.match(section,/storage_path/);
+  assert.match(section,/documentSourceText\(d\)/);
+  assert.match(section,/async function rereadArchivedDocument\(d,opts=\{\}\)/);
+  assert.match(section,/if\(!canReanalyzeDocument\(d\)\)throw/);
+  assert.match(section,/sourceText:text/);
+});
