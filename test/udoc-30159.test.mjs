@@ -73,3 +73,14 @@ test('batch reanalysis keeps proposals for user review after refresh',()=>{
  assert.doesNotMatch(body,/finally\{pendingDocumentDraftBatches=\[\]/);
  assert.doesNotMatch(body,/pendingDocumentDraftBatches=\[\];await refreshAll\(\)/);
 });
+
+test('legacy document recovery retains drafts and opens review instead of discarding them',()=>{
+ const start=html.indexOf('async function recoverLegacyDocumentFiles()');
+ const end=html.indexOf('async function reanalyzePendingDocuments()',start);
+ assert.ok(start>=0&&end>start);
+ const recovery=html.slice(start,end);
+ assert.match(recovery,/await analyzeBlob\(d,file,\{batch:true\}\)/);
+ assert.match(recovery,/if\(pendingDocumentDraftBatches\.length\)openNextDocumentDraftBatch\(\)/);
+ assert.doesNotMatch(recovery,/pendingDocumentDraftBatches=\[\];await refreshAll\(\)/);
+ assert.doesNotMatch(recovery,/finally\{pendingDocumentDraftBatches=\[\]/);
+});
