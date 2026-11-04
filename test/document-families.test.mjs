@@ -194,3 +194,14 @@ test('repeating the same OCR text does not manufacture independent corroboration
 test('a single payment reading and a contradictory fiscal proof never resolve by majority',()=>{
  const c=setup();const readings=[{source:'first',text:'TOTAL 84,50\nTARJETA BANCARIA 84,50'},{source:'footer',text:'Importe 84,50\nBASE IMPONIBLE 90,00\nIVA 10% 9,00'}];assert.equal(c.receiptReadingAgreement(readings).selected,null);assert.equal(c.documentCriticalEvidence({date:'2026-10-22'},'',readings).amount,null);
 });
+
+test('Driiveme proposes separate income for a populated reimbursement',()=>{
+ const c=setup();
+ const main='Driiveme\nFactura #336569-1\nFecha factura: 09/10/2026\nTOTAL: 194,81 EUR';
+ const reimbursement='Driiveme\nFactura #336569-2\nFecha factura: 09/10/2026\nCostes de transporte';
+ const read=text=>Array.from(c.analyzeTextToDrafts(text,{file_name:'documento.pdf'}),d=>[d.type,d.invoice_number,d.amount]);
+ assert.deepEqual(read(main+'\n'+reimbursement+'\nTOTAL: 20,00 EUR'),[['income','336569-1',194.81],['income','336569-2',20]]);
+ assert.deepEqual(read(main+'\n'+reimbursement),[['income','336569-1',194.81]]);
+ assert.deepEqual(read('Driiveme\nFactura *+33605609-1\nTOTAL: 194,81 EUR'),[['income','',null]]);
+ assert.deepEqual(read(main+'\n'+reimbursement+'\nTOTAL: 20,00 EUR\nTOTAL: 30,00 EUR'),[['income','336569-1',194.81],['income','336569-2',null]]);
+});
