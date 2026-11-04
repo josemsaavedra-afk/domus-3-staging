@@ -1,33 +1,40 @@
-name: Prepare DOMUS 30162 review build
+name: Verify DOMUS 30162 review build
 on:
   push:
     branches: [work/udoc-30159-safe-integration]
     paths:
       - 'scripts/prepare-udoc-release.py'
       - '.github/workflows/prepare-udoc-release.yml'
+  workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
-  prepare:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: work/udoc-30159-safe-integration
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Prepare version and integrity manifest
-        run: python3 scripts/prepare-udoc-release.py 30162
-      - name: Verify complete application
+      - name: Verify build 30162 identifiers
         run: |
-          npm ci --ignore-scripts
-          npm test
-      - name: Commit reviewed build files to isolated branch
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add domus-3/version.json domus-3/index.html domus-3/sw.js domus-3/asset-manifest.js
-          git commit -m 'Prepare DOMUS 30162 review build with verified PWA hashes'
-          git push origin HEAD:work/udoc-30159-safe-integration
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('domus-3')
+          version = json.loads((root/'version.json').read_text())
+          build = version['build']
+          assert build == 30162, f'Unexpected build: {build}'
+          html = (root/'index.html').read_text()
+          sw = (root/'sw.js').read_text()
+          manifest = (root/'asset-manifest.js').read_text()
+          assert f"const APP_BUILD='{build}'" in html
+          assert f'const EXPECTED_BUILD={build};' in sw
+          assert f'self.DOMUS3_BUILD={build};' in manifest
+          print('Build identifiers verified:', build)
+          PY
+      - name: Install pinned test dependencies
+        run: npm install --ignore-scripts --no-package-lock --no-save
+      - name: Run full DOMUS regression suite
+        run: npm test
