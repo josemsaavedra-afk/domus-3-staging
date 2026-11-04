@@ -61,3 +61,15 @@ test('archived reanalysis requires a retained source and excludes confirmed move
   assert.match(section,/if\(!canReanalyzeDocument\(d\)\)throw/);
   assert.match(section,/sourceText:text/);
 });
+
+test('batch reanalysis keeps proposals for user review after refresh',()=>{
+ const start=html.indexOf('async function reanalyzePendingDocuments()');
+ const end=html.indexOf('function openStoredDocumentDraft(',start);
+ assert.ok(start>=0&&end>start);
+ const body=html.slice(start,end);
+ assert.match(body,/await rereadArchivedDocument\(d,\{batch:true\}\)/);
+ assert.match(body,/await refreshAll\(\)/);
+ assert.match(body,/if\(pendingDocumentDraftBatches\.length\)openNextDocumentDraftBatch\(\)/);
+ assert.doesNotMatch(body,/finally\{pendingDocumentDraftBatches=\[\]/);
+ assert.doesNotMatch(body,/pendingDocumentDraftBatches=\[\];await refreshAll\(\)/);
+});
