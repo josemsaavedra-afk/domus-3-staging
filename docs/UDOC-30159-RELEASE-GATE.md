@@ -31,3 +31,13 @@ La detección SHA-256 exacta opera únicamente dentro del lote de importación a
 
 - Build 30161 generado por GitHub Actions en commit `1531c533cb71ffc83ab79e7de3e9ae1fb4a1ba2f`, incluyendo consulta de duplicados en el archivo completo del hogar.
 - Los workflows del commit automatizado muestran `action_required`, por lo que se inicia comprobación con commit ordinario sin alterar los hashes del build.
+
+## Recuperación 04/11/2026 — build 30162
+
+- Repositorio confirmado: `josemsaavedra-afk/domus-3-staging`, PR #8, rama `work/udoc-30159-safe-integration`.
+- `domus-3/version.json` en la rama declara `3.0.0-rc.1.122`, build `30162`.
+- Commit de rama inspeccionado: `4543ab37169e392b9bfa6f9e7543d0ca495a4caf`.
+- GitHub Actions `41783655471` (UDOC) y `41783655566` (DOMUS tests): `action_required`, **cero jobs**. No constituyen validación positiva ni fallo de tests.
+- El PR permanece abierto, en borrador y sin fusionar. No hay evidencia de despliegue de 30162.
+- Siguiente paso: conseguir ejecución efectiva de CI, validar hashes PWA y suite completa, y después realizar prueba de importación documental en iPhone antes de fusionar.
+- No alterar movimientos reales ni desplegar a producción durante esta verificación.
