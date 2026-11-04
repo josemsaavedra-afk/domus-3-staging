@@ -1034,13 +1034,22 @@ async function importSelectedDocuments(){
  finally{setBusy(btn,false)}
 }
 const udocReviewButton=document.getElementById('udocReviewBtn');
-const udocReviewEnabled=window.DOMUS_CONFIG?.udocReview===true;
-udocReviewButton.hidden=!udocReviewEnabled;
+const udocReviewUrl=(()=>{
+ const configured=window.DOMUS_CONFIG?.udocReviewOrigin;
+ if(window.DOMUS_CONFIG?.udocReview!==true)return null;
+ if(!configured)return '/v1/documents/review';
+ try{
+  const url=new URL(configured);
+  if(url.protocol==='https:'&&url.origin===configured)return url.origin+'/v1/documents/review';
+ }catch{}
+ return null;
+})();
+udocReviewButton.hidden=!udocReviewUrl;
 udocReviewButton.addEventListener('click',async()=>{
  const status=document.getElementById('udocReviewStatus');
  const dialog=document.getElementById('udocReviewDialog');
  const fields=document.getElementById('udocReviewFields');
- if(!udocReviewEnabled||udocReviewButton.disabled)return;
+ if(!udocReviewUrl||udocReviewButton.disabled)return;
  if(selectedDocumentFiles.length!==1){status.textContent='Selecciona un único documento.';return}
  const file=selectedDocumentFiles[0],owner=user?.id,home=household?.id;
  if(!owner||!home||!sb){status.textContent='Inicia sesión para analizar el documento.';return}
@@ -1050,7 +1059,7 @@ udocReviewButton.addEventListener('click',async()=>{
  try{
   const {data,error}=await sb.auth.getSession();
   if(error||data.session?.user?.id!==owner||!data.session.access_token||household?.id!==home)throw new Error('La sesión ha cambiado.');
-  const response=await fetch('/v1/documents/review',{
+  const response=await fetch(udocReviewUrl,{
    method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':file.type||'application/octet-stream'},
    body:file,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(90000)
   });
