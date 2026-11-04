@@ -1,0 +1,40 @@
+name: Verify DOMUS 30162 review build
+on:
+  push:
+    branches: [work/udoc-30159-safe-integration]
+    paths:
+      - 'scripts/prepare-udoc-release.py'
+      - '.github/workflows/prepare-udoc-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify build 30162 identifiers
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('domus-3')
+          version = json.loads((root/'version.json').read_text())
+          build = version['build']
+          assert build == 30162, f'Unexpected build: {build}'
+          html = (root/'index.html').read_text()
+          sw = (root/'sw.js').read_text()
+          manifest = (root/'asset-manifest.js').read_text()
+          assert f"const APP_BUILD='{build}'" in html
+          assert f'const EXPECTED_BUILD={build};' in sw
+          assert f'self.DOMUS3_BUILD={build};' in manifest
+          print('Build identifiers verified:', build)
+          PY
+      - name: Install pinned test dependencies
+        run: npm install --ignore-scripts --no-package-lock --no-save
+      - name: Run full DOMUS regression suite
+        run: npm test

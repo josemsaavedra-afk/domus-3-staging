@@ -201,7 +201,7 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.119 · Build 30159<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.122 · Build 30162<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -889,11 +889,12 @@ async function recoverLegacyDocumentFiles(){
      await analyzeBlob(d,file,{batch:true});restored++;
     }catch(error){skipped++;issues.push(file.name+': '+(error?.message||error))}
    }
-   pendingDocumentDraftBatches=[];await refreshAll();
+   await refreshAll();
+   if(pendingDocumentDraftBatches.length)openNextDocumentDraftBatch();
    document.getElementById('docProgress').textContent=restored+' documento(s) históricos recuperados y reanalizados; '+skipped+' sin recuperar.';
    if(issues.length)alert(issues.slice(0,8).join('\n'));
   }catch(error){alert('No se pudo recuperar el lote: '+(error?.message||error))}
-  finally{pendingDocumentDraftBatches=[];setBusy(btn,false)}
+  finally{setBusy(btn,false)}
  };
  input.click();
 }
@@ -910,12 +911,13 @@ async function reanalyzePendingDocuments(){
    try{await rereadArchivedDocument(d,{batch:true});ok++}
    catch(error){failed++;problems.push(d.file_name+': '+(error?.message||error))}
   }
-  pendingDocumentDraftBatches=[];await refreshAll();
-  const summary=ok+' documento(s) reanalizados; '+failed+' errores; '+missing.length+' documentos históricos sin fuente conservada.';
+  await refreshAll();
+  const summary=ok+' documento(s) reanalizados; '+failed+' errores; '+missing.length+' documentos históricos sin fuente conservada. Revisa cada propuesta en Archivo de referencias; no se ha creado ningún movimiento.';
   document.getElementById('docProgress').textContent=summary;
   if(problems.length)alert(summary+'\n'+problems.slice(0,5).join('\n'));
+  if(pendingDocumentDraftBatches.length)openNextDocumentDraftBatch();
  }catch(error){alert('No se pudo completar la relectura: '+(error?.message||error))}
- finally{pendingDocumentDraftBatches=[];setBusy(btn,false)}
+ finally{setBusy(btn,false)}
 }
 function openStoredDocumentDraft(id){const doc=documents.find(d=>d.id===id);if(!doc?.extracted_data?.drafts?.length)return;pendingDocumentDraftBatches=[];renderDocDrafts(structuredClone(doc.extracted_data.drafts),doc)}
 function documentArchiveState(d){
@@ -958,7 +960,7 @@ async function prepareDocumentCatalogs(){
 async function importSelectedDocuments(){
  if(!selectedDocumentFiles.length)return alert('Selecciona uno o varios documentos desde Archivos/iCloud, Cámara o Fototeca.');
  const btn=document.getElementById('uploadDocBtn');setBusy(btn,true);pendingDocumentDraftBatches=[];
- const files=[...selectedDocumentFiles],failures=[];let processed=0;
+ const files=[...selectedDocumentFiles],failures=[],seenInBatch=[];let processed=0,skippedDuplicates=0;
  try{
   document.getElementById('docProgress').textContent='Preparando personas y cuentas…';
   await prepareDocumentCatalogs();
@@ -966,6 +968,39 @@ async function importSelectedDocuments(){
    const file=files[i];let row=null;
    document.getElementById('docProgress').textContent=`Leyendo ${i+1}/${files.length}: ${file.name}`;
    try{
+    // Conservative duplicate hint: same name and byte count are not proof of identical content.
+    // Never silently discard or automatically overwrite an existing document.
+    // The on-screen document list is limited to 500 records: query the full
+    // household archive rather than trusting that incomplete client snapshot.
+    const duplicateLookup=await sb.from('documents')
+      .select('id')
+      .eq('household_id',household.id)
+      .eq('file_name',file.name)
+      .eq('file_size',file.size)
+      .limit(5);
+    if(duplicateLookup.error)throw duplicateLookup.error;
+    const possibleDuplicates=duplicateLookup.data||[];
+    // SHA-256 proves identical bytes within this import batch; archived records
+    // lack a trusted digest, so their name/size match remains only a warning.
+    let fileDigest=null;
+    if(globalThis.crypto?.subtle&&typeof file.arrayBuffer==='function'){
+      try{
+        const hash=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+        fileDigest=Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+      }catch(hashError){
+        console.warn('No se pudo calcular SHA-256; se mantiene la comprobación por nombre y tamaño',hashError);
+      }
+    }
+    const exactBatchDuplicates=fileDigest?seenInBatch.filter(d=>d.digest===fileDigest):[];
+    const likelyBatchDuplicates=seenInBatch.filter(d=>d.name===file.name&&d.size===file.size);
+    if(possibleDuplicates.length||exactBatchDuplicates.length||likelyBatchDuplicates.length){
+      const exact=exactBatchDuplicates.length>0;
+      const proceed=confirm(exact
+        ? '«'+file.name+'» tiene exactamente el mismo SHA-256 que otro archivo de este lote. ¿Importarlo de todas formas?'
+        : '«'+file.name+'» coincide en nombre y tamaño con otro documento o archivo del lote. Puede ser distinto. ¿Importarlo de todas formas?');
+      if(!proceed){skippedDuplicates++;continue;}
+    }
+    seenInBatch.push({name:file.name,size:file.size,digest:fileDigest});
     const inserted=await sb.from('documents').insert({household_id:household.id,series_id:document.getElementById('docSeries').value||null,file_name:file.name,storage_path:null,mime_type:file.type||null,file_size:file.size,document_type:document.getElementById('docType').value,document_date:document.getElementById('docDate').value||null,notes:document.getElementById('docNotes').value.trim()||null,analysis_status:'processing',file_retained:false,source_kind:'icloud'}).select('*').single();
     if(inserted.error)throw inserted.error;
     row=inserted.data;
@@ -982,7 +1017,7 @@ async function importSelectedDocuments(){
   }
   if(!failures.length){selectedDocumentFiles=[];['docFile','docPhoto','docCamera'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});document.getElementById('docSelectedFile').textContent='Ningún archivo seleccionado.'}
   else{selectedDocumentFiles=files.filter(f=>failures.some(e=>e.startsWith(f.name+':')));document.getElementById('docSelectedFile').textContent=selectedDocumentFiles.length+' archivo(s) con incidencia. Comprueba el Archivo de referencia antes de volver a subirlos para evitar duplicados.'}
-  document.getElementById('docProgress').textContent=`${processed}/${files.length} documentos leídos; ${failures.length} con error. Solo se crean movimientos al confirmar cada propuesta.`+(failures.length?' Fallos: '+failures.join(' | '):'');
+  document.getElementById('docProgress').textContent=`${processed}/${files.length} documentos leídos; ${skippedDuplicates} posibles duplicados omitidos; ${failures.length} con error. Solo se crean movimientos al confirmar cada propuesta.`+(failures.length?' Fallos: '+failures.join(' | '):'');
   await refreshAll();
   pendingDocumentDraftBatches.sort((a,b)=>{const rank=x=>x.drafts.some(d=>d.type==='income')?0:x.drafts.some(d=>['commission','insurance','prefinance_fee'].includes(d.movement_role))?2:1;return rank(a)-rank(b)});
   if(pendingDocumentDraftBatches.length)openNextDocumentDraftBatch();
@@ -2058,7 +2093,7 @@ const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30159';
+const APP_BUILD='30162';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{

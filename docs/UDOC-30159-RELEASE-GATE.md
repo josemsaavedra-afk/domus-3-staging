@@ -1,0 +1,43 @@
+# DOMUS 30159 — estado de integración UDOC
+
+## Comprobaciones verificadas (03/11/2026)
+
+- Workflow «DOMUS 30159 UDOC safe integration», ejecución 41699545116: **success**.
+- Workflow «DOMUS tests», ejecución 41699545090: **failure**.
+- Pruebas generales: **211 aprobadas, 1 fallida**.
+- Fallo: `test/pwa-update.test.mjs`, «PWA installs a complete, verified build before activation».
+- Causa confirmada en log: `Archivo de otro build: index.html`. Se modificó el HTML, pero el SHA-256 de `index.html` en `domus-3/asset-manifest.js` sigue perteneciendo a la compilación anterior.
+
+## Condición de publicación
+
+No fusionar ni desplegar esta rama como build 30159. Para la siguiente versión:
+1. Asignar un identificador **nuevo** posterior al 30159, una vez comprobado el último build publicado.
+2. Actualizar coherentemente `version.json`, `index.html`, `sw.js` y `asset-manifest.js`.
+3. Regenerar los hashes SHA-256 **a partir de los archivos finales**; no desactivar la verificación.
+4. Ejecutar toda la suite y probar importación de archivos repetidos en iPhone.
+5. Mantener los movimientos reales intactos hasta la validación de la revisión documental.
+
+## Limitación funcional
+
+La detección SHA-256 exacta opera únicamente dentro del lote de importación actual. Los registros históricos no tienen un hash de contenido verificado en esta implementación; las coincidencias de nombre y tamaño son avisos, no pruebas de igualdad.
+
+## Revisión build 30160
+
+- Build 30160 generado en commit `8988542fbf7210cc29ca4fd7e415fe7c1da1980a` por GitHub Actions, con hashes regenerados.
+- Las ejecuciones del commit de bot 41701172544 y 41701172546 quedaron en `action_required` sin jobs; **no equivalen a éxito**.
+- Este cambio documental dispara una nueva ejecución de pruebas desde un commit ordinario de la rama, sin despliegue.
+
+## Revisión build 30161
+
+- Build 30161 generado por GitHub Actions en commit `1531c533cb71ffc83ab79e7de3e9ae1fb4a1ba2f`, incluyendo consulta de duplicados en el archivo completo del hogar.
+- Los workflows del commit automatizado muestran `action_required`, por lo que se inicia comprobación con commit ordinario sin alterar los hashes del build.
+
+## Recuperación 04/11/2026 — build 30162
+
+- Repositorio confirmado: `josemsaavedra-afk/domus-3-staging`, PR #8, rama `work/udoc-30159-safe-integration`.
+- `domus-3/version.json` en la rama declara `3.0.0-rc.1.122`, build `30162`.
+- Commit de rama inspeccionado: `4543ab37169e392b9bfa6f9e7543d0ca495a4caf`.
+- GitHub Actions `41783655471` (UDOC) y `41783655566` (DOMUS tests): `action_required`, **cero jobs**. No constituyen validación positiva ni fallo de tests.
+- El PR permanece abierto, en borrador y sin fusionar. No hay evidencia de despliegue de 30162.
+- Siguiente paso: conseguir ejecución efectiva de CI, validar hashes PWA y suite completa, y después realizar prueba de importación documental en iPhone antes de fusionar.
+- No alterar movimientos reales ni desplegar a producción durante esta verificación.

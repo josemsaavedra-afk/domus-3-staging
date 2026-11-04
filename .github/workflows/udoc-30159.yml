@@ -1,0 +1,26 @@
+name: DOMUS UDOC safe integration
+on:
+  push:
+    branches:
+      - work/udoc-30159-safe-integration
+  pull_request:
+    paths:
+      - 'domus-3/**'
+      - 'test/**'
+      - 'package.json'
+      - '.github/workflows/udoc-30159.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned test dependencies
+        run: npm install --ignore-scripts --no-package-lock --no-save
+      - name: Run full regression suite including UDOC and PWA integrity
+        run: npm test
