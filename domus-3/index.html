@@ -889,11 +889,12 @@ async function recoverLegacyDocumentFiles(){
      await analyzeBlob(d,file,{batch:true});restored++;
     }catch(error){skipped++;issues.push(file.name+': '+(error?.message||error))}
    }
-   pendingDocumentDraftBatches=[];await refreshAll();
+   await refreshAll();
+   if(pendingDocumentDraftBatches.length)openNextDocumentDraftBatch();
    document.getElementById('docProgress').textContent=restored+' documento(s) históricos recuperados y reanalizados; '+skipped+' sin recuperar.';
    if(issues.length)alert(issues.slice(0,8).join('\n'));
   }catch(error){alert('No se pudo recuperar el lote: '+(error?.message||error))}
-  finally{pendingDocumentDraftBatches=[];setBusy(btn,false)}
+  finally{setBusy(btn,false)}
  };
  input.click();
 }
