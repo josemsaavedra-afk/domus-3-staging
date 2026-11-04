@@ -910,12 +910,13 @@ async function reanalyzePendingDocuments(){
    try{await rereadArchivedDocument(d,{batch:true});ok++}
    catch(error){failed++;problems.push(d.file_name+': '+(error?.message||error))}
   }
-  pendingDocumentDraftBatches=[];await refreshAll();
+  await refreshAll();
   const summary=ok+' documento(s) reanalizados; '+failed+' errores; '+missing.length+' documentos históricos sin fuente conservada.';
   document.getElementById('docProgress').textContent=summary;
   if(problems.length)alert(summary+'\n'+problems.slice(0,5).join('\n'));
+  if(pendingDocumentDraftBatches.length)openNextDocumentDraftBatch();
  }catch(error){alert('No se pudo completar la relectura: '+(error?.message||error))}
- finally{pendingDocumentDraftBatches=[];setBusy(btn,false)}
+ finally{setBusy(btn,false)}
 }
 function openStoredDocumentDraft(id){const doc=documents.find(d=>d.id===id);if(!doc?.extracted_data?.drafts?.length)return;pendingDocumentDraftBatches=[];renderDocDrafts(structuredClone(doc.extracted_data.drafts),doc)}
 function documentArchiveState(d){
