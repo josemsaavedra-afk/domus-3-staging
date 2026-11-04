@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {Script} from 'node:vm';
+import {Script, runInNewContext} from 'node:vm';
 
 const html=readFileSync(new URL('../domus-3/index.html',import.meta.url),'utf8');
 const version=JSON.parse(readFileSync(new URL('../domus-3/version.json',import.meta.url),'utf8'));
@@ -83,4 +83,46 @@ test('legacy document recovery retains drafts and opens review instead of discar
  assert.match(recovery,/if\(pendingDocumentDraftBatches\.length\)openNextDocumentDraftBatch\(\)/);
  assert.doesNotMatch(recovery,/pendingDocumentDraftBatches=\[\];await refreshAll\(\)/);
  assert.doesNotMatch(recovery,/finally\{pendingDocumentDraftBatches=\[\]/);
+});
+
+test('multipage PDFs retain text and OCR each scanned page in order', async () => {
+  const embedded = 'Factura de traslados con texto seleccionable y suficiente para evitar OCR';
+  const inputs = ['', embedded, ''];
+  const rendered = [];
+  let currentPage;
+  let destroyed = false;
+  const pdf = {
+    numPages: inputs.length,
+    getPage: async number => ({
+      getTextContent: async () => ({
+        items: [{str: inputs[number - 1], transform: [0, 0, 0, 0, 0, 0], hasEOL: true}]
+      }),
+      getViewport: () => ({width: 20, height: 20}),
+      render: () => {
+        rendered.push(number);
+        currentPage = number;
+        return {promise: Promise.resolve()};
+      }
+    }),
+    destroy: async () => { destroyed = true; }
+  };
+  const context = {
+    lastDocumentOcrConfidence: null,
+    lastDocumentOcrMode: '',
+    window: {pdfjsLib: {GlobalWorkerOptions: {}, getDocument: () => ({promise: Promise.resolve(pdf)})}},
+    document: {createElement: () => ({getContext: () => ({})})},
+    runDocumentOcr: async () => {
+      context.lastDocumentOcrConfidence = currentPage === 1 ? 85 : 52;
+      return currentPage === 1 ? 'Factura 123456-1' : 'Factura 123456-2 · Reembolso 20,00 €';
+    }
+  };
+  const start = html.indexOf('async function extractTextFromBlob(');
+  const end = html.indexOf('function moneyFrom(', start);
+  runInNewContext(html.slice(start, end), context);
+  const text = await context.extractTextFromBlob({arrayBuffer: async () => new ArrayBuffer(0)}, 'application/pdf', 'driiveme.pdf');
+  assert.deepEqual(rendered, [1, 3]);
+  assert.deepEqual(text.split(/\n+/), ['Factura 123456-1', embedded, 'Factura 123456-2 · Reembolso 20,00 €']);
+  assert.equal(context.lastDocumentOcrMode, 'pdf-multipage-ocr');
+  assert.equal(context.lastDocumentOcrConfidence, 52);
+  assert.equal(destroyed, true);
 });

@@ -201,7 +201,7 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.123 · Build 30163<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.124 · Build 30164<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -1078,10 +1078,35 @@ async function extractTextFromBlob(blob,mime,name){
   if(!window.pdfjsLib){try{const mod=await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs');window.pdfjsLib=mod}catch(e){}}
   if(!window.pdfjsLib)throw new Error('No se pudo cargar el lector PDF.');
   window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
-  const arr=await blob.arrayBuffer(),pdf=await window.pdfjsLib.getDocument({data:arr}).promise;let text='';
-  for(let i=1;i<=Math.min(pdf.numPages,8);i++){const page=await pdf.getPage(i),tc=await page.getTextContent();let y=null;for(const item of tc.items){if(y!==null&&Math.abs(item.transform[5]-y)>3)text+='\n';text+=item.str+(item.hasEOL?'\n':' ');y=item.hasEOL?null:item.transform[5]}text+='\n'}
-  if(text.replace(/\s/g,'').length>60){lastDocumentOcrMode='pdf-text';return text}
-  const page=await pdf.getPage(1),vp=page.getViewport({scale:2.4}),canvas=document.createElement('canvas');canvas.width=Math.round(vp.width);canvas.height=Math.round(vp.height);await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;return await runDocumentOcr(canvas)
+  const pdf=await window.pdfjsLib.getDocument({data:await blob.arrayBuffer()}).promise;
+  const pageCount=pdf.numPages,pages=[],ocrConfidences=[];
+  try{
+   for(let i=1;i<=pageCount;i++){
+    const page=await pdf.getPage(i),tc=await page.getTextContent();
+    let text='',y=null;
+    for(const item of tc.items){
+     if(!('str' in item))continue;
+     if(y!==null&&Math.abs(item.transform[5]-y)>3)text+='\n';
+     text+=item.str+(item.hasEOL?'\n':' ');
+     y=item.hasEOL?null:item.transform[5];
+    }
+    if(text.replace(/\s/g,'').length<=60){
+     if(ocrConfidences.length>=8)throw new Error('El PDF supera el límite de ocho páginas que requieren OCR. Divide el archivo para revisar todas las páginas.');
+     const vp=page.getViewport({scale:2.4}),canvas=document.createElement('canvas');
+     canvas.width=Math.round(vp.width);canvas.height=Math.round(vp.height);
+     try{
+      await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+      const ocrText=await runDocumentOcr(canvas);
+      if(ocrText.trim())text=ocrText;
+      ocrConfidences.push(lastDocumentOcrConfidence??0);
+     }finally{canvas.width=0;canvas.height=0}
+    }
+    pages.push(text);
+   }
+  }finally{await pdf.destroy()}
+  lastDocumentOcrConfidence=ocrConfidences.length?Math.min(...ocrConfidences):null;
+  lastDocumentOcrMode=ocrConfidences.length?(pageCount===1?'ocr':'pdf-multipage-ocr'):'pdf-text';
+  return pages.join('\n\n');
  }
  return await runDocumentOcr(blob)
 }
@@ -1484,7 +1509,7 @@ function documentCriticalEvidence(d,text,readings=[]){
  else if(totals.length===1){out.amount=totals[0];out.field_sources.amount='total etiquetado del documento'}
  else{out.amount=null;issues.amount='No se ha identificado un total etiquetado: comprueba el importe.'}
  const confidence=out.ocr_confidence??lastDocumentOcrConfidence,mode=out.ocr_mode||lastDocumentOcrMode;
- const low=mode==='ocr'&&confidence!=null&&confidence<60;
+ const low=(mode==='ocr'||mode==='pdf-multipage-ocr')&&confidence!=null&&confidence<60;
  if(low&&corroborated.length!==1&&agreement.selected==null){out.amount=null;issues.amount='OCR poco fiable: introduce el total que aparece en el documento.'}
  if(out.amount==null)issues.amount=issues.amount||'No se ha identificado un total seguro.';
  const known=src.match(/\b(Mercadona|Supeco|Aldi|Lidl|Tele\s*Taxi\s+Jerez)\b/i);
@@ -2093,7 +2118,7 @@ const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30163';
+const APP_BUILD='30164';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{
