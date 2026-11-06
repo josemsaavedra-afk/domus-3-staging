@@ -1846,7 +1846,7 @@ function setSimpleMovementMode(simple){
  const form=document.getElementById('movementForm');form.classList.toggle('simple-entry',simple);
  let toggle=document.getElementById('simpleMovementToggle');if(!toggle){toggle=document.createElement('button');toggle.id='simpleMovementToggle';toggle.type='button';toggle.className='btn';form.insertBefore(toggle,form.firstChild)}
  toggle.textContent=simple?'Más detalles y repetición':'Volver al formulario corto';toggle.onclick=()=>setSimpleMovementMode(!form.classList.contains('simple-entry'));
- const keep=new Set(['fType','fConcept','fAmount','fStatus','fDate','fPerson','fPayer','fBank','fPaymentMethod','fCategory']);
+ const keep=new Set(['fType','fConcept','fAmount','fStatus','fDate','fPerson','fPayer','fBank','fPaymentMethod','fCategory','fExpenseScope']);
  form.querySelectorAll('fieldset.movement-section').forEach(section=>{section.querySelectorAll('.field').forEach(field=>{const controls=[...field.querySelectorAll('input,select,textarea')];field.classList.toggle('simple-hidden',simple&&!controls.some(c=>keep.has(c.id)))});section.classList.toggle('simple-hidden',simple&&![...section.querySelectorAll('.field')].some(f=>!f.classList.contains('simple-hidden')))});
  const labels={fType:'¿Es un gasto o un ingreso?',fAmount:'¿De cuánto? (€)',fConcept:'¿De qué es?',fDate:'¿Cuándo?',fPerson:'¿De quién es?',fBank:'¿Desde qué cuenta?',fPaymentMethod:'¿Cómo se ha pagado o cobrado?'};
  for(const [id,label] of Object.entries(labels))form.querySelector('label[for="'+id+'"]').textContent=label;

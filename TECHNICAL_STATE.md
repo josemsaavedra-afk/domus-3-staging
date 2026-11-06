@@ -1,3 +1,7 @@
+## 06/11/2026 — Incidencia #11, Ámbito en el formulario corto
+
+Rama de trabajo `work/movement-scope-visible-11` a partir de `04e435cf`. «Ámbito» ya estaba junto a «Categoría» en la clasificación; faltaba conservarlo al activar el formulario corto. Se reutilizan el selector, sus opciones y la lógica de persistencia existentes. Comprobación Node de la función real con DOM simulado: visible en ambos modos, selección preservada y otros campos sin cambio. Huella del HTML actualizada en el manifiesto. No se han probado escrituras autenticadas ni Safari/iPhone. No se cambia la numeración de build en esta rama de corrección ni se publica Pages: al integrar, reservar el siguiente build junto con el resto de cambios aprobados y verificar el bundle publicado. La incidencia permanece abierta hasta aceptación.
+
 ## DOMUS 3.0 Staging — Build 30143, Z26 y Agenda (2026-10-28)
 
 - Lector documental ONLOGIST: acepta prefijos de comisión V26 y Z26 en referencia principal y referencias relacionadas. Ambos siguen el criterio de comisión de total neto; no se cambia seguro VS ni autofactura G.
