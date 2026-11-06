@@ -1069,14 +1069,19 @@ udocReviewButton.addEventListener('click',async()=>{
   if(user?.id!==owner||household?.id!==home||selectedDocumentFiles[0]!==file)throw new Error('La sesión o el documento han cambiado.');
   if(result.schema_version!=='1.0'||result.automatic_economic_action!==false||result.source_sha256!==digest||!Array.isArray(result.attempts))throw new Error('La respuesta de UDOC no corresponde al documento.');
   if(result.status==='PENDING_AI'){status.textContent='El proveedor de IA no está activo.';return}
-  for(const [index,attempt] of result.attempts.entries()){
+  const interpretations=result.attempts.filter(attempt=>attempt?.interpretation);
+  if(!interpretations.length){status.textContent='UDOC no devolvió una propuesta que se pueda revisar.';return}
+  const documentTypes={delivery_note:'Albarán',invoice:'Factura',unknown:'Tipo por confirmar'};
+  for(const [index,attempt] of interpretations.entries()){
    const group=document.createElement('fieldset'),legend=document.createElement('legend');
-   legend.textContent='Lectura '+(index+1);group.append(legend);
-   for(const field of attempt.interpretation?.fields||[]){
+   const reading=attempt.interpretation, type=reading.document_type;
+   const typeLabel=Object.hasOwn(documentTypes,type)?documentTypes[type]:type;
+   legend.textContent='Lectura '+(index+1)+(typeLabel?' · '+typeLabel:'');group.append(legend);
+   for(const field of reading.fields||[]){
     const label=document.createElement('label'),input=document.createElement('input');
     label.textContent=field.path+' ';input.type='text';input.value=field.value??'';label.append(input);group.append(label);
    }
-   for(const issue of attempt.issues||[]){const note=document.createElement('p');note.textContent=issue;group.append(note)}
+   for(const issue of new Set([...(reading.warnings||[]),...(reading.contradictions||[]),...(attempt.issues||[])])){const note=document.createElement('p');note.textContent=issue;group.append(note)}
    fields.append(group);
   }
   status.textContent='Lectura disponible para revisión.';

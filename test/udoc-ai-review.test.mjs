@@ -42,7 +42,7 @@ async function run(documentText, fields, overrides = {}) {
       requests.push({ url, options });
       return { ok: true, json: async () => ({
         schema_version: '1.0', automatic_economic_action: false, source_sha256: digest,
-        status: 'NEEDS_REVIEW', attempts: [{ interpretation: { fields } }], ...overrides,
+        status: 'NEEDS_REVIEW', attempts: [{ interpretation: { fields, document_type: fields[0]?.value, warnings: ['Comprobar con el original'] } }], ...overrides,
       }) };
     },
   });
@@ -67,7 +67,9 @@ for (const [label, documentText, kind] of [
     const ids = await run(documentText, [{ path: 'document.kind', value: kind }]);
     assert.equal(ids.get('udocReviewDialog').open, true);
     const [group] = ids.get('udocReviewFields').children;
-    const [, fieldLabel] = group.children;
+    const [legend, fieldLabel, warning] = group.children;
+    assert.match(legend.textContent, kind === 'invoice' ? /Factura/ : /Albarán/);
+    assert.equal(warning.textContent, 'Comprobar con el original');
     const [input] = fieldLabel.children;
     assert.equal(input.type, 'text');
     assert.equal(input.value, kind);
@@ -78,4 +80,10 @@ test('a response for another original is rejected before review opens', async ()
   const ids = await run('original', [], { source_sha256: 'wrong' });
   assert.equal(ids.get('udocReviewDialog').open, undefined);
   assert.match(ids.get('udocReviewStatus').textContent, /no corresponde/);
+});
+
+test('an empty interpretation does not open a blank review', async () => {
+  const ids = await run('original', [], { attempts: [] });
+  assert.equal(ids.get('udocReviewDialog').open, undefined);
+  assert.match(ids.get('udocReviewStatus').textContent, /no devolvió una propuesta/);
 });
