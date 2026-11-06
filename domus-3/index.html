@@ -201,7 +201,7 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.123 · Build 30163<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.124 · Build 30165<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -302,6 +302,14 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
           <div class="field"><label for="docSeries">Vincular a movimiento existente (opcional)</label><select id="docSeries"></select></div>
           <div class="field"><label for="docNotes">Notas</label><textarea id="docNotes"></textarea></div>
           <button class="btn primary" id="uploadDocBtn" type="button" onclick="importSelectedDocuments()">Leer y proponer movimientos</button>
+          <button class="btn" id="udocReviewBtn" type="button" hidden>Analizar con IA</button>
+          <p id="udocReviewStatus" role="status" aria-live="polite"></p>
+          <dialog id="udocReviewDialog" aria-labelledby="udocReviewTitle">
+            <h2 id="udocReviewTitle">Revisar lectura de IA</h2>
+            <p>Comprueba cada dato con el original. Los cambios de esta vista son provisionales.</p>
+            <div id="udocReviewFields" class="stack"></div>
+            <form method="dialog"><button class="btn" type="submit">Cerrar revisión</button></form>
+          </dialog>
           <div id="docProgress" class="progress"></div>
           <div class="doc-batch"><strong>Control de duplicados</strong><div class="muted">DOMUS comprueba número de factura y emisor. Compartir fecha e importe no basta para considerar dos facturas duplicadas.</div></div>
         </div>
@@ -1025,6 +1033,65 @@ async function importSelectedDocuments(){
  }catch(err){alert(friendlyCloudError(err));document.getElementById('docProgress').textContent='Error: '+friendlyCloudError(err)}
  finally{setBusy(btn,false)}
 }
+const udocReviewButton=document.getElementById('udocReviewBtn');
+const udocReviewUrl=(()=>{
+ const configured=window.DOMUS_CONFIG?.udocReviewOrigin;
+ if(window.DOMUS_CONFIG?.udocReview!==true)return null;
+ if(!configured)return '/v1/documents/review';
+ try{
+  const url=new URL(configured);
+  if(url.protocol==='https:'&&url.origin===configured)return url.origin+'/v1/documents/review';
+ }catch{}
+ return null;
+})();
+udocReviewButton.hidden=!udocReviewUrl;
+udocReviewButton.addEventListener('click',async()=>{
+ const status=document.getElementById('udocReviewStatus');
+ const dialog=document.getElementById('udocReviewDialog');
+ const fields=document.getElementById('udocReviewFields');
+ if(!udocReviewUrl||udocReviewButton.disabled)return;
+ if(selectedDocumentFiles.length!==1){status.textContent='Selecciona un único documento.';return}
+ const file=selectedDocumentFiles[0],owner=user?.id,home=household?.id;
+ if(!owner||!home||!sb){status.textContent='Inicia sesión para analizar el documento.';return}
+ udocReviewButton.disabled=true;
+ status.textContent='Analizando con IA…';
+ fields.replaceChildren();
+ try{
+  const {data,error}=await sb.auth.getSession();
+  if(error||data.session?.user?.id!==owner||!data.session.access_token||household?.id!==home)throw new Error('La sesión ha cambiado.');
+  const response=await fetch(udocReviewUrl,{
+   method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':file.type||'application/octet-stream'},
+   body:file,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(90000)
+  });
+  if(!response.ok)throw new Error('UDOC no pudo analizar el archivo.');
+  const result=await response.json();
+  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer())),byte=>byte.toString(16).padStart(2,'0')).join('');
+  if(user?.id!==owner||household?.id!==home||selectedDocumentFiles[0]!==file)throw new Error('La sesión o el documento han cambiado.');
+  if(result.schema_version!=='1.0'||result.automatic_economic_action!==false||result.source_sha256!==digest||!Array.isArray(result.attempts))throw new Error('La respuesta de UDOC no corresponde al documento.');
+  if(result.status==='PENDING_AI'){status.textContent='El proveedor de IA no está activo.';return}
+  const interpretations=result.attempts.filter(attempt=>attempt?.interpretation);
+  if(!interpretations.length){status.textContent='UDOC no devolvió una propuesta que se pueda revisar.';return}
+  const documentTypes={delivery_note:'Albarán',invoice:'Factura',unknown:'Tipo por confirmar'};
+  for(const [index,attempt] of interpretations.entries()){
+   const group=document.createElement('fieldset'),legend=document.createElement('legend');
+   const reading=attempt.interpretation, type=reading.document_type;
+   const typeLabel=Object.hasOwn(documentTypes,type)?documentTypes[type]:type;
+   legend.textContent='Lectura '+(index+1)+(typeLabel?' · '+typeLabel:'');group.append(legend);
+   for(const field of reading.fields||[]){
+    const label=document.createElement('label'),input=document.createElement('input');
+    label.textContent=field.path+' ';input.type='text';input.value=field.value??'';label.append(input);group.append(label);
+   }
+   for(const issue of new Set([...(reading.warnings||[]),...(reading.contradictions||[]),...(attempt.issues||[])])){const note=document.createElement('p');note.textContent=issue;group.append(note)}
+   fields.append(group);
+  }
+  status.textContent='Lectura disponible para revisión.';
+  dialog.showModal();
+ }catch(error){status.textContent=error.message||'No se pudo completar el análisis.'}
+ finally{udocReviewButton.disabled=false}
+});
+document.getElementById('udocReviewDialog').addEventListener('close',()=>{
+ document.getElementById('udocReviewFields').replaceChildren();
+});
 async function getDocumentBlob(d){const {data,error}=await sb.storage.from('household-documents').createSignedUrl(d.storage_path,120);if(error)throw error;const r=await fetch(data.signedUrl);if(!r.ok)throw new Error('No se pudo leer el archivo');return await r.blob()}
 async function analyzeDocument(id){const d=documents.find(x=>x.id===id);if(!d)return;document.getElementById('docProgress').textContent='Leyendo '+d.file_name+'…';try{await sb.from('documents').update({analysis_status:'processing'}).eq('id',id);const blob=await getDocumentBlob(d);await analyzeBlob(d,blob)}catch(e){await sb.from('documents').update({analysis_status:'error'}).eq('id',id);alert(e.message)}}
 let lastDocumentOcrConfidence=null,lastDocumentOcrMode='';
@@ -2093,7 +2160,7 @@ const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30163';
+const APP_BUILD='30165';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{
