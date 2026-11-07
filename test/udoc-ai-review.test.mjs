@@ -10,6 +10,7 @@ const handler = html.slice(html.indexOf('const udocReviewButton='), html.indexOf
 function element() {
   return {
     children: [],
+    dataset: {},
     handlers: {},
     addEventListener(name, listener) { this.handlers[name] = listener; },
     append(child) { this.children.push(child); },
