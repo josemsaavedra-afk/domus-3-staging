@@ -73,6 +73,8 @@
 /* Movimientos 30128: filtros combinables por naturaleza y estado */
 .movement-filter-stack{display:grid;gap:8px;margin-bottom:12px}.movement-filter-stack .movement-filter-tabs{margin:0}.movement-filter-stack .movement-filter-tabs:first-child:before{content:'Naturaleza';font-size:12px;font-weight:800;color:var(--muted);margin-right:8px;align-self:center}.movement-filter-stack .movement-filter-tabs:last-child:before{content:'Estado';font-size:12px;font-weight:800;color:var(--muted);margin-right:8px;align-self:center}@media(max-width:700px){.movement-filter-stack .movement-filter-tabs{overflow-x:auto;display:flex;flex-wrap:nowrap;padding-bottom:2px}.movement-filter-stack .movement-filter-tabs:before{position:sticky;left:0;background:var(--card);z-index:1;padding-right:4px}.movement-filter-stack button{white-space:nowrap}}
 .simple-hidden{display:none!important}.simple-entry fieldset>legend,.simple-entry fieldset>p,.simple-entry .field>small{display:none}.simple-entry fieldset{border:0;padding:8px 0}.simple-entry #movementAdvanced{margin-top:12px}
+
+#udocReviewDialog{width:min(680px,calc(100vw - 24px));max-height:85dvh;overflow:auto;box-sizing:border-box;border:1px solid var(--line);border-radius:16px;padding:18px;color:var(--ink)}#udocReviewDialog::backdrop{background:#10212a88}#udocReviewFields fieldset{min-width:0;border:1px solid var(--line);border-radius:10px;padding:12px}#udocReviewFields label{font-size:13px;font-weight:600;min-width:0}#udocReviewFields input{width:100%;min-width:0;box-sizing:border-box;font-size:16px;font-weight:400}#udocReviewFields p{overflow-wrap:anywhere;font-size:13px;line-height:1.45}
 </style>
 <style>
 .treasury3-note{margin:0 0 14px;padding:12px 14px;border:1px solid #b9d4c4;border-radius:12px;background:#eef8f2;color:#22543d}
@@ -1073,7 +1075,7 @@ udocReviewButton.addEventListener('click',async()=>{
   if(!interpretations.length){status.textContent='UDOC no devolvió una propuesta que se pueda revisar.';return}
   const documentTypes={delivery_note:'Albarán',invoice:'Factura',unknown:'Tipo por confirmar'};
   for(const [index,attempt] of interpretations.entries()){
-   const group=document.createElement('fieldset'),legend=document.createElement('legend');
+   const group=document.createElement('fieldset'),legend=document.createElement('legend');group.className='stack';
    const reading=attempt.interpretation, type=reading.document_type;
    const typeLabel=Object.hasOwn(documentTypes,type)?documentTypes[type]:type;
    legend.textContent='Lectura '+(index+1)+(typeLabel?' · '+typeLabel:'');group.append(legend);
@@ -1081,7 +1083,7 @@ udocReviewButton.addEventListener('click',async()=>{
     const label=document.createElement('label'),input=document.createElement('input');
     const names={'document.kind':'Clase de documento','reference.document':'Número del documento','date.issue':'Fecha del documento','date.economic':'Fecha económica','party.recipient.name':'Destinatario','party.recipient.tax_id':'Identificación del destinatario','party.issuer.name':'Emisor','party.issuer.tax_id':'Identificación del emisor','total.payable':'Total a pagar','total.base':'Base imponible','total.vat':'IVA','total.withholding':'Retención','total.gross':'Importe bruto'};
     const friendlyPath=names[field.path]||field.path.replace(/^reference\.invoice\.(\d+)$/,'Factura relacionada $1').replace(/^reference\.insurance_notice\.(\d+)$/,'Seguro relacionado $1').replace(/^line\.(\d+)\.total$/,'Línea $1 · importe').replace(/^line\.(\d+)\.description$/,'Línea $1 · concepto');
-    label.textContent=friendlyPath+' ';input.type='text';input.value=field.value??'';input.dataset.udocPath=field.path;label.append(input);group.append(label);
+    label.className='field';label.textContent=friendlyPath+' ';input.type='text';input.value=field.value??'';input.dataset.udocPath=field.path;label.append(input);group.append(label);
    }
    for(const issue of new Set([...(reading.warnings||[]),...(reading.contradictions||[]),...(attempt.issues||[])])){const note=document.createElement('p');note.textContent=issue;group.append(note)}
    fields.append(group);
