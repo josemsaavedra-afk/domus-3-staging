@@ -88,3 +88,12 @@ test('an empty interpretation does not open a blank review', async () => {
   assert.equal(ids.get('udocReviewDialog').open, undefined);
   assert.match(ids.get('udocReviewStatus').textContent, /no devolvió una propuesta/);
 });
+
+
+test('an unvalidated paid interpretation is visibly quarantined for review', async () => {
+ const ids=await run('protocol',[],{attempts:[{status:'INVALID_PROPOSAL',interpretation:{document_type:'unknown',fields:[],warnings:[]},issues:['contract:invalid_field_format']}]});
+ assert.equal(ids.get('udocReviewDialog').open,true);
+ assert.match(ids.get('udocReviewStatus').textContent,/errores de validación/);
+ const [group]=ids.get('udocReviewFields').children;
+ assert.match(group.children[1].textContent,/no es una propuesta validada/);
+});
