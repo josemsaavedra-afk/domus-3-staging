@@ -2,5 +2,7 @@
 window.DOMUS_CONFIG = window.DOMUS_CONFIG || Object.freeze({
   supabaseUrl: 'https://pmgonotpbmybtwvxbcvf.supabase.co',
   supabasePublishableKey: 'sb_publishable_kOoBByqva-Ik0kBE-7VUyA_T8J_xmVc',
-  treasuryPersistence: true
+  treasuryPersistence: true,
+  udocReview: true,
+  udocReviewOrigin: 'https://udoc-domus-staging.onrender.com'
 });
