@@ -49,7 +49,8 @@ async function confirmImport(){
   if(itemsError)throw itemsError;
   let added=0,unchanged=0;
   for(const item of raw.items){
-   const concept=item.description+' '+marker(item.id);
+   const label={planned:'Previsto',reserved:'Reservado (pago sin confirmar)',paid:'Pagado (conciliar)',estimate:'Estimación'}[item.status];
+   const concept=item.description+' · '+label+' '+marker(item.id);
    const prior=(existing||[]).find(x=>x.concept===concept);
    if(prior){
     if(prior.status!=='planned'||Math.round(Number(prior.amount)*100)!==item.amount_cents)throw Error('Partida existente modificada: '+item.id+'. No se sobrescribe.');
