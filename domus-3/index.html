@@ -286,6 +286,14 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
       <p id="budgetItemMsg" role="status"></p>
     </div>
   </div>
+  <div class="card" style="margin-top:16px">
+    <h2>Importar plan desde ChatGPT</h2>
+    <p class="muted">Pega un JSON con formato domus.plan-import.v1. Revisa las partidas antes de confirmar. No se crean movimientos bancarios ni se consideran pagadas las reservas.</p>
+    <div class="field"><label for="planImportJson">Datos del plan (JSON)</label><textarea id="planImportJson" rows="5" spellcheck="false" placeholder="Pega aquí el JSON del plan"></textarea></div>
+    <div class="actions"><button class="btn" type="button" onclick="DOMUSPlanImport.preview()">Previsualizar</button><button id="planImportConfirm" class="btn primary" type="button" disabled onclick="DOMUSPlanImport.confirmImport()">Confirmar importación</button></div>
+    <div id="planImportPreview" aria-live="polite" style="margin-top:12px"></div>
+    <p id="planImportMessage" role="status" aria-live="polite"></p>
+  </div>
   <div id="budgetPlanList" style="margin-top:16px"></div>
 </section>
 
@@ -2203,6 +2211,7 @@ function closeModalFromBackdrop(event){
 document.querySelectorAll('.modal').forEach(modal=>modal.addEventListener('click',closeModalFromBackdrop));
 boot();
 </script>
+<script src="./src/treasury/plan-import.js"></script>
 <script type="module" src="./src/treasury/ui.js"></script>
 </body>
 </html>
