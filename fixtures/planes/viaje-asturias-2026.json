@@ -1,0 +1,117 @@
+{
+  "schema_version": "domus.plan-import.v1",
+  "external_id": "chatgpt:asturias:2026-12-04:2026-12-08",
+  "title": "Viaje a Asturias · 4–8 diciembre 2026",
+  "start_date": "2026-12-04",
+  "end_date": "2026-12-08",
+  "people": 2,
+  "currency": "EUR",
+  "budget_limit_cents": 120000,
+  "items": [
+    {
+      "id": "hotel-zamora",
+      "description": "Hotel Alda Mercado de Zamora",
+      "amount_cents": 9000,
+      "status": "reserved",
+      "date": "2026-12-04"
+    },
+    {
+      "id": "hotel-oviedo",
+      "description": "Eurostars Hotel de la Reconquista",
+      "amount_cents": 15200,
+      "status": "reserved",
+      "date": "2026-12-05"
+    },
+    {
+      "id": "hotel-covadonga",
+      "description": "Gran Hotel Pelayo",
+      "amount_cents": 10200,
+      "status": "reserved",
+      "date": "2026-12-06"
+    },
+    {
+      "id": "hotel-cangas",
+      "description": "Hotel Cangas de Onís (nombre pendiente)",
+      "amount_cents": 10400,
+      "status": "reserved",
+      "date": "2026-12-07"
+    },
+    {
+      "id": "rental",
+      "description": "Coche de alquiler",
+      "amount_cents": 10217,
+      "status": "paid",
+      "date": null
+    },
+    {
+      "id": "lakes-bus",
+      "description": "Autobús Lagos de Covadonga, dos personas",
+      "amount_cents": 1800,
+      "status": "planned",
+      "date": "2026-12-07"
+    },
+    {
+      "id": "bulnes",
+      "description": "Funicular Bulnes, dos personas",
+      "amount_cents": 4432,
+      "status": "planned",
+      "date": "2026-12-08"
+    },
+    {
+      "id": "fuel",
+      "description": "Combustible",
+      "amount_cents": 21000,
+      "status": "estimate",
+      "date": null
+    },
+    {
+      "id": "tolls-parking",
+      "description": "Peajes y aparcamientos",
+      "amount_cents": 6500,
+      "status": "estimate",
+      "date": null
+    },
+    {
+      "id": "food",
+      "description": "Restauración",
+      "amount_cents": 27000,
+      "status": "estimate",
+      "date": null
+    },
+    {
+      "id": "visits",
+      "description": "Visitas adicionales",
+      "amount_cents": 2000,
+      "status": "estimate",
+      "date": null
+    }
+  ],
+  "itinerary": [
+    {
+      "date": "2026-12-04",
+      "description": "Zamora"
+    },
+    {
+      "date": "2026-12-05",
+      "description": "Monte Naranco, Oviedo"
+    },
+    {
+      "date": "2026-12-06",
+      "description": "Cudillero, Gijón, Ribadesella, Covadonga"
+    },
+    {
+      "date": "2026-12-07",
+      "description": "Covadonga, Lagos, Cangas de Onís"
+    },
+    {
+      "date": "2026-12-08",
+      "description": "Bulnes, Guijuelo, Alcalá de Guadaíra"
+    }
+  ],
+  "notes": [
+    "Hoteles reservados, no asumir pagados",
+    "Alquiler pagado: conciliar sin duplicar movimiento",
+    "Autobús y funicular aún no confirmados como comprados",
+    "Misa del 7 de diciembre pendiente de confirmar por posible horario festivo"
+  ]
+}
