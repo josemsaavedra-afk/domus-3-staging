@@ -64,3 +64,9 @@ test('confirm creates only budget records and reimport is idempotent',async()=>{
  assert.equal(tables.budget_items.length,11);
  assert.equal(refreshes,2);
 });
+
+test('paid imported rental cannot be converted into a second treasury movement',()=>{
+ const html=fs.readFileSync(new URL('../domus-3/index.html',import.meta.url),'utf8');
+ assert.match(html,/async function convertBudgetItem\(item\)[\s\S]*?Estado: Pagado \(conciliar\)/);
+ assert.match(html,/Concíliala con el movimiento existente/);
+});
