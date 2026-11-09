@@ -203,7 +203,7 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.125 · Build 30166<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.127 · Build 30168<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -296,7 +296,7 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
     <div class="card"><h2>Importar movimientos bancarios</h2><p>Compara un CSV con lo que ya has registrado. La revisión es opcional y no calcula saldos bancarios.</p><button class="btn" type="button" onclick="openBankImport()">Importar CSV del banco</button></div>
     <div class="grid two">
       <div class="card"><div class="section-title"><h2>Gestión de documentos</h2><span class="badge-v">3.0 · RC1</span></div>
-        <p class="muted">Selecciona una o varias facturas, tickets o justificantes desde Archivos/iCloud. DOMUS los lee para proponerte movimientos, pero <strong>no conserva una copia del PDF o la foto</strong>: guarda el nombre y la relación con el movimiento.</p>
+        <p class="muted">Selecciona una o varias facturas, tickets o justificantes desde Archivos/iCloud. DOMUS conserva el original archivado cuando el almacenamiento está disponible, junto con su lectura y la relación con el movimiento confirmado.</p>
         <div class="stack">
           <div class="field"><label>Documentos</label><div class="actions"><button class="btn" type="button" onclick="document.getElementById('docCamera').click()">📷 Cámara</button><button class="btn" type="button" onclick="document.getElementById('docPhoto').click()">🖼️ Fototeca</button><button class="btn primary" type="button" onclick="document.getElementById('docFile').click()">📁 Archivos / iCloud</button></div><input id="docCamera" class="hidden" type="file" accept="image/*" capture="environment" onchange="selectDocumentFiles(this)"><input id="docPhoto" class="hidden" type="file" accept="image/*" multiple onchange="selectDocumentFiles(this)"><input id="docFile" class="hidden" type="file" multiple accept="image/*,.pdf,application/pdf,.csv,text/csv,text/plain" onchange="selectDocumentFiles(this)"><div id="docSelectedFile" class="muted" style="margin-top:8px">Ningún archivo seleccionado.</div></div>
           <div class="field"><label for="docType">Tipo por defecto</label><select id="docType"><option value="invoice">Factura</option><option value="ticket">Ticket</option><option value="receipt">Recibo</option><option value="bank_statement">Extracto bancario</option><option value="proof">Justificante de pago/cobro</option><option value="other">Otro</option></select></div>
@@ -308,9 +308,9 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
           <p id="udocReviewStatus" role="status" aria-live="polite"></p>
           <dialog id="udocReviewDialog" aria-labelledby="udocReviewTitle">
             <h2 id="udocReviewTitle">Revisar lectura de IA</h2>
-            <p>Comprueba cada dato con el original. Los cambios de esta vista son provisionales.</p>
+            <p>Comprueba cada dato con el original. Guarda primero la revisión; el movimiento sólo se crea después, desde la propuesta, con una confirmación expresa.</p>
             <div id="udocReviewFields" class="stack"></div>
-            <form method="dialog"><button class="btn" type="submit">Cerrar revisión</button></form>
+            <div class="actions"><button class="btn primary" id="udocReviewSaveBtn" type="button">Guardar revisión y preparar propuesta</button><form method="dialog"><button class="btn" type="submit">Cerrar revisión</button></form></div>
           </dialog>
           <div id="docProgress" class="progress"></div>
           <div class="doc-batch"><strong>Control de duplicados</strong><div class="muted">DOMUS comprueba número de factura y emisor. Compartir fecha e importe no basta para considerar dos facturas duplicadas.</div></div>
@@ -932,6 +932,7 @@ async function reanalyzePendingDocuments(){
 function openStoredDocumentDraft(id){const doc=documents.find(d=>d.id===id);if(!doc?.extracted_data?.drafts?.length)return;pendingDocumentDraftBatches=[];renderDocDrafts(structuredClone(doc.extracted_data.drafts),doc)}
 function documentArchiveState(d){
  const drafts=Array.isArray(d.extracted_data?.drafts)?d.extracted_data.drafts:[];
+  const blocked=(d.extracted_data?.udoc_latest_review?.attempts||[]).some(x=>x.status==='INVALID_PROPOSAL');
  const confirmed=drafts.filter(x=>x.review_status==='confirmed'&&x.confirmed_series_id&&series.some(m=>m.id===x.confirmed_series_id));
  const missing=drafts.filter(x=>x.review_status==='confirmed'&&(!x.confirmed_series_id||!series.some(m=>m.id===x.confirmed_series_id)));
  const unconfirmed=drafts.filter(x=>x.review_status!=='confirmed');
@@ -942,6 +943,7 @@ function documentArchiveState(d){
  if(duplicates.length)return {label:'POSIBLE DUPLICADO',color:'#8b4500',bg:'#fff0d6',detail:'Ya existe una factura con el mismo número y emisor. Revisar antes de crear.'};
  if(d.analysis_status==='error')return {label:'ERROR DE LECTURA',color:'#a4262c',bg:'#ffebed',detail:'No se ha generado un movimiento; revisa el documento'};
  if(d.analysis_status==='processing')return {label:'PROCESANDO',color:'#555',bg:'#f1f1f1',detail:'Lectura todavía sin terminar'};
+  if(blocked)return {label:'IA BLOQUEADA',color:'#a4262c',bg:'#ffebed',detail:'La respuesta de IA se conserva con errores de validación; no puede crear un movimiento hasta corregirla.'};
  if(drafts.length)return {label:'PENDIENTE',color:'#735400',bg:'#fff5d8',detail:unconfirmed.length+' propuesta(s) sin confirmar; no están en movimientos'};
  if(d.series_id&&series.some(m=>m.id===d.series_id))return {label:'VINCULADO',color:'#11633b',bg:'#e4f5e9',detail:'Documento asociado a un movimiento existente'};
  return {label:'SIN PROPUESTA',color:'#a4262c',bg:'#ffebed',detail:'No hay propuesta confirmada; revisa la lectura'};
@@ -1025,7 +1027,7 @@ async function importSelectedDocuments(){
     if(row?.id){try{await updateRowSafely('documents',row.id,{analysis_status:'error'})}catch(markErr){console.error('No se pudo marcar el documento fallido',markErr)}}
    }
   }
-  if(!failures.length){selectedDocumentFiles=[];['docFile','docPhoto','docCamera'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});document.getElementById('docSelectedFile').textContent='Ningún archivo seleccionado.'}
+  if(!failures.length){['docFile','docPhoto','docCamera'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});if(files.length===1){selectedDocumentFiles=[files[0]];document.getElementById('docSelectedFile').textContent='Original archivado: '+files[0].name+'. Puedes analizarlo con IA o volver a seleccionarlo.'}else{selectedDocumentFiles=[];document.getElementById('docSelectedFile').textContent='Ningún archivo seleccionado.'}}
   else{selectedDocumentFiles=files.filter(f=>failures.some(e=>e.startsWith(f.name+':')));document.getElementById('docSelectedFile').textContent=selectedDocumentFiles.length+' archivo(s) con incidencia. Comprueba el Archivo de referencia antes de volver a subirlos para evitar duplicados.'}
   document.getElementById('docProgress').textContent=`${processed}/${files.length} documentos leídos; ${skippedDuplicates} posibles duplicados omitidos; ${failures.length} con error. Solo se crean movimientos al confirmar cada propuesta.`+(failures.length?' Fallos: '+failures.join(' | '):'');
   await refreshAll();
@@ -1036,6 +1038,43 @@ async function importSelectedDocuments(){
  finally{setBusy(btn,false)}
 }
 const udocReviewButton=document.getElementById('udocReviewBtn');
+let udocReviewSession=null,udocReviewSaving=false;
+const udocMoney=value=>{const raw=String(value??'').trim().replace(/\s/g,'').replace(/€/g,'');if(!raw)return null;const normalized=raw.includes(',')&&raw.includes('.')?(raw.lastIndexOf(',')>raw.lastIndexOf('.')?raw.replaceAll('.','').replace(',','.'):raw.replaceAll(',','')):raw.replace(',','.');const number=Number(normalized);return Number.isFinite(number)&&number>0&&number<10000000?number:null};
+const udocDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||''))?String(value):null;
+function udocFieldsForAttempt(attemptIndex){const values={};for(const input of document.querySelectorAll('[data-udoc-attempt="'+attemptIndex+'"]'))values[input.dataset.udocPath]=input.value.trim()||null;return values}
+function udocDraftFromReview(attempt,values){
+ const reading=attempt?.interpretation||{},kind=values['document.kind']||reading.document_type;
+ const issuer=values['party.issuer.name'],invoice=values['reference.document'],date=udocDate(values['date.economic']||values['date.issue']),amount=udocMoney(values['total.payable']??values['total.gross']);
+ const context=Object.values(values).filter(v=>v!=null).join(' ').toLowerCase();
+ // Never turn settlements, reimbursements, reservations or supporting documents into a generic invoice.
+ if(kind!=='invoice'||!issuer||!invoice||!date||amount===null||/\brhd\b|driiveme|reembolso|reservation|reserva|albar[aá]n|justificante/.test(context))return null;
+ return {type:'expense',concept:String(issuer),counterparty:String(issuer),invoice_number:String(invoice),amount,date,due_date:date,document_date:date,recurrence:'none',source:'udoc_ai_review',movement_role:'standard',expense_scope:'unclassified',extraction_quality:'medium',review_required:true,field_sources:{concept:'revisión IA guardada',counterparty:'revisión IA guardada',invoice_number:'revisión IA guardada',amount:'revisión IA guardada',document_date:'revisión IA guardada'},udoc_review:true};
+}
+async function udocArchivedDocument(file){
+ const result=await sb.from('documents').select('*').eq('household_id',household.id).eq('file_name',file.name).eq('file_size',file.size).limit(3);
+ if(result.error)throw result.error;
+ const matches=(result.data||[]).filter(d=>d.storage_path&&d.file_retained);
+ if(matches.length!==1)throw new Error(matches.length?'Hay varios documentos archivados con ese nombre y tamaño. Abre el Archivo de referencias y selecciona el correcto antes de guardar la revisión.':'Primero importa y archiva este original en DOMUS. No se puede guardar una revisión IA sin documento conservado.');
+ return matches[0];
+}
+async function saveUdocReview(){
+ const status=document.getElementById('udocReviewStatus'),dialog=document.getElementById('udocReviewDialog'),session=udocReviewSession;
+ if(udocReviewSaving||!session)return;if(user?.id!==session.owner||household?.id!==session.home||selectedDocumentFiles[0]!==session.file){status.textContent='La sesión o el documento han cambiado. La revisión no se ha guardado.';return}
+ udocReviewSaving=true;const button=document.getElementById('udocReviewSaveBtn');button.disabled=true;status.textContent='Guardando revisión…';
+ try{
+  const doc=await udocArchivedDocument(session.file),history=Array.isArray(doc.extracted_data?.udoc_review_history)?doc.extracted_data.udoc_review_history:[];
+  const attempts=session.interpretations.map((attempt,index)=>{const values=udocFieldsForAttempt(index);return {status:attempt.status||'NEEDS_REVIEW',issues:Array.isArray(attempt.issues)?attempt.issues:[],interpretation:{...attempt.interpretation,fields:(attempt.interpretation?.fields||[]).map(field=>({...field,value:values[field.path]??null}))},corrected_fields:values,draft:attempt.status==='INVALID_PROPOSAL'?null:udocDraftFromReview(attempt,values)};});
+  const drafts=attempts.flatMap(item=>item.draft?[item.draft]:[]),prior=Array.isArray(doc.extracted_data?.drafts)?doc.extracted_data.drafts:[];
+  const sameReview=d=>d.udoc_source_sha256===session.digest&&d.udoc_interpretation_sha256===session.interpretationHash;
+  const preserved=prior.filter(d=>!sameReview(d)),prepared=drafts.map(d=>({...d,udoc_source_sha256:session.digest,udoc_interpretation_sha256:session.interpretationHash}));
+  const record={saved_at:new Date().toISOString(),source_sha256:session.digest,interpretation_sha256:session.interpretationHash,status:session.result.status,attempts};
+  const nextHistory=[...history.filter(item=>item.interpretation_sha256!==session.interpretationHash),record].slice(-20);
+  await updateRowSafely('documents',doc.id,{analysis_status:'review',extracted_data:{...(doc.extracted_data||{}),drafts:[...preserved,...prepared],udoc_review_history:nextHistory,udoc_latest_review:record}});
+  status.textContent=prepared.length?'Revisión guardada. La propuesta queda pendiente de tu confirmación expresa.':'Revisión guardada. Esta lectura no puede crear un movimiento: completa o corrige sus errores en el archivo antes de una propuesta económica.';
+  dialog.close();await refreshAll();
+  if(prepared.length){const refreshed=documents.find(d=>d.id===doc.id)||{...doc,extracted_data:{...(doc.extracted_data||{}),drafts:[...preserved,...prepared]}};renderDocDrafts(structuredClone(refreshed.extracted_data.drafts),refreshed);}
+ }catch(error){status.textContent='No se ha guardado la revisión: '+(error?.message||error)}finally{udocReviewSaving=false;button.disabled=false}
+}
 const udocReviewUrl=(()=>{
  const configured=window.DOMUS_CONFIG?.udocReviewOrigin;
  if(window.DOMUS_CONFIG?.udocReview!==true)return null;
@@ -1084,19 +1123,23 @@ udocReviewButton.addEventListener('click',async()=>{
     const label=document.createElement('label'),input=document.createElement('input');
     const names={'document.kind':'Clase de documento','reference.document':'Número del documento','date.issue':'Fecha del documento','date.economic':'Fecha económica','party.recipient.name':'Destinatario','party.recipient.tax_id':'Identificación del destinatario','party.issuer.name':'Emisor','party.issuer.tax_id':'Identificación del emisor','total.payable':'Total a pagar','total.base':'Base imponible','total.vat':'IVA','total.withholding':'Retención','total.gross':'Importe bruto'};
     const friendlyPath=names[field.path]||field.path.replace(/^reference\.invoice\.(\d+)$/,'Factura relacionada $1').replace(/^reference\.insurance_notice\.(\d+)$/,'Seguro relacionado $1').replace(/^line\.(\d+)\.total$/,'Línea $1 · importe').replace(/^line\.(\d+)\.description$/,'Línea $1 · concepto');
-    label.className='field';label.textContent=friendlyPath+' ';input.type='text';input.value=field.value??'';input.dataset.udocPath=field.path;label.append(input);group.append(label);
+     label.className='field';label.textContent=friendlyPath+' ';input.type='text';input.value=field.value??'';input.dataset.udocPath=field.path;input.dataset.udocAttempt=index;label.append(input);group.append(label);
    }
    for(const issue of new Set([...(reading.warnings||[]),...(reading.contradictions||[]),...(attempt.issues||[])])){const note=document.createElement('p');note.textContent=issue;group.append(note)}
    fields.append(group);
   }
-  status.textContent=interpretations.some(a=>a.status==='INVALID_PROPOSAL')?'Lectura conservada con errores de validación. Revisión obligatoria.':'Lectura disponible para revisión.';
+   const interpretationHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(result.attempts)))),byte=>byte.toString(16).padStart(2,'0')).join('');
+   udocReviewSession={file,owner,home,digest,result,interpretations,interpretationHash};
+   status.textContent=interpretations.some(a=>a.status==='INVALID_PROPOSAL')?'Lectura conservada con errores de validación. Debe guardarse y corregirse; permanece bloqueada para crear movimientos.':'Lectura disponible para revisión y guardado.';
   dialog.showModal();
  }catch(error){status.textContent=error.message||'No se pudo completar el análisis.'}
  finally{udocReviewButton.disabled=false}
 });
 document.getElementById('udocReviewDialog').addEventListener('close',()=>{
  document.getElementById('udocReviewFields').replaceChildren();
+  udocReviewSession=null;
 });
+document.getElementById('udocReviewSaveBtn').addEventListener('click',saveUdocReview);
 async function getDocumentBlob(d){const {data,error}=await sb.storage.from('household-documents').createSignedUrl(d.storage_path,120);if(error)throw error;const r=await fetch(data.signedUrl);if(!r.ok)throw new Error('No se pudo leer el archivo');return await r.blob()}
 async function analyzeDocument(id){const d=documents.find(x=>x.id===id);if(!d)return;document.getElementById('docProgress').textContent='Leyendo '+d.file_name+'…';try{await sb.from('documents').update({analysis_status:'processing'}).eq('id',id);const blob=await getDocumentBlob(d);await analyzeBlob(d,blob)}catch(e){await sb.from('documents').update({analysis_status:'error'}).eq('id',id);alert(e.message)}}
 let lastDocumentOcrConfidence=null,lastDocumentOcrMode='';
@@ -2165,7 +2208,7 @@ const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30166';
+const APP_BUILD='30168';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{

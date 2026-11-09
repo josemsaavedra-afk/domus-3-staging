@@ -32,7 +32,7 @@ async function run(documentText, fields, overrides = {}) {
   };
   const requests = [];
   const context = vm.createContext({
-    document, crypto: webcrypto, URL, AbortSignal,
+    document, crypto: webcrypto, URL, AbortSignal, TextEncoder,
     window: { DOMUS_CONFIG: { udocReview: true, udocReviewOrigin: 'https://udoc.example' } },
     selectedDocumentFiles: [file],
     user: { id: 'fixture-user' }, household: { id: 'fixture-home' },
@@ -96,4 +96,20 @@ test('an unvalidated paid interpretation is visibly quarantined for review', asy
  assert.match(ids.get('udocReviewStatus').textContent,/errores de validación/);
  const [group]=ids.get('udocReviewFields').children;
  assert.match(group.children[1].textContent,/no es una propuesta validada/);
+});
+
+test('only a complete reviewed invoice becomes a draft and settlement-like readings remain blocked', async () => {
+  const source = html.slice(html.indexOf('const udocReviewButton='), html.indexOf('async function getDocumentBlob'));
+  const context = vm.createContext({ document: { querySelectorAll: () => [] } });
+  vm.runInContext(source.slice(source.indexOf('const udocMoney='), source.indexOf('async function udocArchivedDocument'))+';globalThis.__udocDraftFromReview=udocDraftFromReview;', context);
+  const invoice = context.__udocDraftFromReview({ interpretation: { document_type: 'invoice' } }, {
+    'document.kind': 'invoice', 'party.issuer.name': 'Proveedor real', 'reference.document': 'F-42',
+    'date.issue': '2026-11-08', 'total.payable': '12,50 €',
+  });
+  assert.equal(invoice.invoice_number, 'F-42');
+  assert.equal(invoice.amount, 12.5);
+  assert.equal(context.__udocDraftFromReview({ interpretation: { document_type: 'invoice' } }, {
+    'document.kind': 'invoice', 'party.issuer.name': 'RHD', 'reference.document': 'RHD-1',
+    'date.issue': '2026-11-08', 'total.payable': '12,50 €',
+  }), null);
 });
