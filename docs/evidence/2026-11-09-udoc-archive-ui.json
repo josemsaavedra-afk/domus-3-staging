@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-09",
+  "base": "082c9032677358d9d5ebc0f62d6e4f8969069eaf",
+  "public_build": 30167,
+  "candidate_branch_build": 30168,
+  "tests": {
+    "unique": 13,
+    "new": 8,
+    "regression": 5,
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0,
+    "kind": "Node VM against the actual HTML handler, simulated session and HTTP responses"
+  },
+  "pwa": {
+    "untouched_public_asset_hashes_verified": 38,
+    "candidate_assets": 39,
+    "inline_javascript_syntax_checked": true
+  },
+  "writes": {
+    "real_movements": 0,
+    "ai_calls": 0,
+    "deployments": 0
+  },
+  "scope": "Evidence, relations and editable review; archival UI opt-in and response-confirmed. No native Safari/iPhone or real provider acceptance."
+}

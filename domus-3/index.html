@@ -73,6 +73,7 @@
 /* Movimientos 30128: filtros combinables por naturaleza y estado */
 .movement-filter-stack{display:grid;gap:8px;margin-bottom:12px}.movement-filter-stack .movement-filter-tabs{margin:0}.movement-filter-stack .movement-filter-tabs:first-child:before{content:'Naturaleza';font-size:12px;font-weight:800;color:var(--muted);margin-right:8px;align-self:center}.movement-filter-stack .movement-filter-tabs:last-child:before{content:'Estado';font-size:12px;font-weight:800;color:var(--muted);margin-right:8px;align-self:center}@media(max-width:700px){.movement-filter-stack .movement-filter-tabs{overflow-x:auto;display:flex;flex-wrap:nowrap;padding-bottom:2px}.movement-filter-stack .movement-filter-tabs:before{position:sticky;left:0;background:var(--card);z-index:1;padding-right:4px}.movement-filter-stack button{white-space:nowrap}}
 .simple-hidden{display:none!important}.simple-entry fieldset>legend,.simple-entry fieldset>p,.simple-entry .field>small{display:none}.simple-entry fieldset{border:0;padding:8px 0}.simple-entry #movementAdvanced{margin-top:12px}
+#udocSavePanel[hidden],#udocReopenPanel[hidden]{display:none}
 </style>
 <style>
 .treasury3-note{margin:0 0 14px;padding:12px 14px;border:1px solid #b9d4c4;border-radius:12px;background:#eef8f2;color:#22543d}
@@ -203,7 +204,7 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.126 · Build 30167<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.127 · Build 30168<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -314,10 +315,20 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
           <button class="btn primary" id="uploadDocBtn" type="button" onclick="importSelectedDocuments()">Leer y proponer movimientos</button>
           <button class="btn" id="udocReviewBtn" type="button" hidden>Analizar con IA</button>
           <p id="udocReviewStatus" role="status" aria-live="polite"></p>
+          <div id="udocReopenPanel" class="field" hidden>
+            <label for="udocReopenKey">Código de revisión guardada</label><input id="udocReopenKey" type="text" maxlength="64" autocomplete="off">
+            <button class="btn" id="udocReopenBtn" type="button">Reabrir sin volver a analizar</button>
+          </div>
           <dialog id="udocReviewDialog" aria-labelledby="udocReviewTitle">
             <h2 id="udocReviewTitle">Revisar lectura de IA</h2>
             <p>Comprueba cada dato con el original. Los cambios de esta vista son provisionales.</p>
             <div id="udocReviewFields" class="stack"></div>
+            <p id="udocReviewReference" class="muted" style="overflow-wrap:anywhere"></p>
+            <div id="udocSavePanel" class="field" hidden>
+              <label for="udocDraftReason">Motivo de la corrección</label><textarea id="udocDraftReason" maxlength="4000"></textarea>
+              <button class="btn" id="udocSaveBtn" type="button">Guardar revisión</button>
+            </div>
+            <p id="udocDraftStatus" role="status" aria-live="polite"></p>
             <form method="dialog"><button class="btn" type="submit">Cerrar revisión</button></form>
           </dialog>
           <div id="docProgress" class="progress"></div>
@@ -501,9 +512,9 @@ function setBusy(el,b){
 
 let passwordRecoveryMode=false,recoveryUserId=null,recoverySaving=false;
 function showPasswordRecovery(){passwordRecoveryMode=true;recoveryUserId=user?.id||null;showOnly('auth');document.getElementById('authForm').classList.add('hidden');document.getElementById('passwordRecoveryForm').classList.remove('hidden');msg('authMsg','Enlace verificado. Define ahora la contraseña nueva.','ok');document.getElementById('recoveryPassword').focus?.()}
-async function boot(){if(!sb){msg('authMsg','Configura el backend aislado de DOMUS 3.0 antes de iniciar sesión.','info');for(const id of ['authSubmit','forgotPasswordBtn','toggleAuthMode'])setBusy(document.getElementById(id),true);return}sb.auth.onAuthStateChange((event,s)=>{if(!s?.user||s.user.id!==user?.id)window.DOMUSTreasury3?.reset?.();if(!s?.user||s.user.id!==user?.id){window.domusCounterparties=[];window.domusCounterpartiesReady=false;window.domusLabels={activities:[],tags:[],ready:false};window.domusRules=[];window.domusRulesReady=false;}session=s;user=s?.user||null;if(event==='PASSWORD_RECOVERY'){showPasswordRecovery();history.replaceState(null,'',location.pathname);return}if(passwordRecoveryMode&&(!user||user.id!==recoveryUserId)){passwordRecoveryMode=false;recoveryUserId=null;document.getElementById('passwordRecoveryForm').classList.add('hidden');document.getElementById('authForm').classList.remove('hidden');document.getElementById('recoveryPassword').value='';document.getElementById('recoveryPasswordConfirm').value=''}if(!passwordRecoveryMode&&!(s?.user?.id&&treasuryLoadedContext?.startsWith(s.user.id+'|')&&['SIGNED_IN','TOKEN_REFRESHED'].includes(event)))setTimeout(()=>routeBySession(),0)});const {data,error}=await sb.auth.getSession();session=data.session;user=session?.user||null;if(!passwordRecoveryMode)await routeBySession();if(error){history.replaceState(null,'',location.pathname);msg('authMsg','El enlace o la sesión no es válido o ha caducado. Solicita otro enlace o vuelve a entrar.','error')}}
-async function routeBySession(){if(passwordRecoveryMode)return;if(!user){showOnly('auth');return}try{const routeUserId=user.id;const loadedMembership=await loadMembership();if(passwordRecoveryMode||user?.id!==routeUserId)return;membership=loadedMembership;if(!membership){window.DOMUSTreasury3?.reset?.();household=null;window.domusCounterparties=[];window.domusCounterpartiesReady=false;window.domusLabels={activities:[],tags:[],ready:false};window.domusRules=[];window.domusRulesReady=false;people=[];accounts=[];categories=[];documents=[];series=[];states=[];rules=null;members=[];onlogistOperations=[];movementLinks=[];await kvPut('snapshot:'+routeUserId,null).catch(()=>{});if(user?.id===routeUserId)showOnly('onboarding');return}if(household?.id!==membership.household.id){documentCatalogsReady=false;window.domusCounterparties=[];window.domusCounterpartiesReady=false;window.domusLabels={activities:[],tags:[],ready:false};window.domusRules=[];window.domusRulesReady=false;}household=membership.household;showOnly('app');await refreshAll();subscribeRealtime();}catch(e){if(passwordRecoveryMode)return;if(isNetworkError(e)&&await loadOfflineSnapshot()){if(passwordRecoveryMode)return;showOnly('app');renderAll();await updateSyncBadge();return}showOnly('auth');msg('authMsg','Error al cargar la sesión: '+e.message,'error')}}
-function showOnly(which){document.getElementById('authScreen').classList.toggle('hidden',which!=='auth');document.getElementById('onboardingScreen').classList.toggle('hidden',which!=='onboarding');document.getElementById('appScreen').classList.toggle('hidden',which!=='app');document.getElementById('bottomNav').classList.toggle('hidden',which!=='app')}
+async function boot(){if(!sb){msg('authMsg','Configura el backend aislado de DOMUS 3.0 antes de iniciar sesión.','info');for(const id of ['authSubmit','forgotPasswordBtn','toggleAuthMode'])setBusy(document.getElementById(id),true);return}sb.auth.onAuthStateChange((event,s)=>{if(!s?.user||s.user.id!==user?.id)window.DOMUSTreasury3?.reset?.();if(!s?.user||s.user.id!==user?.id){udocClearReview();window.domusCounterparties=[];window.domusCounterpartiesReady=false;window.domusLabels={activities:[],tags:[],ready:false};window.domusRules=[];window.domusRulesReady=false;}session=s;user=s?.user||null;if(event==='PASSWORD_RECOVERY'){showPasswordRecovery();history.replaceState(null,'',location.pathname);return}if(passwordRecoveryMode&&(!user||user.id!==recoveryUserId)){passwordRecoveryMode=false;recoveryUserId=null;document.getElementById('passwordRecoveryForm').classList.add('hidden');document.getElementById('authForm').classList.remove('hidden');document.getElementById('recoveryPassword').value='';document.getElementById('recoveryPasswordConfirm').value=''}if(!passwordRecoveryMode&&!(s?.user?.id&&treasuryLoadedContext?.startsWith(s.user.id+'|')&&['SIGNED_IN','TOKEN_REFRESHED'].includes(event)))setTimeout(()=>routeBySession(),0)});const {data,error}=await sb.auth.getSession();session=data.session;user=session?.user||null;if(!passwordRecoveryMode)await routeBySession();if(error){history.replaceState(null,'',location.pathname);msg('authMsg','El enlace o la sesión no es válido o ha caducado. Solicita otro enlace o vuelve a entrar.','error')}}
+async function routeBySession(){if(passwordRecoveryMode)return;if(!user){showOnly('auth');return}try{const routeUserId=user.id;const loadedMembership=await loadMembership();if(passwordRecoveryMode||user?.id!==routeUserId)return;membership=loadedMembership;if(!membership){window.DOMUSTreasury3?.reset?.();household=null;window.domusCounterparties=[];window.domusCounterpartiesReady=false;window.domusLabels={activities:[],tags:[],ready:false};window.domusRules=[];window.domusRulesReady=false;people=[];accounts=[];categories=[];documents=[];series=[];states=[];rules=null;members=[];onlogistOperations=[];movementLinks=[];await kvPut('snapshot:'+routeUserId,null).catch(()=>{});if(user?.id===routeUserId)showOnly('onboarding');return}if(household?.id!==membership.household.id){udocClearReview();documentCatalogsReady=false;window.domusCounterparties=[];window.domusCounterpartiesReady=false;window.domusLabels={activities:[],tags:[],ready:false};window.domusRules=[];window.domusRulesReady=false;}household=membership.household;showOnly('app');await refreshAll();subscribeRealtime();}catch(e){if(passwordRecoveryMode)return;if(isNetworkError(e)&&await loadOfflineSnapshot()){if(passwordRecoveryMode)return;showOnly('app');renderAll();await updateSyncBadge();return}showOnly('auth');msg('authMsg','Error al cargar la sesión: '+e.message,'error')}}
+function showOnly(which){if(which!=='app')udocClearReview();document.getElementById('authScreen').classList.toggle('hidden',which!=='auth');document.getElementById('onboardingScreen').classList.toggle('hidden',which!=='onboarding');document.getElementById('appScreen').classList.toggle('hidden',which!=='app');document.getElementById('bottomNav').classList.toggle('hidden',which!=='app')}
 async function loadMembership(){const {data,error}=await sb.from('household_members').select('*').eq('user_id',user.id).limit(1);if(error)throw error;if(!data?.length)return null;const member=data[0];const {data:hh,error:he}=await sb.from('households').select('*').eq('id',member.household_id).single();if(he)throw he;return {member,household:hh}}
 
 let authMode='login';document.getElementById('toggleAuthMode').onclick=()=>{authMode=authMode==='login'?'signup':'login';document.getElementById('authSubmit').textContent=authMode==='login'?'Entrar':'Crear cuenta';document.getElementById('toggleAuthMode').textContent=authMode==='login'?'Crear cuenta nueva':'Ya tengo cuenta';document.getElementById('authPassword').autocomplete=authMode==='login'?'current-password':'new-password';msg('authMsg','')};
@@ -1044,6 +1055,8 @@ async function importSelectedDocuments(){
  finally{setBusy(btn,false)}
 }
 const udocReviewButton=document.getElementById('udocReviewBtn');
+const udocReopenButton=document.getElementById('udocReopenBtn');
+const udocSaveButton=document.getElementById('udocSaveBtn');
 const udocReviewUrl=(()=>{
  const configured=window.DOMUS_CONFIG?.udocReviewOrigin;
  if(window.DOMUS_CONFIG?.udocReview!==true)return null;
@@ -1054,57 +1067,155 @@ const udocReviewUrl=(()=>{
  }catch{}
  return null;
 })();
+const udocArchiveUi=!!udocReviewUrl&&window.DOMUS_CONFIG?.udocReviewArchive===true;
+const udocHash=/^[a-f0-9]{64}$/;
+let udocActiveDraft=null;
 udocReviewButton.hidden=!udocReviewUrl;
-udocReviewButton.addEventListener('click',async()=>{
- const status=document.getElementById('udocReviewStatus');
- const dialog=document.getElementById('udocReviewDialog');
+document.getElementById('udocReopenPanel').hidden=!udocArchiveUi;
+const udocReviewStatus=()=>document.getElementById('udocReviewStatus');
+const udocReviewDialog=()=>document.getElementById('udocReviewDialog');
+const udocDraftStatus=()=>document.getElementById('udocDraftStatus');
+const udocScope=()=>({owner:user?.id,home:household?.id});
+const udocSameScope=scope=>!!scope.owner&&!!scope.home&&user?.id===scope.owner&&household?.id===scope.home;
+
+async function udocReviewPost(endpoint,body,contentType,scope){
+ if(!udocSameScope(scope)||!sb)throw new Error('Inicia sesión en el hogar correspondiente.');
+ const {data,error}=await sb.auth.getSession();
+ if(error||data.session?.user?.id!==scope.owner||!data.session.access_token||!udocSameScope(scope))throw new Error('La sesión ha cambiado.');
+ const response=await fetch(udocReviewUrl.replace(/\/review$/, '/'+endpoint),{
+  method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':contentType},
+  body,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(90000)
+ });
+ if(!udocSameScope(scope))throw new Error('La sesión ha cambiado.');
+ if(response.status===409)throw new Error('La revisión cambió. Reábrela antes de volver a guardar.');
+ if(response.status===503)throw new Error('El archivo no está disponible o el guardado no se ha confirmado. Comprueba la revisión antes de repetir la operación.');
+ if(response.status===404)throw new Error('No se ha encontrado una revisión guardada en este hogar.');
+ if(!response.ok)throw new Error('UDOC no pudo completar la operación.');
+ const result=await response.json();
+ if(!udocSameScope(scope))throw new Error('La sesión ha cambiado.');
+ return result;
+}
+
+function udocRenderReview(result,scope,{digest,key,minRevision}={}){
+ if(!udocSameScope(scope)||result.schema_version!=='1.0'||result.automatic_economic_action!==false||
+    !udocHash.test(result.source_sha256)||(digest&&result.source_sha256!==digest)||!Array.isArray(result.attempts))
+  throw new Error('La respuesta de UDOC no corresponde al documento.');
+ if(result.status==='PENDING_AI'){
+  if(key)throw new Error('No se ha confirmado la revisión solicitada.');
+  udocReviewStatus().textContent='El análisis no se ha completado. No lo repitas si el intento está pendiente de comprobar.';
+  return;
+ }
+ const interpretations=result.attempts.filter(attempt=>attempt?.interpretation);
+ if(!interpretations.length){if(key)throw new Error('No se ha confirmado la revisión solicitada.');udocReviewStatus().textContent='UDOC no devolvió una propuesta que se pueda revisar.';return}
+ const archiveKey=interpretations.length===1?interpretations[0].run_key:null;
+ const review=result.review;
+ if(key&&(archiveKey!==key||result.archive_available!==true||!review||
+   !Number.isInteger(review.revision)||review.revision<0||
+   review.revision<(minRevision??0)||!Array.isArray(review.interpretation?.fields)))
+  throw new Error('No se ha confirmado la revisión solicitada.');
+ const canSave=udocArchiveUi&&result.archive_available===true&&typeof archiveKey==='string'&&udocHash.test(archiveKey);
  const fields=document.getElementById('udocReviewFields');
- if(!udocReviewUrl||udocReviewButton.disabled)return;
- if(selectedDocumentFiles.length!==1){status.textContent='Selecciona un único documento.';return}
- const file=selectedDocumentFiles[0],owner=user?.id,home=household?.id;
- if(!owner||!home||!sb){status.textContent='Inicia sesión para analizar el documento.';return}
- udocReviewButton.disabled=true;
- status.textContent='Analizando con IA…';
+ const edits=new Map();
+ const reviewed=new Map((review?.interpretation?.fields||[]).map(field=>[field.path,field.value]));
  fields.replaceChildren();
- try{
-  const {data,error}=await sb.auth.getSession();
-  if(error||data.session?.user?.id!==owner||!data.session.access_token||household?.id!==home)throw new Error('La sesión ha cambiado.');
-  const response=await fetch(udocReviewUrl,{
-   method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':file.type||'application/octet-stream'},
-   body:file,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(90000)
-  });
-  if(!response.ok)throw new Error('UDOC no pudo analizar el archivo.');
-  const result=await response.json();
-  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer())),byte=>byte.toString(16).padStart(2,'0')).join('');
-  if(user?.id!==owner||household?.id!==home||selectedDocumentFiles[0]!==file)throw new Error('La sesión o el documento han cambiado.');
-  if(result.schema_version!=='1.0'||result.automatic_economic_action!==false||result.source_sha256!==digest||!Array.isArray(result.attempts))throw new Error('La respuesta de UDOC no corresponde al documento.');
-  if(result.status==='PENDING_AI'){status.textContent='El análisis no se ha completado. Revisa la conexión o el límite de consumo antes de volver a intentarlo.';return}
-  const interpretations=result.attempts.filter(attempt=>attempt?.interpretation);
-  if(!interpretations.length){status.textContent='UDOC no devolvió una propuesta que se pueda revisar.';return}
-  const documentTypes={delivery_note:'Albarán',invoice:'Factura',unknown:'Tipo por confirmar'};
-  for(const [index,attempt] of interpretations.entries()){
-   const group=document.createElement('fieldset'),legend=document.createElement('legend');group.className='stack';
-   const reading=attempt.interpretation, type=reading.document_type;
-   const typeLabel=Object.hasOwn(documentTypes,type)?documentTypes[type]:type;
-   legend.textContent='Lectura '+(index+1)+(typeLabel?' · '+typeLabel:'');group.append(legend);
-   if(attempt.status==='INVALID_PROPOSAL'){const notice=document.createElement('p');notice.className='msg error';notice.textContent='La respuesta de IA contiene campos o referencias sin validar. Se conserva para que puedas revisarla; no es una propuesta validada y no crea movimientos.';group.append(notice);}
-   for(const field of reading.fields||[]){
-    const label=document.createElement('label'),input=document.createElement('input');
-    const names={'document.kind':'Clase de documento','reference.document':'Número del documento','date.issue':'Fecha del documento','date.economic':'Fecha económica','party.recipient.name':'Destinatario','party.recipient.tax_id':'Identificación del destinatario','party.issuer.name':'Emisor','party.issuer.tax_id':'Identificación del emisor','total.payable':'Total a pagar','total.base':'Base imponible','total.vat':'IVA','total.withholding':'Retención','total.gross':'Importe bruto'};
-    const friendlyPath=names[field.path]||field.path.replace(/^reference\.invoice\.(\d+)$/,'Factura relacionada $1').replace(/^reference\.insurance_notice\.(\d+)$/,'Seguro relacionado $1').replace(/^line\.(\d+)\.total$/,'Línea $1 · importe').replace(/^line\.(\d+)\.description$/,'Línea $1 · concepto');
-    label.className='field';label.textContent=friendlyPath+' ';input.type='text';input.value=field.value??'';input.dataset.udocPath=field.path;label.append(input);group.append(label);
+ const documentTypes={delivery_note:'Albarán',invoice:'Factura',unknown:'Tipo por confirmar'};
+ for(const [index,attempt] of interpretations.entries()){
+  const group=document.createElement('fieldset'),legend=document.createElement('legend');group.className='stack';
+  const reading=attempt.interpretation, type=reading.document_type;
+  const typeLabel=Object.hasOwn(documentTypes,type)?documentTypes[type]:type;
+  legend.textContent='Lectura '+(index+1)+(typeLabel?' · '+typeLabel:'');group.append(legend);
+  if(attempt.status==='INVALID_PROPOSAL'){const notice=document.createElement('p');notice.className='msg error';notice.textContent='La respuesta de IA contiene campos o referencias sin validar. Se conserva para que puedas revisarla; no es una propuesta validada y no crea movimientos.';group.append(notice);}
+  const values=new Map();
+  for(const field of reading.fields||[]){
+   const label=document.createElement('label'),input=document.createElement('input');
+   const names={'document.kind':'Clase de documento','reference.document':'Número del documento','date.issue':'Fecha del documento','date.economic':'Fecha económica','party.recipient.name':'Destinatario','party.recipient.tax_id':'Identificación del destinatario','party.issuer.name':'Emisor','party.issuer.tax_id':'Identificación del emisor','total.payable':'Total a pagar','total.base':'Base imponible','total.vat':'IVA','total.withholding':'Retención','total.gross':'Importe bruto'};
+   const friendlyPath=Object.hasOwn(names,field.path)?names[field.path]:field.path.replace(/^reference\.invoice\.(\d+)$/,'Factura relacionada $1').replace(/^reference\.insurance_notice\.(\d+)$/,'Seguro relacionado $1').replace(/^line\.(\d+)\.total$/,'Línea $1 · importe').replace(/^line\.(\d+)\.description$/,'Línea $1 · concepto');
+   const value=reviewed.has(field.path)?reviewed.get(field.path):field.value;
+   label.className='field';label.textContent=friendlyPath+' ';input.type='text';input.value=value??'';input.dataset.udocPath=field.path;label.append(input);
+   if(value!==field.value){const note=document.createElement('small');note.textContent='Valor corregido. La evidencia corresponde a la lectura original.';label.append(note)}
+   for(const evidence of (field.evidence||[]).slice(0,8)){
+    const note=document.createElement('small');
+    const where=String(evidence.source_id??'Origen no indicado');
+    note.textContent='Evidencia · '+where+(evidence.quote?' · '+String(evidence.quote):'')+
+      (Array.isArray(evidence.region)?' · zona '+evidence.region.join(', '):'');
+    label.append(note);
    }
-   for(const issue of new Set([...(reading.warnings||[]),...(reading.contradictions||[]),...(attempt.issues||[])])){const note=document.createElement('p');note.textContent=issue;group.append(note)}
-   fields.append(group);
+   group.append(label);
+   values.set(field.path,value);
+   if(canSave)edits.set(field.path,{input,value:value??null});
   }
-  status.textContent=interpretations.some(a=>a.status==='INVALID_PROPOSAL')?'Lectura conservada con errores de validación. Revisión obligatoria.':'Lectura disponible para revisión.';
-  dialog.showModal();
+  for(const relation of reading.relationships||[]){
+   const note=document.createElement('p');
+   note.textContent='Relación sugerida, por revisar: '+(values.get(relation.reference_path)??relation.reference_path)+' · '+relation.kind;
+   group.append(note);
+  }
+  for(const issue of new Set([...(reading.warnings||[]),...(reading.contradictions||[]),...(attempt.issues||[])])){const note=document.createElement('p');note.textContent=issue;group.append(note)}
+  fields.append(group);
+ }
+ udocActiveDraft=canSave?{scope,key:archiveKey,digest:result.source_sha256,revision:review?.revision??0,edits}:null;
+ document.getElementById('udocSavePanel').hidden=!udocActiveDraft;
+ document.getElementById('udocDraftReason').value='';
+ document.getElementById('udocReviewReference').textContent=udocActiveDraft?'Código para reabrir: '+archiveKey:'';
+ udocDraftStatus().textContent=udocActiveDraft?'Revisión '+udocActiveDraft.revision+' disponible. Guardar no crea movimientos.':'Edición provisional: los cambios no se guardan aquí.';
+ udocReviewStatus().textContent=interpretations.some(a=>a.status==='INVALID_PROPOSAL')?'Lectura conservada con errores de validación. Revisión obligatoria.':'Lectura disponible para revisión.';
+ if(!udocReviewDialog().open)udocReviewDialog().showModal();
+}
+
+udocReviewButton.addEventListener('click',async()=>{
+ const status=udocReviewStatus(),scope=udocScope();
+ if(!udocReviewUrl||udocReviewButton.disabled||udocReopenButton.disabled)return;
+ if(selectedDocumentFiles.length!==1){status.textContent='Selecciona un único documento.';return}
+ const file=selectedDocumentFiles[0];
+ if(!udocSameScope(scope)||!sb){status.textContent='Inicia sesión para analizar el documento.';return}
+ udocReviewButton.disabled=true;status.textContent='Analizando con IA…';
+ try{
+  const result=await udocReviewPost('review',file,file.type||'application/octet-stream',scope);
+  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer())),byte=>byte.toString(16).padStart(2,'0')).join('');
+  if(selectedDocumentFiles[0]!==file)throw new Error('El documento seleccionado ha cambiado.');
+  udocRenderReview(result,scope,{digest});
  }catch(error){status.textContent=error.message||'No se pudo completar el análisis.'}
  finally{udocReviewButton.disabled=false}
 });
-document.getElementById('udocReviewDialog').addEventListener('close',()=>{
- document.getElementById('udocReviewFields').replaceChildren();
+udocReopenButton.addEventListener('click',async()=>{
+ if(!udocArchiveUi||udocReviewButton.disabled||udocReopenButton.disabled)return;
+ const key=document.getElementById('udocReopenKey').value.trim(),scope=udocScope(),status=udocReviewStatus();
+ if(!udocHash.test(key)){status.textContent='Introduce un código de revisión válido.';return}
+ udocReopenButton.disabled=true;status.textContent='Reabriendo revisión…';
+ try{
+  const result=await udocReviewPost('reopen',JSON.stringify({run_key:key}),'application/json',scope);
+  udocRenderReview(result,scope,{key});
+ }catch(error){status.textContent=error.message||'No se pudo reabrir la revisión.'}
+ finally{udocReopenButton.disabled=false}
 });
+udocSaveButton.addEventListener('click',async()=>{
+ const draft=udocActiveDraft,status=udocDraftStatus();
+ if(!draft||udocSaveButton.disabled||!udocReviewDialog().open)return;
+ const reason=document.getElementById('udocDraftReason').value.trim();
+ const changes=Object.fromEntries([...draft.edits].map(([path,{input,value}])=>
+  [path,input.value.trim()||null,value]).filter(([,value,previous])=>value!==previous).map(([path,value])=>[path,value]));
+ if(!Object.keys(changes).length){status.textContent='No hay cambios que guardar.';return}
+ if(!reason){status.textContent='Indica el motivo de la corrección.';return}
+ udocSaveButton.disabled=true;status.textContent='Guardando revisión…';
+ try{
+  const result=await udocReviewPost('review-draft',JSON.stringify({
+   run_key:draft.key,expected_revision:draft.revision,changes,reason
+  }),'application/json',draft.scope);
+  if(udocActiveDraft!==draft||!udocReviewDialog().open)return;
+  udocRenderReview(result,draft.scope,{key:draft.key,digest:draft.digest,minRevision:draft.revision+1});
+  status.textContent='Revisión '+udocActiveDraft.revision+' guardada. No se han creado movimientos.';
+ }catch(error){if(udocActiveDraft===draft)status.textContent=error.message||'No se ha confirmado el guardado.'}
+ finally{udocSaveButton.disabled=false}
+});
+function udocClearReview(){
+ if(udocReviewDialog().open)udocReviewDialog().close();
+ udocActiveDraft=null;
+ document.getElementById('udocReviewFields').replaceChildren();
+ document.getElementById('udocSavePanel').hidden=true;
+ document.getElementById('udocReviewReference').textContent='';
+ document.getElementById('udocDraftReason').value='';
+ udocDraftStatus().textContent='';
+}
+udocReviewDialog().addEventListener('close',udocClearReview);
 async function getDocumentBlob(d){const {data,error}=await sb.storage.from('household-documents').createSignedUrl(d.storage_path,120);if(error)throw error;const r=await fetch(data.signedUrl);if(!r.ok)throw new Error('No se pudo leer el archivo');return await r.blob()}
 async function analyzeDocument(id){const d=documents.find(x=>x.id===id);if(!d)return;document.getElementById('docProgress').textContent='Leyendo '+d.file_name+'…';try{await sb.from('documents').update({analysis_status:'processing'}).eq('id',id);const blob=await getDocumentBlob(d);await analyzeBlob(d,blob)}catch(e){await sb.from('documents').update({analysis_status:'error'}).eq('id',id);alert(e.message)}}
 let lastDocumentOcrConfidence=null,lastDocumentOcrMode='';
@@ -2174,7 +2285,7 @@ const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30167';
+const APP_BUILD='30168';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{
