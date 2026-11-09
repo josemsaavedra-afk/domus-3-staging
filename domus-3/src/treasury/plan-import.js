@@ -68,5 +68,14 @@ async function confirmImport(){
  }catch(e){message('Importación incompleta o bloqueada: '+(e.message||String(e))+'. Puedes reintentar sin duplicar las partidas ya creadas.',true);}
  finally{button.disabled=!staged;}
 }
-window.DOMUSPlanImport={preview,confirmImport};
+async function loadAsturias(){
+ try{
+  const response=await fetch('./planes-asturias-2026.json',{cache:'no-store'});
+  if(!response.ok)throw Error('No se pudo cargar el viaje');
+  const data=await response.json();validate(data);
+  $('planImportJson').value=JSON.stringify(data,null,2);
+  preview();
+ }catch(e){message('No se pudo cargar Asturias: '+e.message,true);}
+}
+window.DOMUSPlanImport={preview,confirmImport,loadAsturias};
 })();
