@@ -2,6 +2,7 @@
 (function(){
 'use strict';
 const marker=id=>'[DOMUS-IMPORT:'+id+']';
+const itemMarker=id=>'[DOMUS-ITEM:'+id+']';
 let staged=null;
 const $=id=>document.getElementById(id);
 function message(text,error=false){const el=$('planImportMessage');if(el){el.textContent=text;el.className=error?'msg error':'msg info';}}
@@ -12,7 +13,7 @@ function validate(raw){
  if(!Number.isSafeInteger(raw.budget_limit_cents)||raw.budget_limit_cents<0)throw Error('Presupuesto inválido');
  const ids=new Set();
  for(const item of raw.items){
-  if(!item.id||!/^[\w-]{1,80}$/.test(item.id)||ids.has(item.id)||!item.description||item.description.length>250||!Number.isSafeInteger(item.amount_cents)||item.amount_cents<0||!['planned','reserved','paid','estimate'].includes(item.status)||item.date&&!/^\d{4}-\d\d-\d\d$/.test(item.date))throw Error('Partida inválida o repetida: '+(item.id||'?'));
+  if(!item.id||!/^[\w-]{1,80}$/.test(item.id)||ids.has(item.id)||!item.description||item.description.length>240||!Number.isSafeInteger(item.amount_cents)||item.amount_cents<0||!['planned','reserved','paid','estimate'].includes(item.status)||item.date&&!/^\d{4}-\d\d-\d\d$/.test(item.date))throw Error('Partida inválida o repetida: '+(item.id||'?'));
   ids.add(item.id);
  }
  const total=raw.items.reduce((n,x)=>n+x.amount_cents,0);
@@ -50,13 +51,15 @@ async function confirmImport(){
   let added=0,unchanged=0;
   for(const item of raw.items){
    const label={planned:'Previsto',reserved:'Reservado (pago sin confirmar)',paid:'Pagado (conciliar)',estimate:'Estimación'}[item.status];
-   const concept=item.description+' · '+label+' '+marker(item.id);
-   const prior=(existing||[]).find(x=>x.concept===concept);
+   const concept=item.description;
+   const itemTag=itemMarker(item.id);
+   const itemNotes='Origen: '+marker(raw.external_id)+' · '+itemTag+' · Estado: '+label;
+   const prior=(existing||[]).find(x=>(x.notes||'').includes(itemTag));
    if(prior){
-    if(prior.status!=='planned'||Math.round(Number(prior.amount)*100)!==item.amount_cents)throw Error('Partida existente modificada: '+item.id+'. No se sobrescribe.');
+    if(prior.status!=='planned'||Math.round(Number(prior.amount)*100)!==item.amount_cents||prior.concept!==concept)throw Error('Partida existente modificada: '+item.id+'. No se sobrescribe.');
     unchanged++;continue;
    }
-   const {error}=await sb.from('budget_items').insert({household_id:household.id,plan_id:plan.id,movement_type:'expense',concept,amount:item.amount_cents/100,planned_date:item.date||null,expense_scope:'domestic',status:'planned',created_by:user.id,updated_by:user.id});
+   const {error}=await sb.from('budget_items').insert({household_id:household.id,plan_id:plan.id,movement_type:'expense',concept,notes:itemNotes,amount:item.amount_cents/100,planned_date:item.date||null,expense_scope:'domestic',status:'planned',created_by:user.id,updated_by:user.id});
    if(error)throw error;added++;
   }
   message('Importación completada: '+added+' partidas nuevas y '+unchanged+' ya existentes. No se han creado movimientos.');
