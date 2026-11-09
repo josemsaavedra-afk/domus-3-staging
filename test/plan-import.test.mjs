@@ -36,3 +36,31 @@ test('preview rejects untrusted schema and negative amount',()=>{
  node('planImportJson').value=JSON.stringify(invalid);ctx.window.DOMUSPlanImport.preview();
  assert.equal(node('planImportConfirm').disabled,true);
 });
+
+test('confirm creates only budget records and reimport is idempotent',async()=>{
+ const {ctx,node}=harness();const tables={budget_plans:[],budget_items:[]};let refreshes=0;
+ const query=table=>({
+  select(){return this;},
+  eq(){return this;},
+  async single(){return {data:tables[table].at(-1),error:null};},
+  then(resolve){resolve({data:[...tables[table]],error:null});}
+ });
+ ctx.sb={from(table){assert.ok(['budget_plans','budget_items'].includes(table),'No treasury writes');return {
+  select:()=>query(table),
+  insert(row){tables[table].push({...row,id:String(tables[table].length+1)});return {select:()=>({single:async()=>({data:tables[table].at(-1),error:null})}),then(resolve){resolve({error:null});}};}
+ };}};
+ ctx.refreshAll=async()=>{refreshes++;};
+ node('planImportJson').value=JSON.stringify(fixture);
+ ctx.window.DOMUSPlanImport.preview();
+ await ctx.window.DOMUSPlanImport.confirmImport();
+ assert.equal(tables.budget_plans.length,1);
+ assert.equal(tables.budget_items.length,11);
+ assert.equal(tables.budget_items.every(x=>x.status==='planned'),true);
+ assert.equal(tables.budget_items.some(x=>x.notes.includes('Pagado (conciliar)')),true);
+ node('planImportJson').value=JSON.stringify(fixture);
+ ctx.window.DOMUSPlanImport.preview();
+ await ctx.window.DOMUSPlanImport.confirmImport();
+ assert.equal(tables.budget_plans.length,1);
+ assert.equal(tables.budget_items.length,11);
+ assert.equal(refreshes,2);
+});
