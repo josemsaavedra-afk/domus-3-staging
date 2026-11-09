@@ -286,6 +286,14 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
       <p id="budgetItemMsg" role="status"></p>
     </div>
   </div>
+  <div class="card" style="margin-top:16px">
+    <h2>Importar plan desde ChatGPT</h2>
+    <p class="muted">Pega un JSON con formato domus.plan-import.v1. Revisa las partidas antes de confirmar. No se crean movimientos bancarios ni se consideran pagadas las reservas.</p>
+    <div class="field"><label for="planImportJson">Datos del plan (JSON)</label><textarea id="planImportJson" rows="5" spellcheck="false" placeholder="Pega aquí el JSON del plan"></textarea></div>
+    <div class="actions"><button class="btn" type="button" onclick="DOMUSPlanImport.loadAsturias()">Cargar viaje Asturias 4–8 diciembre</button><button class="btn" type="button" onclick="DOMUSPlanImport.preview()">Previsualizar</button><button id="planImportConfirm" class="btn primary" type="button" disabled onclick="DOMUSPlanImport.confirmImport()">Confirmar importación</button></div>
+    <div id="planImportPreview" aria-live="polite" style="margin-top:12px"></div>
+    <p id="planImportMessage" role="status" aria-live="polite"></p>
+  </div>
   <div id="budgetPlanList" style="margin-top:16px"></div>
 </section>
 
@@ -2105,6 +2113,7 @@ async function createBudgetItem(){
 function selectedBudgetItems(planId){return [...document.querySelectorAll('[data-budget-item-check="'+planId+'"]:checked')].map(x=>x.value)}
 async function convertBudgetItem(item){
   if(item.status!=='planned'||budgetItemLinks.some(x=>x.item_id===item.id))return;
+  if((item.notes||'').includes('Estado: Pagado (conciliar)')){alert('Esta partida ya consta como pagada. Concíliala con el movimiento existente; no se creará otro.');return;}
   const when=item.planned_date||dateKey(new Date());
   const payload={household_id:household.id,type:item.movement_type||'expense',concept:item.concept,amount:Number(item.amount),start_date:when,recurrence:'none',source:'budget',notes:'Generado desde presupuesto: '+budgetPlanName(item.plan_id)+' · partida '+item.id,person_id:item.person_id||null,payer_person_id:item.payer_person_id||null,account_id:item.account_id||null,category_id:item.category_id||null,expense_scope:(item.movement_type||'expense')==='income'?'business':(item.expense_scope||'domestic'),income_source_type:(item.movement_type||'expense')==='income'?'variable':'habitual',counterparty_id:item.counterparty_id||null,activity_project_id:item.activity_project_id||null,created_by:user.id,updated_by:user.id};
   const created=await insertSeriesSafely(payload);
@@ -2203,6 +2212,7 @@ function closeModalFromBackdrop(event){
 document.querySelectorAll('.modal').forEach(modal=>modal.addEventListener('click',closeModalFromBackdrop));
 boot();
 </script>
+<script src="./src/treasury/plan-import.js"></script>
 <script type="module" src="./src/treasury/ui.js"></script>
 </body>
 </html>
