@@ -1108,7 +1108,7 @@ async function importSelectedDocuments(){
 }
 const udocReviewButton=document.getElementById('udocReviewBtn');
 let udocReviewSession=null,udocReviewSaving=false;
-const udocMoney=value=>{const raw=String(value??'').trim().replace(/\s/g,'').replace(/Ôé¼/g,'');if(!raw)return null;const normalized=raw.includes(',')&&raw.includes('.')?(raw.lastIndexOf(',')>raw.lastIndexOf('.')?raw.replaceAll('.','').replace(',','.'):raw.replaceAll(',','')):raw.replace(',','.');const number=Number(normalized);return Number.isFinite(number)&&number>0&&number<10000000?number:null};
+const udocMoney=value=>{const raw=String(value??'').trim().replace(/\s/g,'').replace(/€/g,'');if(!raw)return null;const normalized=raw.includes(',')&&raw.includes('.')?(raw.lastIndexOf(',')>raw.lastIndexOf('.')?raw.replaceAll('.','').replace(',','.'):raw.replaceAll(',','')):raw.replace(',','.');const number=Number(normalized);return Number.isFinite(number)&&number>0&&number<10000000?number:null};
 const udocDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||''))?String(value):null;
 function udocFieldsForAttempt(attemptIndex){const values={};for(const input of document.querySelectorAll('[data-udoc-attempt="'+attemptIndex+'"]'))values[input.dataset.udocPath]=input.value.trim()||null;return values}
 function udocDraftFromReview(attempt,values){
@@ -1118,7 +1118,7 @@ function udocDraftFromReview(attempt,values){
  const context=Object.values(values).filter(v=>v!=null).join(' ').toLowerCase();
  // Never turn settlements, reimbursements, reservations or supporting documents into a generic invoice.
  if(kind!=='invoice'||!issuer||!invoice||!date||amount===null||/\brhd\b|driiveme|reembolso|reservation|reserva|albar[a├í]n|justificante/.test(context))return null;
-  return {type,concept:String(issuer),counterparty:String(issuer),invoice_number:String(invoice),amount,date,due_date:date,document_date:date,recurrence:'none',source:'udoc_ai_review',movement_role:'standard',expense_scope:'unclassified',extraction_quality:'medium',review_required:true,field_sources:{concept:'revisi├│n IA guardada',counterparty:'revisi├│n IA guardada',invoice_number:'revisi├│n IA guardada',amount:'revisi├│n IA guardada',document_date:'revisi├│n IA guardada',type:'revisi├│n IA guardada'},udoc_review:true};
+  return {type,concept:String(issuer),counterparty:String(issuer),invoice_number:String(invoice),amount,date,due_date:date,document_date:date,recurrence:'none',source:'udoc_ai_review',movement_role:'standard',expense_scope:'unclassified',extraction_quality:'medium',review_required:true,field_sources:{concept:'revisión IA guardada',counterparty:'revisión IA guardada',invoice_number:'revisión IA guardada',amount:'revisión IA guardada',document_date:'revisión IA guardada',type:'revisión IA guardada'},udoc_review:true};
 }
 function udocOriginalMatches(doc,source_sha256){return (doc?.extracted_data?.source_sha256||doc?.extracted_data?.udoc_source_sha256)===source_sha256}
 function udocReviewDraftState(prior,drafts,source_sha256,interpretation_sha256){
@@ -1135,7 +1135,7 @@ async function udocArchivedDocument(file){
   const retained=(result.data||[]).filter(d=>d.storage_path&&d.file_retained),matches=retained.filter(d=>udocOriginalMatches(d,source_sha256));
   if(matches.length===1)return matches[0];
   const legacy=retained.filter(d=>!(d.extracted_data?.source_sha256||d.extracted_data?.udoc_source_sha256));
-  if(matches.length||legacy.length!==1)throw new Error(retained.length?'Hay varios documentos archivados con ese nombre y tama├▒o o su huella no coincide. Abre el Archivo de referencias y selecciona el original correcto antes de guardar la revisi├│n.':'Primero importa y archiva este original en DOMUS. No se puede guardar una revisi├│n IA sin documento conservado.');
+  if(matches.length||legacy.length!==1)throw new Error(retained.length?'Hay varios documentos archivados con ese nombre y tamaño o su huella no coincide. Abre el Archivo de referencias y selecciona el original correcto antes de guardar la revisión.':'Primero importa y archiva este original en DOMUS. No se puede guardar una revisión IA sin documento conservado.');
   const doc=legacy[0],original=await getDocumentBlob(doc);
   const archivedHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await original.arrayBuffer())),b=>b.toString(16).padStart(2,'0')).join('');
   if(archivedHash!==source_sha256)throw new Error('El archivo seleccionado no coincide con el original archivado.');
@@ -1143,8 +1143,8 @@ async function udocArchivedDocument(file){
 }
 async function saveUdocReview(){
  const status=document.getElementById('udocReviewStatus'),dialog=document.getElementById('udocReviewDialog'),session=udocReviewSession;
- if(udocReviewSaving||!session)return;if(user?.id!==session.owner||household?.id!==session.home||selectedDocumentFiles[0]!==session.file){status.textContent='La sesi├│n o el documento han cambiado. La revisi├│n no se ha guardado.';return}
- udocReviewSaving=true;const button=document.getElementById('udocReviewSaveBtn');button.disabled=true;status.textContent='Guardando revisi├│nÔÇª';
+ if(udocReviewSaving||!session)return;if(user?.id!==session.owner||household?.id!==session.home||selectedDocumentFiles[0]!==session.file){status.textContent='La sesión o el documento han cambiado. La revisión no se ha guardado.';return}
+ udocReviewSaving=true;const button=document.getElementById('udocReviewSaveBtn');button.disabled=true;status.textContent='Guardando revisiónÔÇª';
  try{
   const doc=await udocArchivedDocument(session.file),history=Array.isArray(doc.extracted_data?.udoc_review_history)?doc.extracted_data.udoc_review_history:[];
   const attempts=session.interpretations.map((attempt,index)=>{const values=udocFieldsForAttempt(index);return {status:attempt.status||'NEEDS_REVIEW',issues:Array.isArray(attempt.issues)?attempt.issues:[],interpretation:{...attempt.interpretation,fields:(attempt.interpretation?.fields||[]).map(field=>({...field,value:values[field.path]??null}))},corrected_fields:values,draft:attempt.status==='INVALID_PROPOSAL'?null:udocDraftFromReview(attempt,values)};});
@@ -1152,10 +1152,10 @@ async function saveUdocReview(){
   const record={saved_at:new Date().toISOString(),source_sha256:session.digest,interpretation_sha256:session.interpretationHash,status:session.result.status,attempts};
   const nextHistory=[...history.filter(item=>item.interpretation_sha256!==session.interpretationHash),record].slice(-20);
   await updateRowSafely('documents',doc.id,{analysis_status:confirmed.length?doc.analysis_status:'review',extracted_data:{...(doc.extracted_data||{}),drafts:[...preserved,...prepared],udoc_review_history:nextHistory,udoc_latest_review:record}});
-  status.textContent=confirmed.length?'Revisi├│n guardada. Se conserva el movimiento ya confirmado; no se ha creado otra propuesta econ├│mica.':prepared.length?'Revisi├│n guardada. La propuesta queda pendiente de tu confirmaci├│n expresa.':'Revisi├│n guardada. Esta lectura no puede crear un movimiento: completa o corrige sus errores en el archivo antes de una propuesta econ├│mica.';
+  status.textContent=confirmed.length?'Revisi├│n guardada. Se conserva el movimiento ya confirmado; no se ha creado otra propuesta económica.':prepared.length?'Revisi├│n guardada. La propuesta queda pendiente de tu confirmaci├│n expresa.':'Revisi├│n guardada. Esta lectura no puede crear un movimiento: completa o corrige sus errores en el archivo antes de una propuesta económica.';
   dialog.close();await refreshAll();
   if(prepared.length){const refreshed=documents.find(d=>d.id===doc.id)||{...doc,extracted_data:{...(doc.extracted_data||{}),drafts:[...preserved,...prepared]}};renderDocDrafts(structuredClone(refreshed.extracted_data.drafts),refreshed);}
- }catch(error){status.textContent='No se ha guardado la revisi├│n: '+(error?.message||error)}finally{udocReviewSaving=false;button.disabled=false}
+ }catch(error){status.textContent='No se ha guardado la revisión: '+(error?.message||error)}finally{udocReviewSaving=false;button.disabled=false}
 }
 const udocReviewUrl=(()=>{
  const configured=window.DOMUS_CONFIG?.udocReviewOrigin;
@@ -1175,13 +1175,13 @@ udocReviewButton.addEventListener('click',async()=>{
  if(!udocReviewUrl||udocReviewButton.disabled)return;
  if(selectedDocumentFiles.length!==1){status.textContent='Selecciona un ├║nico documento.';return}
  const file=selectedDocumentFiles[0],owner=user?.id,home=household?.id;
- if(!owner||!home||!sb){status.textContent='Inicia sesi├│n para analizar el documento.';return}
+ if(!owner||!home||!sb){status.textContent='Inicia sesión para analizar el documento.';return}
  udocReviewButton.disabled=true;
  status.textContent='Analizando con IAÔÇª';
  fields.replaceChildren();
  try{
   const {data,error}=await sb.auth.getSession();
-  if(error||data.session?.user?.id!==owner||!data.session.access_token||household?.id!==home)throw new Error('La sesi├│n ha cambiado.');
+  if(error||data.session?.user?.id!==owner||!data.session.access_token||household?.id!==home)throw new Error('La sesión ha cambiado.');
   const response=await fetch(udocReviewUrl,{
    method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':file.type||'application/octet-stream'},
    body:file,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(90000)
@@ -1189,12 +1189,12 @@ udocReviewButton.addEventListener('click',async()=>{
   if(!response.ok)throw new Error('UDOC no pudo analizar el archivo.');
   const result=await response.json();
   const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer())),byte=>byte.toString(16).padStart(2,'0')).join('');
-  if(user?.id!==owner||household?.id!==home||selectedDocumentFiles[0]!==file)throw new Error('La sesi├│n o el documento han cambiado.');
+  if(user?.id!==owner||household?.id!==home||selectedDocumentFiles[0]!==file)throw new Error('La sesión o el documento han cambiado.');
   if(result.schema_version!=='1.0'||result.automatic_economic_action!==false||result.source_sha256!==digest||!Array.isArray(result.attempts))throw new Error('La respuesta de UDOC no corresponde al documento.');
-  if(result.status==='PENDING_AI'){status.textContent='El an├ílisis no se ha completado. Revisa la conexi├│n o el l├¡mite de consumo antes de volver a intentarlo.';return}
+  if(result.status==='PENDING_AI'){status.textContent='El análisis no se ha completado. Revisa la conexión o el límite de consumo antes de volver a intentarlo.';return}
   const interpretations=result.attempts.filter(attempt=>attempt?.interpretation);
-  if(!interpretations.length){status.textContent='UDOC no devolvi├│ una propuesta que se pueda revisar.';return}
-  const documentTypes={delivery_note:'Albar├ín',invoice:'Factura',unknown:'Tipo por confirmar'};
+  if(!interpretations.length){status.textContent='UDOC no devolvió una propuesta que se pueda revisar.';return}
+  const documentTypes={delivery_note:'Albarán',invoice:'Factura',unknown:'Tipo por confirmar'};
   for(const [index,attempt] of interpretations.entries()){
    const group=document.createElement('fieldset'),legend=document.createElement('legend');group.className='stack';
    const reading=attempt.interpretation, type=reading.document_type;
@@ -1203,7 +1203,7 @@ udocReviewButton.addEventListener('click',async()=>{
    if(attempt.status==='INVALID_PROPOSAL'){const notice=document.createElement('p');notice.className='msg error';notice.textContent='La respuesta de IA contiene campos o referencias sin validar. Se conserva para que puedas revisarla; no es una propuesta validada y no crea movimientos.';group.append(notice);}
    for(const field of reading.fields||[]){
     const label=document.createElement('label'),input=document.createElement('input');
-    const names={'document.kind':'Clase de documento','reference.document':'N├║mero del documento','date.issue':'Fecha del documento','date.economic':'Fecha econ├│mica','party.recipient.name':'Destinatario','party.recipient.tax_id':'Identificaci├│n del destinatario','party.issuer.name':'Emisor','party.issuer.tax_id':'Identificaci├│n del emisor','total.payable':'Total a pagar','total.base':'Base imponible','total.vat':'IVA','total.withholding':'Retenci├│n','total.gross':'Importe bruto'};
+    const names={'document.kind':'Clase de documento','reference.document':'N├║mero del documento','date.issue':'Fecha del documento','date.economic':'Fecha económica','party.recipient.name':'Destinatario','party.recipient.tax_id':'Identificaci├│n del destinatario','party.issuer.name':'Emisor','party.issuer.tax_id':'Identificaci├│n del emisor','total.payable':'Total a pagar','total.base':'Base imponible','total.vat':'IVA','total.withholding':'Retenci├│n','total.gross':'Importe bruto'};
     const friendlyPath=names[field.path]||field.path.replace(/^reference\.invoice\.(\d+)$/,'Factura relacionada $1').replace(/^reference\.insurance_notice\.(\d+)$/,'Seguro relacionado $1').replace(/^line\.(\d+)\.total$/,'L├¡nea $1 ┬À importe').replace(/^line\.(\d+)\.description$/,'L├¡nea $1 ┬À concepto');
      label.className='field';label.textContent=friendlyPath+' ';input.type='text';input.value=field.value??'';input.dataset.udocPath=field.path;input.dataset.udocAttempt=index;label.append(input);group.append(label);
    }
@@ -1212,9 +1212,9 @@ udocReviewButton.addEventListener('click',async()=>{
   }
    const interpretationHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(result.attempts)))),byte=>byte.toString(16).padStart(2,'0')).join('');
    udocReviewSession={file,owner,home,digest,result,interpretations,interpretationHash};
-   status.textContent=interpretations.some(a=>a.status==='INVALID_PROPOSAL')?'Lectura conservada con errores de validaci├│n. Debe guardarse y corregirse; permanece bloqueada para crear movimientos.':'Lectura disponible para revisi├│n y guardado.';
+   status.textContent=interpretations.some(a=>a.status==='INVALID_PROPOSAL')?'Lectura conservada con errores de validación. Debe guardarse y corregirse; permanece bloqueada para crear movimientos.':'Lectura disponible para revisión y guardado.';
   dialog.showModal();
- }catch(error){status.textContent=error.message||'No se pudo completar el an├ílisis.'}
+ }catch(error){status.textContent=error.message||'No se pudo completar el análisis.'}
  finally{udocReviewButton.disabled=false}
 });
 document.getElementById('udocReviewDialog').addEventListener('close',()=>{
