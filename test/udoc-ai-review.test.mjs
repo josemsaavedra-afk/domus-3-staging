@@ -126,9 +126,49 @@ test('saving a reopened review preserves its confirmed movement and identifies t
   assert.equal(context.__udocOriginalMatches(original, 'sha-original'), true);
   assert.equal(context.__udocOriginalMatches(original, 'different-bytes'), false);
   const prior = [{ invoice_number: 'F-42', review_status: 'confirmed', confirmed_series_id: 'series-1', udoc_source_sha256: 'sha-original', udoc_interpretation_sha256: 'interpretation-1' }];
-  const state = context.__udocReviewDraftState(prior, [{ invoice_number: 'F-42', type: 'expense' }], 'sha-original', 'interpretation-1');
-  assert.equal(state.prepared.length, 1);
-  assert.equal(state.prepared[0].confirmed_series_id, 'series-1');
-  assert.equal(state.prepared[0].review_status, 'confirmed');
-  assert.deepEqual(state.preserved, []);
+  const state = context.__udocReviewDraftState(prior, [{ invoice_number: 'F-42', type: 'expense' }], 'sha-original', 'interpretation-2');
+  assert.equal(state.prepared.length, 0);
+  assert.equal(state.preserved.length, 1);
+  assert.equal(state.preserved[0].confirmed_series_id, 'series-1');
+  assert.equal(state.preserved[0].review_status, 'confirmed');
+});
+
+test('save, confirm and reopen retain the review and block a second draft after reanalysis', async () => {
+  const documentRow = { id: 'doc-1', analysis_status: 'review', extracted_data: { source_sha256: 'original' } };
+  const file = new Blob(['fixture']);
+  const ids = new Map();
+  const fields = {
+    'document.kind': 'invoice', 'party.issuer.name': 'Proveedor',
+    'reference.document': 'F-42', 'date.issue': '2026-11-08', 'total.payable': '12.50',
+  };
+  const attempts = [{ status: 'NEEDS_REVIEW', interpretation: { document_type: 'invoice', fields: Object.keys(fields).map(path => ({ path })) } }];
+  const context = vm.createContext({
+    document: {
+      getElementById(id) {
+        if (!ids.has(id)) ids.set(id, { ...element(), close() {} });
+        return ids.get(id);
+      },
+      querySelectorAll: () => Object.entries(fields).map(([path, value]) => ({ dataset: { udocPath: path }, value })),
+    },
+    window: {}, selectedDocumentFiles: [file], user: { id: 'user' }, household: { id: 'home' },
+    documents: [documentRow], file, attempts, structuredClone,
+    updateRowSafely: async (_table, _id, payload) => Object.assign(documentRow, structuredClone(payload)),
+    refreshAll: async () => {},
+    renderDocDrafts: drafts => { context.currentDocDrafts = drafts; },
+    currentDocDrafts: [], currentDocumentId: 'doc-1',
+  });
+  vm.runInContext(handler.slice(0, handler.indexOf('const udocReviewUrl=')) +
+    ';udocArchivedDocument=async()=>documents[0];' +
+    html.slice(html.indexOf('function documentConfirmationState('), html.indexOf('function continueDocumentDraftReview(')) +
+    'async function saveFixture(hash){udocReviewSession={file,owner:"user",home:"home",digest:"original",interpretations:attempts,interpretationHash:hash,result:{status:"NEEDS_REVIEW"}};await saveUdocReview()}', context);
+  await context.saveFixture('first-run');
+  assert.equal(documentRow.extracted_data.drafts.length, 1);
+  await context.completeDocumentDraft(0, 'movement-1');
+  assert.equal(documentRow.extracted_data.udoc_review_history.length, 1);
+  assert.equal(documentRow.extracted_data.source_sha256, 'original');
+  await context.saveFixture('different-run');
+  assert.equal(documentRow.analysis_status, 'confirmed');
+  assert.equal(documentRow.extracted_data.udoc_review_history.length, 2);
+  assert.equal(documentRow.extracted_data.drafts.length, 1);
+  assert.equal(documentRow.extracted_data.drafts[0].confirmed_series_id, 'movement-1');
 });
