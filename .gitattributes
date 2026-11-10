@@ -1,0 +1,2 @@
+# Pages and the PWA verifier consume these exact bytes on every platform.
+domus-3/** -text
