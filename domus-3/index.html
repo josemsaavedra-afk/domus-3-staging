@@ -1000,8 +1000,8 @@ async function importSelectedDocuments(){
       .limit(5);
     if(duplicateLookup.error)throw duplicateLookup.error;
     const possibleDuplicates=duplicateLookup.data||[];
-    // SHA-256 proves identical bytes within this import batch; archived records
-    // lack a trusted digest, so their name/size match remains only a warning.
+    // SHA-256 proves identical bytes within this import batch and is retained
+    // with the archived original so later UDOC reviews cannot rely on its name.
     let fileDigest=null;
     if(globalThis.crypto?.subtle&&typeof file.arrayBuffer==='function'){
       try{
@@ -1028,7 +1028,7 @@ async function importSelectedDocuments(){
     const storagePath=household.id+'/'+row.id+'/'+safeName;
     const saved=await sb.storage.from('household-documents').upload(storagePath,file,{upsert:false,contentType:file.type||'application/octet-stream'});
     if(saved.error){console.warn('No se pudo conservar el original',saved.error)}
-    else{await updateRowSafely('documents',row.id,{storage_path:storagePath,file_retained:true,source_kind:'domus_storage'});row.storage_path=storagePath;row.file_retained=true}
+    else{const extracted_data=fileDigest?{...(row.extracted_data||{}),source_sha256:fileDigest}:row.extracted_data;await updateRowSafely('documents',row.id,{storage_path:storagePath,file_retained:true,source_kind:'domus_storage',...(fileDigest?{extracted_data}:{} )});row.storage_path=storagePath;row.file_retained=true;if(fileDigest)row.extracted_data=extracted_data}
     await analyzeBlob(row,file,{batch:true});processed++;
    }catch(err){
     failures.push(file.name+': '+friendlyCloudError(err));
@@ -1053,17 +1053,23 @@ function udocFieldsForAttempt(attemptIndex){const values={};for(const input of d
 function udocDraftFromReview(attempt,values){
  const reading=attempt?.interpretation||{},kind=values['document.kind']||reading.document_type;
  const issuer=values['party.issuer.name'],invoice=values['reference.document'],date=udocDate(values['date.economic']||values['date.issue']),amount=udocMoney(values['total.payable']??values['total.gross']);
+  const requestedType=values['movement.type']||values['economic.type']||reading.economic_type||reading.movement_type||'expense',type=requestedType==='income'?'income':'expense';
  const context=Object.values(values).filter(v=>v!=null).join(' ').toLowerCase();
  // Never turn settlements, reimbursements, reservations or supporting documents into a generic invoice.
  if(kind!=='invoice'||!issuer||!invoice||!date||amount===null||/\brhd\b|driiveme|reembolso|reservation|reserva|albar[aá]n|justificante/.test(context))return null;
- return {type:'expense',concept:String(issuer),counterparty:String(issuer),invoice_number:String(invoice),amount,date,due_date:date,document_date:date,recurrence:'none',source:'udoc_ai_review',movement_role:'standard',expense_scope:'unclassified',extraction_quality:'medium',review_required:true,field_sources:{concept:'revisión IA guardada',counterparty:'revisión IA guardada',invoice_number:'revisión IA guardada',amount:'revisión IA guardada',document_date:'revisión IA guardada'},udoc_review:true};
+  return {type,concept:String(issuer),counterparty:String(issuer),invoice_number:String(invoice),amount,date,due_date:date,document_date:date,recurrence:'none',source:'udoc_ai_review',movement_role:'standard',expense_scope:'unclassified',extraction_quality:'medium',review_required:true,field_sources:{concept:'revisión IA guardada',counterparty:'revisión IA guardada',invoice_number:'revisión IA guardada',amount:'revisión IA guardada',document_date:'revisión IA guardada',type:'revisión IA guardada'},udoc_review:true};
 }
+function udocOriginalMatches(doc,source_sha256){return (doc?.extracted_data?.source_sha256||doc?.extracted_data?.udoc_source_sha256)===source_sha256}
+function udocReviewDraftState(prior,drafts,source_sha256,interpretation_sha256){const sameReview=d=>d.udoc_source_sha256===source_sha256&&d.udoc_interpretation_sha256===interpretation_sha256,confirmed=prior.filter(d=>sameReview(d)&&(d.review_status==='confirmed'||d.confirmed_series_id)),preserved=prior.filter(d=>!sameReview(d)),prepared=confirmed.length?confirmed:drafts.map(d=>({...d,udoc_source_sha256:source_sha256,udoc_interpretation_sha256:interpretation_sha256}));return {preserved,prepared,confirmed}}
 async function udocArchivedDocument(file){
+ const bytes=await file.arrayBuffer(),hash=await crypto.subtle.digest('SHA-256',bytes),source_sha256=Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
  const result=await sb.from('documents').select('*').eq('household_id',household.id).eq('file_name',file.name).eq('file_size',file.size).limit(3);
  if(result.error)throw result.error;
- const matches=(result.data||[]).filter(d=>d.storage_path&&d.file_retained);
- if(matches.length!==1)throw new Error(matches.length?'Hay varios documentos archivados con ese nombre y tamaño. Abre el Archivo de referencias y selecciona el correcto antes de guardar la revisión.':'Primero importa y archiva este original en DOMUS. No se puede guardar una revisión IA sin documento conservado.');
- return matches[0];
+  const retained=(result.data||[]).filter(d=>d.storage_path&&d.file_retained),matches=retained.filter(d=>udocOriginalMatches(d,source_sha256));
+  if(matches.length===1)return matches[0];
+  const legacy=retained.filter(d=>!(d.extracted_data?.source_sha256||d.extracted_data?.udoc_source_sha256));
+  if(matches.length||legacy.length!==1)throw new Error(retained.length?'Hay varios documentos archivados con ese nombre y tamaño o su huella no coincide. Abre el Archivo de referencias y selecciona el original correcto antes de guardar la revisión.':'Primero importa y archiva este original en DOMUS. No se puede guardar una revisión IA sin documento conservado.');
+  const doc=legacy[0],extracted_data={...(doc.extracted_data||{}),source_sha256};await updateRowSafely('documents',doc.id,{extracted_data});return {...doc,extracted_data};
 }
 async function saveUdocReview(){
  const status=document.getElementById('udocReviewStatus'),dialog=document.getElementById('udocReviewDialog'),session=udocReviewSession;
@@ -1072,13 +1078,11 @@ async function saveUdocReview(){
  try{
   const doc=await udocArchivedDocument(session.file),history=Array.isArray(doc.extracted_data?.udoc_review_history)?doc.extracted_data.udoc_review_history:[];
   const attempts=session.interpretations.map((attempt,index)=>{const values=udocFieldsForAttempt(index);return {status:attempt.status||'NEEDS_REVIEW',issues:Array.isArray(attempt.issues)?attempt.issues:[],interpretation:{...attempt.interpretation,fields:(attempt.interpretation?.fields||[]).map(field=>({...field,value:values[field.path]??null}))},corrected_fields:values,draft:attempt.status==='INVALID_PROPOSAL'?null:udocDraftFromReview(attempt,values)};});
-  const drafts=attempts.flatMap(item=>item.draft?[item.draft]:[]),prior=Array.isArray(doc.extracted_data?.drafts)?doc.extracted_data.drafts:[];
-  const sameReview=d=>d.udoc_source_sha256===session.digest&&d.udoc_interpretation_sha256===session.interpretationHash;
-  const preserved=prior.filter(d=>!sameReview(d)),prepared=drafts.map(d=>({...d,udoc_source_sha256:session.digest,udoc_interpretation_sha256:session.interpretationHash}));
+  const drafts=attempts.flatMap(item=>item.draft?[item.draft]:[]),prior=Array.isArray(doc.extracted_data?.drafts)?doc.extracted_data.drafts:[],{preserved,prepared,confirmed}=udocReviewDraftState(prior,drafts,session.digest,session.interpretationHash);
   const record={saved_at:new Date().toISOString(),source_sha256:session.digest,interpretation_sha256:session.interpretationHash,status:session.result.status,attempts};
   const nextHistory=[...history.filter(item=>item.interpretation_sha256!==session.interpretationHash),record].slice(-20);
   await updateRowSafely('documents',doc.id,{analysis_status:'review',extracted_data:{...(doc.extracted_data||{}),drafts:[...preserved,...prepared],udoc_review_history:nextHistory,udoc_latest_review:record}});
-  status.textContent=prepared.length?'Revisión guardada. La propuesta queda pendiente de tu confirmación expresa.':'Revisión guardada. Esta lectura no puede crear un movimiento: completa o corrige sus errores en el archivo antes de una propuesta económica.';
+  status.textContent=confirmed.length?'Revisión guardada. Se conserva el movimiento ya confirmado; no se ha creado otra propuesta económica.':prepared.length?'Revisión guardada. La propuesta queda pendiente de tu confirmación expresa.':'Revisión guardada. Esta lectura no puede crear un movimiento: completa o corrige sus errores en el archivo antes de una propuesta económica.';
   dialog.close();await refreshAll();
   if(prepared.length){const refreshed=documents.find(d=>d.id===doc.id)||{...doc,extracted_data:{...(doc.extracted_data||{}),drafts:[...preserved,...prepared]}};renderDocDrafts(structuredClone(refreshed.extracted_data.drafts),refreshed);}
  }catch(error){status.textContent='No se ha guardado la revisión: '+(error?.message||error)}finally{udocReviewSaving=false;button.disabled=false}

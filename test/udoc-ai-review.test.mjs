@@ -112,4 +112,23 @@ test('only a complete reviewed invoice becomes a draft and settlement-like readi
     'document.kind': 'invoice', 'party.issuer.name': 'RHD', 'reference.document': 'RHD-1',
     'date.issue': '2026-11-08', 'total.payable': '12,50 €',
   }), null);
+  assert.equal(context.__udocDraftFromReview({ interpretation: { document_type: 'invoice', economic_type: 'income' } }, {
+    'document.kind': 'invoice', 'party.issuer.name': 'Cliente real', 'reference.document': 'F-43',
+    'date.issue': '2026-11-08', 'total.payable': '12,50 €', 'movement.type': 'income',
+  }).type, 'income');
+});
+
+test('saving a reopened review preserves its confirmed movement and identifies the original by SHA-256', () => {
+  const source = html.slice(html.indexOf('const udocReviewButton='), html.indexOf('async function getDocumentBlob'));
+  const context = vm.createContext({ document: { querySelectorAll: () => [] } });
+  vm.runInContext(source.slice(source.indexOf('function udocOriginalMatches'), source.indexOf('async function udocArchivedDocument'))+';globalThis.__udocOriginalMatches=udocOriginalMatches;globalThis.__udocReviewDraftState=udocReviewDraftState;', context);
+  const original = { file_name: 'same-name.pdf', file_size: 42, extracted_data: { source_sha256: 'sha-original' } };
+  assert.equal(context.__udocOriginalMatches(original, 'sha-original'), true);
+  assert.equal(context.__udocOriginalMatches(original, 'different-bytes'), false);
+  const prior = [{ invoice_number: 'F-42', review_status: 'confirmed', confirmed_series_id: 'series-1', udoc_source_sha256: 'sha-original', udoc_interpretation_sha256: 'interpretation-1' }];
+  const state = context.__udocReviewDraftState(prior, [{ invoice_number: 'F-42', type: 'expense' }], 'sha-original', 'interpretation-1');
+  assert.equal(state.prepared.length, 1);
+  assert.equal(state.prepared[0].confirmed_series_id, 'series-1');
+  assert.equal(state.prepared[0].review_status, 'confirmed');
+  assert.deepEqual(state.preserved, []);
 });
