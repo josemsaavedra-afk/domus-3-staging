@@ -35,9 +35,9 @@ sw = sw.replace("const EXPECTED_BUILD=" + str(old_build) + ";",
                 "const EXPECTED_BUILD=" + str(new_build) + ";")
 version["build"] = new_build
 version["version"] = new_version
-version_path.write_text(json.dumps(version, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
-html_path.write_text(html, encoding="utf-8")
-sw_path.write_text(sw, encoding="utf-8")
+version_path.write_text(json.dumps(version, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8", newline="\n")
+html_path.write_text(html, encoding="utf-8", newline="\n")
+sw_path.write_text(sw, encoding="utf-8", newline="\n")
 assets_match = re.search(r"self\.DOMUS3_ASSETS=(\[[^;]+\]);", manifest)
 if not assets_match:
     raise SystemExit("Cannot find PWA asset list")
@@ -52,5 +52,5 @@ manifest_path.write_text(
     "self.DOMUS3_BUILD=" + str(new_build) + ";\n" +
     "self.DOMUS3_ASSETS=" + json.dumps(assets, ensure_ascii=False, separators=(",", ":")) + ";\n" +
     "self.DOMUS3_ASSET_HASHES=" + json.dumps(hashes, ensure_ascii=False, separators=(",", ":")) + ";\n",
-    encoding="utf-8")
+    encoding="utf-8", newline="\n")
 print("Prepared DOMUS", new_version, "build", new_build, "with", len(assets), "verified assets")
