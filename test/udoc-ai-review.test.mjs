@@ -134,7 +134,7 @@ test('saving a reopened review preserves its confirmed movement and identifies t
 });
 
 test('save, confirm and reopen retain the review and block a second draft after reanalysis', async () => {
-  const documentRow = { id: 'doc-1', analysis_status: 'review', extracted_data: { source_sha256: 'original' } };
+  const documentRow = { id: 'doc-1', household_id:'home', updated_at:'2026-11-10T10:00:00Z', analysis_status: 'review', extracted_data: { source_sha256: 'original' } };
   const file = new Blob(['fixture']);
   const ids = new Map();
   const fields = {
@@ -153,6 +153,10 @@ test('save, confirm and reopen retain the review and block a second draft after 
     window: {}, selectedDocumentFiles: [file], user: { id: 'user' }, household: { id: 'home' },
     documents: [documentRow], file, attempts, structuredClone,
     updateRowSafely: async (_table, _id, payload) => Object.assign(documentRow, structuredClone(payload)),
+    sb: {auth:{getSession:async()=>({data:{session:{user:{id:'user'},access_token:'fixture'}}})},
+      from:()=>({update:payload=>{const q={eq:()=>q,select:async()=>{
+        Object.assign(documentRow,structuredClone(payload));return {data:[{id:documentRow.id,updated_at:documentRow.updated_at}]};
+      }};return q;}})},
     refreshAll: async () => {},
     renderDocDrafts: drafts => { context.currentDocDrafts = drafts; },
     currentDocDrafts: [], currentDocumentId: 'doc-1',

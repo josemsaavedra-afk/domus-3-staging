@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-10",
+  "base": "e2ddb21c874119f9c85f400c49d0d4b2ce63d7dc",
+  "public_build": 30174,
+  "candidate_build": 30176,
+  "checks": {
+    "node_vm_unique": 16,
+    "new": 8,
+    "regression": 8,
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0,
+    "inline_js_syntax": "passed",
+    "chromium": "blocked before tests: socket() denied"
+  },
+  "staging_metadata_readonly": {
+    "updated_at": "timestamptz NOT NULL",
+    "update_trigger": "stamp_base_audit sets statement_timestamp()"
+  },
+  "scope": "Confirmed row, optimistic version and household checks; no offline queue or automatic retry. Supabase simulated, no real acceptance.",
+  "no_paid_calls": true,
+  "no_external_uploads": true,
+  "no_real_mutations": true,
+  "no_deployment": true
+}
