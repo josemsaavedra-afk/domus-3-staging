@@ -4,6 +4,7 @@ import hashlib
 import json
 import pathlib
 import re
+import subprocess
 import sys
 
 root = pathlib.Path(__file__).resolve().parents[1] / "domus-3"
@@ -47,7 +48,9 @@ for asset in assets:
     file = root / asset
     if not file.is_file() or not file.resolve().is_relative_to(root.resolve()):
         raise SystemExit("Missing or unsafe asset: " + asset)
-    hashes[asset] = hashlib.sha256(file.read_bytes()).hexdigest()
+    subprocess.run(["git", "add", "--", str(file)], check=True)
+    blob = subprocess.check_output(["git", "show", ":domus-3/" + asset])
+    hashes[asset] = hashlib.sha256(blob).hexdigest()
 manifest_path.write_text(
     "self.DOMUS3_BUILD=" + str(new_build) + ";\n" +
     "self.DOMUS3_ASSETS=" + json.dumps(assets, ensure_ascii=False, separators=(",", ":")) + ";\n" +
