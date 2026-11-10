@@ -101,6 +101,20 @@
   .forecast-grid{display:block}.forecast-head{display:none}.forecast-cell{margin-bottom:8px;min-height:0}.forecast-tip{display:none!important}
 }
 @media(min-width:701px){.report-mobile-list,.budget-mobile-list{display:none}}
+.report-monthly-table{overflow-x:auto}
+.report-monthly-bars{min-width:180px}
+.report-monthly-list{display:none}
+@media screen and (max-width:900px){
+  .report-monthly-table{display:none}
+  .report-monthly-list{display:grid;gap:10px}
+  .report-monthly-card header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .report-monthly-card dl{margin:10px 0;display:grid;gap:6px}
+  .report-monthly-card dl div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+  .report-monthly-card dd{margin:0;text-align:right;overflow-wrap:anywhere}
+  .report-monthly-card figcaption{font-size:.875rem;color:var(--muted);margin-bottom:4px}
+  .report-monthly-card figure{margin:0}
+}
+
 @media(max-width:700px){
   .budget-desktop-table{display:none}.budget-mobile-list{display:grid;gap:8px;margin-top:10px}.budget-mobile-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}.budget-mobile-item input{width:20px;height:20px}.budget-mobile-main strong{display:block;font-size:15px;line-height:1.25}.budget-mobile-main small{display:block;margin-top:4px;color:var(--muted);font-size:11px}.budget-mobile-item>.amount{white-space:nowrap;font-weight:800}
   #budgetPlanList>.card>.actions{display:grid;grid-template-columns:1fr;gap:8px}#budgetPlanList>.card>.actions .btn{width:100%}
@@ -203,7 +217,7 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.128 · Build 30172<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.129 · Build 30173<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -777,8 +791,11 @@ function reportPeriod(){
  const get=id=>document.getElementById('report'+id),kind=get('PeriodType').value;
  const fallback=get('From').value||dateKey(new Date());if(!get('Month').value)get('Month').value=fallback.slice(0,7);if(!get('Year').value)get('Year').value=fallback.slice(0,4);
  for(const [field,visible] of [['Month',kind==='month'],['Year',kind==='year'],['From',kind==='custom'],['To',kind==='custom']]){get(field+'Field').hidden=!visible;get(field+'Field').classList.toggle('hidden',!visible)}
- const selected=window.DOMUSReport.period(kind,{month:get('Month').value,year:get('Year').value,from:get('From').value,to:get('To').value});
- get('From').value=selected.from;get('To').value=selected.to;return selected;
+ const from=get('From'),to=get('To');
+ to.min=kind==='custom'?from.value:'';
+ if(kind==='custom'&&from.value&&to.value&&to.value<from.value)to.value=from.value;
+ const selected=window.DOMUSReport.period(kind,{month:get('Month').value,year:get('Year').value,from:from.value,to:to.value});
+ from.value=selected.from;to.value=selected.to;return selected;
 }
 function reportFinancialDay(x){return window.DOMUSReport?.financialDay?.(x)||(x.status==='done'&&x.state?.actual_date?x.state.actual_date:dateKey(x.occurrenceDate||x.baseOccurrenceDate||x.documentDate))}
 function reportFinancialFilter(rows,f={},search=()=>[]){
@@ -830,8 +847,7 @@ function renderReports(){
  const monthlyNode=document.getElementById('reportMonthlySummary');if(monthlyNode){
  const months=new Map();for(const x of rows){const month=reportFinancialDay(x).slice(0,7);if(!/^\d{4}-\d{2}$/.test(month))continue;let m=months.get(month);if(!m){m={income:0,expense:0,rows:[]};months.set(month,m)}m[x.type==='income'?'income':'expense']+=Number(x.amount)||0;m.rows.push(x)}
  const ordered=[...months].sort((a,b)=>a[0].localeCompare(b[0])),max=Math.max(1,...ordered.flatMap(([,m])=>[m.income,m.expense]));
- const rowButton=(month,m)=>{const index=reportSnapshot.groups.push({rows:m.rows,totals:window.DOMUSReport.totals(m.rows)})-1,net=m.income-m.expense;return '<tr><td><button type="button" class="btn" data-report-group="'+index+'"><strong>'+escapeHtml(month)+'</strong></button></td><td>+ '+euro(m.income)+'</td><td>− '+euro(m.expense)+'</td><td><strong>'+(net>=0?'+ ':'− ')+euro(Math.abs(net))+'</strong></td><td style="min-width:180px"><div aria-label="Ingresos" style="height:10px;background:#267d78;width:'+(m.income/max*100)+'%;margin-bottom:5px"></div><div aria-label="Gastos" style="height:10px;background:#b46b3a;width:'+(m.expense/max*100)+'%"></div></td><td><button type="button" class="btn" data-report-group="'+index+'">Ver '+m.rows.length+'</button></td></tr>'};
- monthlyNode.innerHTML=ordered.length?'<div style="overflow-x:auto"><table class="table"><thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Resultado</th><th>Comparativa</th><th>Detalle</th></tr></thead><tbody>'+ordered.map(([month,m])=>rowButton(month,m)).join('')+'</tbody></table></div>':'<div class="empty">Sin movimientos para este período.</div>';
+ monthlyNode.innerHTML=reportMonthlyMarkup(ordered,max);
 }
  const businessNode=document.getElementById('reportBusinessSummary');if(businessNode){
  const period=reportSnapshot.period,all=documentaryReportRows(period),activity=all.filter(x=>x.expense_scope==='business'||x.expense_scope==='mixed');
@@ -1868,6 +1884,22 @@ function duplicateCandidates({invoice_number,counterparty,excludeId=null,previou
  if(!inv)return [];return series.filter(z=>z.id!==excludeId&&norm(z.invoice_number)===inv&&(!issuer||!issuerKey(z.counterparty)||issuerKey(z.counterparty)===issuer)).map(z=>({z,score:120,reason:'mismo nº de factura y emisor compatible',exactInvoice:!!issuer&&!!issuerKey(z.counterparty)}))}
 function duplicateWarning(cands){if(!cands.length)return true;const c=cands[0];alert(`Ya existe un movimiento con la factura ${c.z.invoice_number}: ${c.z.concept} · ${euro(c.z.amount)}.\n\nDOMUS no creará otro duplicado. Abre el movimiento existente para corregirlo o eliminarlo.`);return false}
 async function insertMovementLink(fromSeriesId,toSeriesId,relationType){const {error}=await sb.from('movement_links').insert({household_id:household.id,from_series_id:fromSeriesId,to_series_id:toSeriesId,relation_type:relationType,created_by:user.id});if(error&&error.code!=='23505')throw error}
+function reportMonthlyMarkup(months,max){
+ if(!months.length)return '<div class="empty">Sin movimientos para este período.</div>';
+ const summaries=months.map(([month,m])=>{
+  const index=reportSnapshot.groups.push({rows:m.rows,totals:window.DOMUSReport.totals(m.rows)})-1;
+  const net=m.income-m.expense;
+  const monthButton='<button type="button" class="btn" data-report-group="'+index+'"><strong>'+escapeHtml(month)+'</strong></button>';
+  const detail='<button type="button" class="btn" data-report-group="'+index+'">Ver '+m.rows.length+'</button>';
+  const amounts=[['Ingresos','+ '+euro(m.income)],['Gastos','− '+euro(m.expense)],['Resultado','<strong>'+(net>=0?'+ ':'− ')+euro(Math.abs(net))+'</strong>']];
+  const bars='<div aria-hidden="true"><div style="height:10px;background:#267d78;width:'+(m.income/max*100)+'%;margin-bottom:5px"></div><div style="height:10px;background:#b46b3a;width:'+(m.expense/max*100)+'%"></div></div>';
+  return {monthButton,detail,amounts,bars};
+ });
+ const tableRows=summaries.map(({monthButton,detail,amounts,bars})=>'<tr><td>'+monthButton+'</td>'+amounts.map(([,amount])=>'<td>'+amount+'</td>').join('')+'<td class="report-monthly-bars">'+bars+'</td><td>'+detail+'</td></tr>').join('');
+ const cards=summaries.map(({monthButton,detail,amounts,bars})=>'<article class="report-mobile-card report-monthly-card"><header>'+monthButton+detail+'</header><dl>'+amounts.map(([label,amount])=>'<div><dt>'+label+'</dt><dd>'+amount+'</dd></div>').join('')+'</dl><figure><figcaption>Comparativa</figcaption>'+bars+'</figure></article>').join('');
+ return '<div class="report-monthly-table"><table class="table"><thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Resultado</th><th>Comparativa</th><th>Detalle</th></tr></thead><tbody>'+tableRows+'</tbody></table></div><div class="report-monthly-list">'+cards+'</div>';
+}
+
 function reportChartRows(index){return reportSnapshot.groups[index]?.rows||[]}
 function reportMonthNavigate(step){const picker=document.getElementById('reportMonth'),kind=document.getElementById('reportPeriodType');const current=/^\d{4}-\d{2}$/.test(picker.value)?picker.value:dateKey(new Date()).slice(0,7),[y,m]=current.split('-').map(Number),d=new Date(y,m-1+step,1);kind.value='month';picker.value=dateKey(d).slice(0,7);closeDayModal();renderReports();const month=picker.value,button=Array.from(document.querySelectorAll('#reportMonthlySummary [data-report-group]')).find(el=>el.textContent.trim()===month);if(button)button.click();else{openSummary(month,[]);document.getElementById('dayModalSummary').textContent='Sin movimientos para '+month;} }
 function openReportChart(index,label){const rows=reportChartRows(index);openSummary(label,rows);document.getElementById('dayModalSummary').textContent=(reportSnapshot.period?reportSnapshot.period.label+' · ':'')+reportTotalsText(rows);const month=/^\d{4}-\d{2}$/.exec(label.trim());const controls=document.getElementById('reportMonthModalNavigation');if(controls){controls.hidden=!month;controls.classList.toggle('hidden',!month)}}
@@ -2183,7 +2215,7 @@ const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30172';
+const APP_BUILD='30173';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{
