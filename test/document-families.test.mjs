@@ -194,3 +194,13 @@ test('repeating the same OCR text does not manufacture independent corroboration
 test('a single payment reading and a contradictory fiscal proof never resolve by majority',()=>{
  const c=setup();const readings=[{source:'first',text:'TOTAL 84,50\nTARJETA BANCARIA 84,50'},{source:'footer',text:'Importe 84,50\nBASE IMPONIBLE 90,00\nIVA 10% 9,00'}];assert.equal(c.receiptReadingAgreement(readings).selected,null);assert.equal(c.documentCriticalEvidence({date:'2026-10-22'},'',readings).amount,null);
 });
+
+test('editing the payer of an existing installment keeps a shared reference, while creation and identity changes are checked', () => {
+ const first={id:'first',invoice_number:'2026/002392-F',counterparty:'OPAEF'};
+ const second={...first,id:'second'};
+ const other={id:'other',invoice_number:'F-42',counterparty:'OPAEF'};
+ const c=setup([first,second,other]);
+ assert.equal(c.duplicateCandidates({...first,payer_person_id:'JM',excludeId:first.id,previous:first}).length,0);
+ assert.equal(c.duplicateCandidates({...first}).length,2);
+ assert.equal(c.duplicateCandidates({...first,invoice_number:'F-42',excludeId:first.id,previous:first})[0].z.id,'other');
+});
