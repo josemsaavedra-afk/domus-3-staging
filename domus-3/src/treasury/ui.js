@@ -38,6 +38,8 @@ const savedCheckpoints = new Map();
 const checkpointFor = id => localCheckpoints.get(id) || savedCheckpoints.get(id);
 const statementReviews = new Map();
 let activeReviewKey = null;
+let statementDraft = null, renderedStatementDraft = null, statementAccountId = '', statementPanelOpen = false;
+let statementReadToken = 0;
 let statementCreation = null;
 function configureStatementCreation(handler) { statementCreation = handler; }
 function statementSaved() { const entry = statementReviews.get(activeReviewKey); if(entry) entry.refreshAfterCreation = true; }
@@ -73,6 +75,7 @@ export function resetTreasury3() {
   savedCheckpoints.clear();
   statementReviews.clear();
   activeReviewKey = null;
+  statementDraft = null; renderedStatementDraft = null; statementAccountId = ''; statementPanelOpen = false; statementReadToken++;
   activeContext = null;
   renderGeneration++;
   const root = document.getElementById('treasury3Root');
@@ -236,6 +239,16 @@ export function renderTreasury3(snapshot) {
   const root = document.getElementById('treasury3Root'); if (!root || !snapshot) return null;
   const context = JSON.stringify([snapshot.userId || null, snapshot.householdId || null]);
   if (context !== activeContext) { resetTreasury3(); activeContext = context; }
+  const previousPanel = root.querySelector('[data-statement-panel]');
+  if (previousPanel) statementPanelOpen = previousPanel.open;
+  if (statementDraft && renderedStatementDraft === statementDraft && previousPanel) {
+    const mapping = [...previousPanel.querySelectorAll('[data-csv-map]')];
+    if (mapping.length) statementDraft.controls = {
+      mapping: Object.fromEntries(mapping.map(el => [el.dataset.csvMap, Number(el.value)])),
+      delimiter: previousPanel.querySelector('[data-csv-delimiter]').value,
+      headerRow: previousPanel.querySelector('[data-csv-header]').value
+    };
+  }
   currentSnapshot = snapshot;
   const generation=++renderGeneration;
   const sourceAccounts = (snapshot.accounts || []).filter(account => snapshot.householdId && account.household_id === snapshot.householdId && account.active !== false);
@@ -272,7 +285,7 @@ export function renderTreasury3(snapshot) {
     <p class="muted">Solo gastos pendientes anteriores a la fecha efectiva del siguiente cobro habitual, incluidos los vencidos sin pagar. Ningún ingreso se suma ni se descuenta.</p>
     ${habitualIntervalCards(habitualIncomeIntervals(vm))}
   </section>
-  <details class="card" data-statement-panel ${activeReviewKey ? 'open' : ''}><summary>Importar y comparar un extracto (opcional)</summary>
+  <details class="card" data-statement-panel ${statementPanelOpen || activeReviewKey || statementDraft ? 'open' : ''}><summary>Importar y comparar un extracto (opcional)</summary>
     <p>Compara pagos y cobros con tus movimientos. Esta revisión es voluntaria y no calcula saldos bancarios.</p>
 
     <div class="treasury-advanced">    <div class="card"><div class="section-title"><div><h2>Conciliación bancaria segura</h2><p class="muted">Compara lo que ya tienes y añade las operaciones que falten, después de revisarlas.</p></div><label class="btn">2. Seleccionar extracto<input id="treasuryCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label></div><div class="msg info"><strong>Cómo hacerlo:</strong><ol><li>Selecciona la cuenta y carga el extracto CSV.</li><li>Comprueba las columnas y pulsa «Validar y preparar revisión».</li><li>Si el movimiento ya existe, elige «Conciliar»; no se crea otra copia.</li><li>Si falta, pulsa «Revisar y crear movimiento», comprueba quién paga o cobra, el ámbito y la categoría y pulsa «Guardar».</li><li>Al guardar, DOMUS actualiza las coincidencias. Continúa con las demás operaciones que falten.</li></ol>Cargar el archivo no guarda gastos ni cobros. «Preparar guardado del extracto» guarda el documento bancario; «Preparar conciliaciones» guarda sus enlaces con movimientos existentes. Los traspasos entre cuentas no son ingresos ni gastos.</div><div id="treasuryCsvResult" class="empty">1. Selecciona la cuenta. Después elige tu CSV o TSV. DOMUS buscará coincidencias y te permitirá revisar las operaciones que falten.</div></div>
@@ -293,11 +306,13 @@ export function renderTreasury3(snapshot) {
   accountSelect.id = 'treasuryCsvAccount'; accountSelect.className = 'treasury-review-select'; accountSelect.setAttribute('aria-label', 'Cuenta del extracto');
   accountSelect.innerHTML = '<option value="">1. Cuenta del extracto…</option>'+sourceAccounts.map(account => `<option value="${esc(account.id)}">${esc(account.name || 'Cuenta sin nombre')}</option>`).join('');
   const fileLabel = root.querySelector('#treasuryCsv').closest('label'); fileLabel.parentElement.insertBefore(accountSelect, fileLabel);
+  if (sourceAccounts.some(account => account.id === statementAccountId)) accountSelect.value = statementAccountId;
   const signature = accountId => JSON.stringify(movementsForStatementAccount(vm.real, accountId).map(row => [row.id, row.date, row.signedAmount, row.concept]));
   const showReview = key => {
     const entry = statementReviews.get(key); if (!entry) return;
     if (!sourceAccounts.some(account => account.id === entry.metadata.account.id)) return;
-    activeReviewKey = key; accountSelect.value = entry.metadata.account.id;
+    statementDraft = null;
+    activeReviewKey = key; statementAccountId = entry.metadata.account.id; accountSelect.value = statementAccountId;
     entry.stale = entry.signature !== signature(entry.metadata.account.id);
     if (entry.stale && entry.refreshAfterCreation) {
       const results = reconcileStatement(entry.session.rows.map(row=>row.statement), movementsForStatementAccount(vm.real,entry.metadata.account.id));
@@ -312,22 +327,60 @@ export function renderTreasury3(snapshot) {
     const saved = document.createElement('select'); saved.setAttribute('aria-label', 'Revisiones de esta sesión');
     saved.innerHTML = '<option value="">Reabrir revisión…</option>' + [...statementReviews].map(([key,entry]) => '<option value="' + esc(key) + '">' + esc(entry.metadata.account.name + ' · ' + entry.metadata.fileName) + '</option>').join('');
     fileLabel.parentElement.insertBefore(saved, fileLabel); saved.value = activeReviewKey || '';
-    saved.onchange = () => { if (generation === renderGeneration) showReview(saved.value); };
+    saved.onchange = () => { if (generation === renderGeneration) { statementReadToken++; showReview(saved.value); } };
   }
   if (activeReviewKey) showReview(activeReviewKey);
   const fileInput = root.querySelector('#treasuryCsv');
   fileInput.disabled = !accountSelect.value;
-  accountSelect.onchange = () => { fileInput.disabled = !accountSelect.value; root.querySelector('#treasuryCsvResult').textContent = '2. Selecciona el archivo para esta cuenta. Las revisiones anteriores se conservan.'; };
-  fileInput.onchange = async event => {
+  accountSelect.onchange = () => { statementAccountId = accountSelect.value; statementDraft = null; activeReviewKey = null; statementReadToken++; fileInput.disabled = !accountSelect.value; root.querySelector('#treasuryCsvResult').textContent = '2. Selecciona el archivo para esta cuenta. Las revisiones anteriores se conservan.'; };
+  const displayDraft = draft => {
+    const {file, text, formatContext} = draft;
+    const account = sourceAccounts.find(item => item.id === draft.accountId);
+    if (!account) { statementDraft = null; return; }
     const output = root.querySelector('#treasuryCsvResult');
+    renderedStatementDraft = draft;
+    const draftContext = activeContext;
+    let {info, restoredFormat} = draft;
+    const display = () => {
+      output.className = '';
+      const option = selected => '<option value="-1">Sin columna</option>' + info.headers.map((h,i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${esc(h || '(sin título)')}</option>`).join('');
+      const labels = { date:'Fecha real de operación', concept:'Concepto', amount:'Importe con signo (− cargo / + abono)', debit:'Cargo', credit:'Abono', reference:'Referencia (opcional)' };
+      output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p><label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>${restoredFormat?'Hemos recuperado las columnas que elegiste para esta cuenta. Revisa la propuesta. ':''}Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(draft.controls?.mapping[key] ?? info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>`;
+      output.querySelector('[data-csv-delimiter]').value = draft.controls?.delimiter ?? (info.delimiter==='\t'?'tab':info.delimiter);
+      if (draft.controls) output.querySelector('[data-csv-header]').value = draft.controls.headerRow;
+      output.querySelector('[data-csv-format]').onclick = () => { try { const delimiter = output.querySelector('[data-csv-delimiter]').value; info = inspectStatementCsv(text,{delimiter:delimiter==='tab'?'\t':delimiter,headerRow:Number(output.querySelector('[data-csv-header]').value)-1}); restoredFormat=false; draft.info=info; draft.restoredFormat=false; draft.controls=null; display(); } catch(error) { output.querySelector('[data-csv-message]').textContent = 'No importado: '+error.message; } };
+      output.querySelector('[data-csv-review]').onclick = async () => {
+        const note = output.querySelector('[data-csv-message]');
+        try {
+          if (generation !== renderGeneration || accountSelect.value !== account.id) throw new Error('La cuenta ha cambiado. Selecciona de nuevo el archivo.');
+          const mapping = {delimiter:info.delimiter,headerRow:info.headerRow,...Object.fromEntries([...output.querySelectorAll('[data-csv-map]')].map(el=>[el.dataset.csvMap,Number(el.value)]))};
+          const rows = parseStatementCsv(text,mapping), fingerprint = await createStatementFingerprint(account.id,text);
+          if (draftContext !== activeContext || statementDraft !== draft || statementAccountId !== account.id) return;
+          rememberStatementFormat(preferenceStorage, formatContext, info.headers, mapping);
+          const existing = statementReviews.get(fingerprint.duplicateKey);
+          if (existing && !existing.stale && !existing.needsPersistentReview) { statementDraft=null; activeReviewKey=fingerprint.duplicateKey; renderTreasury3(currentSnapshot); return; }
+          const currentMovements = movementsForStatementAccount(lastViewModel.real,account.id);
+          const results = reconcileStatement(rows,currentMovements);
+          const key = existing ? fingerprint.duplicateKey+':revision:'+(statementReviews.size+1) : fingerprint.duplicateKey;
+          statementReviews.set(key,{session:createReviewSession(results),signature:JSON.stringify(currentMovements.map(row => [row.id, row.date, row.signedAmount, row.concept])),metadata:{account,fileName:file.name,csv:text,mapping,fingerprint,automatic:reconciliationSummary(results)}});
+          statementDraft=null;activeReviewKey=key;renderTreasury3(currentSnapshot);
+        } catch(error) { note.className='msg error';note.textContent='No importado: '+error.message+'. El historial anterior se conserva.'; }
+      };
+    };
+    display();
+  };
+  if (statementDraft) displayDraft(statementDraft);
+  fileInput.onchange = async event => {
+    const file = event.target.files?.[0], account = sourceAccounts.find(item => item.id === accountSelect.value);
+    if (!file) return;
+    const readToken = ++statementReadToken;
+    const readContext = activeContext;
     try {
-      const file = event.target.files?.[0], account = sourceAccounts.find(item => item.id === accountSelect.value);
-      if (!file) return;
       if (!account) throw new Error('Selecciona la cuenta a la que pertenece el extracto');
       if (file.size > 5 * 1024 * 1024) throw new Error('El archivo supera 5 MB');
       if (/\.(xlsx?|pdf)$/i.test(file.name)) throw new Error('Este paso lee extractos CSV o TSV. Exporta el extracto bancario a CSV; los documentos profesionales mantienen su circuito de TransportERP.');
       const text = await file.text();
-      if (generation !== renderGeneration) return;
+      if (readToken !== statementReadToken || readContext !== activeContext) return;
       const formatContext = {userId: snapshot.userId, householdId: snapshot.householdId, accountId: account.id};
       const savedFormat = readStatementFormat(preferenceStorage, formatContext);
       let info = inspectStatementCsv(text), restoredFormat = false;
@@ -338,33 +391,15 @@ export function renderTreasury3(snapshot) {
           if (matching) { info = {...detected, indexes: {...detected.indexes, ...matching}}; restoredFormat = true; }
         } catch { /* A different format uses fresh detection and visible column choices. */ }
       }
-      const display = () => {
-        output.className = '';
-        const option = selected => '<option value="-1">Sin columna</option>' + info.headers.map((h,i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${esc(h || '(sin título)')}</option>`).join('');
-        const labels = { date:'Fecha real de operación', concept:'Concepto', amount:'Importe con signo (− cargo / + abono)', debit:'Cargo', credit:'Abono', reference:'Referencia (opcional)' };
-        output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p><label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>${restoredFormat?'Hemos recuperado las columnas que elegiste para esta cuenta. Revisa la propuesta. ':''}Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>`;
-        output.querySelector('[data-csv-delimiter]').value = info.delimiter==='\t'?'tab':info.delimiter;
-        output.querySelector('[data-csv-format]').onclick = () => { try { const delimiter = output.querySelector('[data-csv-delimiter]').value; info = inspectStatementCsv(text,{delimiter:delimiter==='tab'?'\t':delimiter,headerRow:Number(output.querySelector('[data-csv-header]').value)-1}); restoredFormat=false; display(); } catch(error) { output.querySelector('[data-csv-message]').textContent = 'No importado: '+error.message; } };
-        output.querySelector('[data-csv-review]').onclick = async () => {
-          const note = output.querySelector('[data-csv-message]');
-          try {
-            if (generation !== renderGeneration || accountSelect.value !== account.id) throw new Error('La cuenta ha cambiado. Selecciona de nuevo el archivo.');
-            const mapping = {delimiter:info.delimiter,headerRow:info.headerRow,...Object.fromEntries([...output.querySelectorAll('[data-csv-map]')].map(el=>[el.dataset.csvMap,Number(el.value)]))};
-            const rows = parseStatementCsv(text,mapping), fingerprint = await createStatementFingerprint(account.id,text);
-            if (generation === renderGeneration && accountSelect.value === account.id) rememberStatementFormat(preferenceStorage, formatContext, info.headers, mapping);
-            if (generation !== renderGeneration) return;
-            const existing = statementReviews.get(fingerprint.duplicateKey);
-            if (existing && !existing.stale && !existing.needsPersistentReview) { showReview(fingerprint.duplicateKey); return; }
-            const results = reconcileStatement(rows,movementsForStatementAccount(vm.real,account.id));
-            const key = existing ? fingerprint.duplicateKey+':revision:'+(statementReviews.size+1) : fingerprint.duplicateKey;
-            statementReviews.set(key,{session:createReviewSession(results),signature:signature(account.id),metadata:{account,fileName:file.name,csv:text,mapping,fingerprint,automatic:reconciliationSummary(results)}});
-            activeReviewKey=key;renderTreasury3(snapshot);
-          } catch(error) { note.className='msg error';note.textContent='No importado: '+error.message+'. El historial anterior se conserva.'; }
-        };
-      };
-      display();
-    } catch(error) { if (generation===renderGeneration) { output.className='msg error';output.textContent='No importado: '+error.message+'. El historial anterior se conserva.'; } }
-    finally { event.target.value=''; }
+      statementDraft = {file: {name:file.name}, text, accountId:account.id, formatContext, info, restoredFormat};
+      statementAccountId = account.id; activeReviewKey = null; statementPanelOpen = true;
+      renderTreasury3(currentSnapshot);
+    } catch(error) {
+      if (readToken === statementReadToken && readContext === activeContext) {
+        const output = document.getElementById('treasuryCsvResult');
+        if (output) { output.className='msg error';output.textContent='No importado: '+error.message+'. El historial anterior se conserva.'; }
+      }
+    } finally { event.target.value=''; }
   };
   bindBalanceCapture(root,snapshot,vm,renderGeneration);
   persistencePanel?.render(root);
