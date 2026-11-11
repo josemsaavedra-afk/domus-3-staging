@@ -22,3 +22,4 @@ jobs:
         run: |
           node scripts/test-statement-preview.mjs
           node scripts/test-statement-candidate.mjs
+          node scripts/test-category-rule.mjs
