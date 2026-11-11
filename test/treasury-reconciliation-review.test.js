@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { confirmedReviewDraft, createReviewSession, decideReview, reviewSummary, selectReviewCandidate } from '../domus-3/src/treasury/reconciliation-review.js';
+import { confirmedReviewDraft, createReviewSession, decideReview, reviewSummary, selectReviewCandidate, rejectReviewCandidate, restoreReviewCandidates, refreshReviewSession } from '../domus-3/src/treasury/reconciliation-review.js';
 
 const movementA = { id: 'movement-a', concept: 'Compra A' };
 const movementB = { id: 'movement-b', concept: 'Compra B' };
@@ -42,4 +42,25 @@ test('el borrador contiene solo confirmaciones locales y trazables', () => {
   const session = decideReview(createReviewSession(results), 'line-1', 'confirmada');
   assert.deepEqual(confirmedReviewDraft(session), [{ statementId: 'line-1', movementId: 'movement-a', statementDate: '2026-09-15', signedAmount: -10, source: 'revision_local_no_persistida' }]);
   assert.deepEqual(reviewSummary(session), { total: 3, pendiente: 2, confirmada: 1, descartada: 0 });
+});
+
+
+test('rejecting a proposal preserves the bank line, other decisions and allows recovery',()=>{
+ let session=decideReview(createReviewSession(results),'line-1','confirmada');
+ session=rejectReviewCandidate(session,'line-2','movement-a');
+ assert.equal(session.rows[0].decision,'confirmada');assert.equal(session.rows.length,3);
+ assert.equal(session.rows[1].candidates.length,1);assert.equal(session.rows[1].rejectedCandidates[0].id,'movement-a');
+ session=rejectReviewCandidate(session,'line-2','movement-b');
+ assert.equal(session.rows[1].candidates.length,0);assert.equal(session.rows[1].decision,'pendiente');
+ assert.equal(session.rows[1].matchStatus,'sin_coincidencia');
+ assert.throws(()=>rejectReviewCandidate(session,'line-1','movement-a'),/pendiente/);
+ session=restoreReviewCandidates(session,'line-2');assert.equal(session.rows[1].candidates.length,2);assert.equal(session.rows[0].decision,'confirmada');
+});
+
+test('adding a missing movement preserves rejected proposals and earlier confirmations',()=>{
+ let session=decideReview(createReviewSession(results),'line-1','confirmada');
+ session=rejectReviewCandidate(session,'line-2','movement-a');
+ session=refreshReviewSession(session,results);
+ assert.equal(session.rows[0].decision,'confirmada');assert.equal(session.rows[1].candidates.length,1);
+ assert.equal(session.rows[1].rejectedCandidates[0].id,'movement-a');
 });

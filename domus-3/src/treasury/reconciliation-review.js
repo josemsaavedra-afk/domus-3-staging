@@ -1,4 +1,4 @@
-const freezeRows = rows => Object.freeze(rows.map(row => Object.freeze({ ...row, candidates: Object.freeze([...row.candidates]) })));
+const freezeRows = rows => Object.freeze(rows.map(row => Object.freeze({ ...row, candidates: Object.freeze([...row.candidates]), rejectedCandidates: Object.freeze([...(row.rejectedCandidates || [])]) })));
 
 function candidateList(result) {
   const rows = [result.candidate, ...(result.alternatives || []).map(item => item.movement)].filter(Boolean);
@@ -20,6 +20,24 @@ export function createReviewSession(results) {
   return Object.freeze({ rows: freezeRows(rows) });
 }
 
+// After creating one missing movement, keep the other reviewed choices when
+// their underlying candidates have not changed.
+export function refreshReviewSession(previous, results) {
+  const fresh = createReviewSession(results);
+  const same = (a,b) => a && b && ['id','date','signedAmount','concept','accountId'].every(key=>a[key]===b[key]);
+  return Object.freeze({rows:freezeRows(fresh.rows.map(row=>{
+    const old=previous.rows.find(item=>item.statement.id===row.statement.id);
+    if(!old)return row;
+    if(old.decision!=='pendiente')return old;
+    const rejected=(old.rejectedCandidates||[]).filter(item=>row.candidates.some(candidate=>same(item,candidate)));
+    const candidates=row.candidates.filter(item=>!rejected.some(candidate=>candidate.id===item.id));
+    const selected=candidates.find(item=>item.id===old.selectedMovementId&&same(item,old.candidates.find(candidate=>candidate.id===item.id)));
+    return {...row,candidates,rejectedCandidates:rejected,
+      selectedMovementId:selected?.id || (rejected.length ? null : row.selectedMovementId),
+      matchStatus:rejected.length ? (candidates.length?'revisar':'sin_coincidencia') : row.matchStatus};
+  }))});
+}
+
 export function selectReviewCandidate(session, statementId, movementId) {
   const target = session.rows.find(row => row.statement.id === statementId);
   if (!target) throw new Error('Línea de extracto no encontrada');
@@ -27,6 +45,28 @@ export function selectReviewCandidate(session, statementId, movementId) {
   if (movementId && !target.candidates.some(candidate => candidate.id === movementId)) throw new Error('El movimiento no pertenece a las propuestas de esta línea');
   const rows = session.rows.map(row => row.statement.id === statementId ? { ...row, selectedMovementId: movementId || null } : row);
   return Object.freeze({ rows: freezeRows(rows) });
+}
+
+// Reject a proposed link, never the bank line or the underlying movement.
+export function rejectReviewCandidate(session, statementId, movementId) {
+  const target = session.rows.find(row => row.statement.id === statementId);
+  if (!target || target.decision !== 'pendiente') throw new Error('La línea ya no está pendiente de revisión.');
+  const candidate = target.candidates.find(item => item.id === movementId);
+  if (!candidate) throw new Error('La propuesta ya no está disponible.');
+  const candidates = target.candidates.filter(item => item.id !== movementId);
+  return Object.freeze({ rows: freezeRows(session.rows.map(row => row !== target ? row : {
+    ...row, candidates, rejectedCandidates: [...(row.rejectedCandidates || []), candidate],
+    selectedMovementId: null, matchStatus: candidates.length ? 'revisar' : 'sin_coincidencia'
+  })) });
+}
+
+export function restoreReviewCandidates(session, statementId) {
+  const target = session.rows.find(row => row.statement.id === statementId);
+  if (!target || target.decision !== 'pendiente') throw new Error('La línea ya no está pendiente de revisión.');
+  return Object.freeze({ rows: freezeRows(session.rows.map(row => row !== target ? row : {
+    ...row, candidates: [...row.candidates, ...(row.rejectedCandidates || [])], rejectedCandidates: [],
+    selectedMovementId: null, matchStatus: 'revisar'
+  })) });
 }
 
 export function decideReview(session, statementId, decision) {

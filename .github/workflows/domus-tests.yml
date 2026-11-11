@@ -19,4 +19,6 @@ jobs:
           npm install --no-save --package-lock=false playwright
           npx playwright install --with-deps chromium
       - name: Verify statement preview survives refresh in Chromium
-        run: node scripts/test-statement-preview.mjs
+        run: |
+          node scripts/test-statement-preview.mjs
+          node scripts/test-statement-candidate.mjs
