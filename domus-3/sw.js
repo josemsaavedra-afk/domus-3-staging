@@ -13,7 +13,10 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   if(actual!==self.DOMUS3_ASSET_HASHES[file])throw new Error('Archivo de otro build: '+file);
   return [new URL(file,BASE).href,response];
  }));
- const cache=await caches.open(CACHE);await Promise.all(verified.map(([url,response])=>cache.put(url,response)));await self.skipWaiting();
+ const cache=await caches.open(CACHE);await Promise.all(verified.map(([url,response])=>cache.put(url,response)));// An existing tab can contain an unsaved statement review. Never replace
+ // its controller: activation waits naturally until the old tabs are closed.
+ const openWindows=await self.clients.matchAll({type:'window'});
+ if(!openWindows.length)await self.skipWaiting();
 })()));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
  for(const key of await caches.keys())if(key.startsWith(PREFIX)&&key!==CACHE)await caches.delete(key);

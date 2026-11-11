@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';import {webcrypto} from 'node:crypto';
-async function install(corrupt){let job,activated=false,puts=0;const handlers={};const self={location:{href:'https://example.test/domus-3/sw.js?v=30042'},addEventListener:(n,f)=>handlers[n]=f,skipWaiting:async()=>{activated=true},clients:{claim:async()=>{}}};let context;
+async function install(corrupt,openWindows=[]){let job,activated=false,puts=0;const handlers={};const self={location:{href:'https://example.test/domus-3/sw.js?v=30042'},addEventListener:(n,f)=>handlers[n]=f,skipWaiting:async()=>{activated=true},clients:{claim:async()=>{},matchAll:async()=>openWindows}};let context;
  context=vm.createContext({self,URL,Request,crypto:webcrypto,Uint8Array,Promise,Error,caches:{open:async()=>({put:async()=>puts++})},fetch:async r=>{const u=new URL(r.url);assert.equal(u.searchParams.get('build'),String(self.DOMUS3_BUILD));const file=u.pathname.split('/domus-3/')[1];return new Response(corrupt&&file==='index.html'?'obsolete shell':readFileSync('domus-3/'+file));},importScripts:()=>vm.runInContext(readFileSync('domus-3/asset-manifest.js','utf8'),context)});
  vm.runInContext(readFileSync('domus-3/sw.js','utf8'),context);handlers.install({waitUntil:p=>job=p});return {job,state:()=>({activated,puts,total:self.DOMUS3_ASSETS.length})};}
 test('PWA installs a complete, verified build before activation',async()=>{const x=await install(false);await x.job;assert.equal(x.state().puts,x.state().total);assert.equal(x.state().activated,true);});
@@ -9,4 +9,9 @@ test('visible header and updater identify the packaged build',()=>{
  const html=readFileSync('domus-3/index.html','utf8');
  assert.ok(html.includes('DOMUS · '+version.version+' · Build '+version.build));
  assert.ok(html.includes("const APP_BUILD='"+version.build+"'"));
+});
+
+test('an update waits while a DOMUS tab may contain an unsaved statement review',async()=>{
+ const x=await install(false,[{id:'open-review'}]);await x.job;
+ assert.equal(x.state().puts,x.state().total);assert.equal(x.state().activated,false);
 });
