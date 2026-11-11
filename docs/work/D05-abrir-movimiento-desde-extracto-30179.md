@@ -1,0 +1,11 @@
+# D05 · Abrir el movimiento propuesto sin abandonar el extracto
+
+Orden del usuario 11/11/2026: «que te lleve directamente al movimiento para poder confirmarlo o denegarlo». Continuidad de «Verificar proyectos DOMUS TransportERP». Registro maestro consultado en TransportERP/erp05/integracion-lyreco; base vigente DOMUS main 576d2e2, 30178.
+
+Candidato 30179 / 3.0.0-rc.1.135. «Abrir movimiento» abre la ficha real existente de DOMUS mediante openMovementDetail, con importe, fechas, personas, cuenta, categoría, factura, notas y vínculos. Añade encima los datos de la línea bancaria y tres decisiones: confirmar coincidencia, rechazar ese candidato, volver sin decidir. No cambia de pantalla, ni modifica o borra el movimiento. Oculta las acciones económicas normales de la ficha en este contexto. Al cerrar recupera la posición del extracto; una actualización en segundo plano conserva las decisiones y los callbacks verifican la revisión vigente y la sesión.
+
+Rechazar una propuesta conserva la línea bancaria y las otras decisiones. Las alternativas restantes se pueden comprobar. Al rechazar la última permite abrir el formulario revisado para crear lo ausente, manteniendo las validaciones existentes. Se pueden recuperar propuestas rechazadas. Después de crear una operación se conservan confirmaciones y rechazos de las demás líneas si sus candidatos no han cambiado.
+
+Las opciones ahora muestran fecha e importe; el resumen muestra también cuenta y signo +/−. La vista previa aclara que solo muestra las primeras filas y que la revisión contiene todas. Se sustituye «Descartar» por «Omitir esta línea» para distinguirlo del rechazo de una coincidencia. Confirmar sigue siendo una decisión local hasta completar el circuito de persistencia existente; se explica en la ficha y no se afirma que se haya guardado remotamente.
+
+Verificación preparada: regresión integrada del módulo real de revisión y de la ficha real, con datos sintéticos: abrir, volver sin decidir, refrescar con ficha abierta, confirmar, rechazar, recuperar, preparar creación, conservar otras líneas y bloquear cambio de sesión. Regresión Chromium a 390 y 1280 px en CI. Sin escrituras reales ni llamadas IA. La evidencia final de CI y despliegue se registrará en el maestro al publicar. No se cierra D05 global ni PDF/XLS/XLSX.

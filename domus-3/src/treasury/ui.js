@@ -10,7 +10,7 @@ import { createTreasurySnapshot } from './snapshot.js';
 import { buildCheckpointDraft } from './checkpoint-draft.js';
 import { createTreasuryViewModel, monthlyTreasury, monthlyTreasuryBreakdowns } from './view-model.js';
 import { reconcileStatement, reconciliationSummary } from './reconciliation.js';
-import { createReviewSession, decideReview, reviewSummary, selectReviewCandidate } from './reconciliation-review.js';
+import { createReviewSession, decideReview, reviewSummary, refreshReviewSession, selectReviewCandidate, rejectReviewCandidate, restoreReviewCandidates } from './reconciliation-review.js';
 import { parseStatementCsv, inspectStatementCsv } from './statement-csv.js';
 import { accountWithLocalCheckpoint, createLocalCheckpoint, validateAccountReconciliation } from './balance-checkpoint.js';
 import { buildReconciliationReport, createStatementFingerprint, movementsForStatementAccount, reconciliationReportFileName, serializeReconciliationReport } from './reconciliation-report.js';
@@ -40,7 +40,8 @@ const statementReviews = new Map();
 let activeReviewKey = null;
 let statementDraft = null, renderedStatementDraft = null, statementAccountId = '', statementPanelOpen = false;
 let statementReadToken = 0;
-let statementCreation = null;
+let statementCreation = null, statementInspection = null;
+function configureStatementInspection(handler) { statementInspection = handler; }
 function configureStatementCreation(handler) { statementCreation = handler; }
 function statementSaved() { const entry = statementReviews.get(activeReviewKey); if(entry) entry.refreshAfterCreation = true; }
 let activeContext = null;
@@ -157,8 +158,17 @@ function selectableMovementCards(rows,selected){
  if(!rows.length)return '<div class="empty">Sin movimientos en este desglose.</div>';
  return rows.map((row,i)=>`<article class="treasury-mobile-movement" data-treasury-select-row="${i}"${selected.has(i)?'':' style="opacity:.48"'}><div class="treasury-mobile-movement-top"><div><label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" data-treasury-select="${i}" aria-label="Incluir ${esc(row.concept)} en el cálculo" ${selected.has(i)?'checked':''}><strong>${esc(row.concept)}</strong></label><small>${date(row.date)} · ${esc(LABEL[row.status]||row.status)}</small>${row.originalDate&&row.originalDate!==row.date?`<small>Fecha prevista original: ${date(row.originalDate)}</small>`:''}</div><span class="amount ${row.type}">${row.type==='income'?'+':'−'}${euro(row.amount)}</span></div><div class="treasury-mobile-movement-type">${row.type==='income'?'Ingreso':'Pago'}</div></article>`).join('');
 }
-function reconciliationRows(session) { return session.rows.map(row => { const locked = row.decision !== 'pendiente'; return `<tr><td data-label="Fecha">${date(row.statement.date)}</td><td data-label="Extracto">${esc(row.statement.concept)}</td><td data-label="Importe" class="amount ${row.statement.signedAmount < 0 ? 'expense' : 'income'}">${euro(row.statement.signedAmount)}</td><td data-label="Estado"><span class="pill">${esc(locked ? row.decision : row.matchStatus.replaceAll('_', ' '))}</span></td><td data-label="Movimiento DOMUS">${row.candidates.length ? `<select class="treasury-review-select" data-review-select="${esc(row.statement.id)}" ${locked ? 'disabled' : ''}><option value="">Seleccionar…</option>${row.candidates.map(candidate => `<option value="${esc(candidate.id)}" ${candidate.id === row.selectedMovementId ? 'selected' : ''}>${esc(candidate.concept)}${candidate.id === row.candidates[0]?.id ? ` · ${row.score}%` : ''}</option>`).join('')}</select>` : `<strong>Sin coincidencia</strong><br>${statementCreationEligibility(row) ? `<small>${esc(statementCreationEligibility(row))}</small>` : `<button class="btn primary" type="button" data-review-create="${esc(row.statement.id)}" ${locked || !statementCreation ? 'disabled' : ''}>Revisar y crear movimiento</button>`}`}</td><td data-label="Decisión"><div class="actions"><button class="btn primary" type="button" data-review-confirm="${esc(row.statement.id)}" ${locked || !row.selectedMovementId ? 'disabled' : ''}>Conciliar</button><button class="btn" type="button" data-review-discard="${esc(row.statement.id)}" ${locked ? 'disabled' : ''}>Descartar</button></div></td></tr>`; }).join(''); }
-function balanceCaptureRows(accounts, asOf) { if (!accounts.length) return '<div class="empty">No hay cuentas configuradas.</div>'; return accounts.map(account => { const checkpoint = checkpointFor(account.id); return `<div class="treasury-balance-form" data-balance-account="${esc(account.id)}"><h3>${esc(account.name || 'Cuenta sin nombre')}</h3><div class="treasury-balance-grid"><label>Saldo que muestra el banco<input data-opening-amount type="number" step="0.01" value="${checkpoint?.amount ?? ''}" placeholder="0,00"></label><label>Fecha de ese saldo<input data-opening-date type="date" max="${esc(asOf)}" value="${checkpoint?.date ?? esc(asOf)}"></label><button class="btn" type="button" data-save-opening>Aplicar saldo</button></div><details class="treasury-balance-check"><summary>Comprobar más adelante si DOMUS cuadra con el banco</summary><div class="treasury-balance-grid"><label>Saldo bancario a comprobar<input data-closing-amount type="number" step="0.01" placeholder="0,00"></label><label>Fecha del saldo bancario<input data-closing-date type="date" max="${esc(asOf)}" value="${esc(asOf)}"></label><button class="btn" type="button" data-check-balance ${checkpoint ? '' : 'disabled'}>Comprobar cuadre</button><button class="btn" type="button" data-download-checkpoint>Descargar copia técnica</button></div></details><div data-balance-result class="muted">${checkpoint ? `${checkpoint.persisted ? "Saldo guardado" : "Saldo pendiente de guardar"}: ${euro(checkpoint.amount)} a ${date(checkpoint.date)}.` : 'Introduce el saldo actual y la fecha. DOMUS empezará a calcular desde ese punto.'}</div></div>`; }).join(''); }
+function reconciliationRows(session) {
+  const signed = value => (value > 0 ? '+' : '') + euro(value);
+  return session.rows.map(row => {
+    const locked = row.decision !== 'pendiente';
+    const candidate = row.candidates.find(item => item.id === row.selectedMovementId) || row.candidates[0];
+    const proposals = row.candidates.length ? `<select aria-label="Movimiento propuesto para ${esc(row.statement.concept)}" class="treasury-review-select" data-review-select="${esc(row.statement.id)}" ${locked ? 'disabled' : ''}><option value="">Seleccionar propuesta…</option>${row.candidates.map(item => `<option value="${esc(item.id)}" ${item.id === row.selectedMovementId ? 'selected' : ''}>${esc(item.concept)} · ${date(item.date)} · ${signed(item.signedAmount)}</option>`).join('')}</select>
+      <div class="treasury-candidate-summary"><strong>${esc(candidate.concept)}</strong><p>${date(candidate.date)} · <strong>${signed(candidate.signedAmount)}</strong> · ${esc(currentSnapshot.accounts.find(account=>account.id===candidate.accountId)?.name || 'Cuenta sin asignar')}</p><button class="btn" type="button" data-review-open="${esc(row.statement.id)}" data-review-candidate="${esc(candidate.id)}" ${!statementInspection ? 'disabled' : ''}>Abrir movimiento</button><small>Consulta el movimiento completo y confirma o rechaza la coincidencia sin salir del extracto.</small></div>` : `<strong>Sin coincidencia</strong><br>${statementCreationEligibility(row) ? `<small>${esc(statementCreationEligibility(row))}</small>` : `<button class="btn primary" type="button" data-review-create="${esc(row.statement.id)}" ${locked || !statementCreation ? 'disabled' : ''}>Revisar y crear movimiento</button>`}`;
+    const rejected = row.rejectedCandidates?.length ? `<p><small>${row.rejectedCandidates.length} propuesta(s) rechazada(s). La línea bancaria sigue pendiente hasta que la resuelvas.</small></p>${!locked ? `<button class="btn" type="button" data-review-restore="${esc(row.statement.id)}">Volver a ver propuestas rechazadas</button>` : ''}` : '';
+    return `<tr data-review-row="${esc(row.statement.id)}"><td data-label="Fecha">${date(row.statement.date)}</td><td data-label="Extracto">${esc(row.statement.concept)}</td><td data-label="Importe" class="amount ${row.statement.signedAmount < 0 ? 'expense' : 'income'}">${signed(row.statement.signedAmount)}</td><td data-label="Estado"><span class="pill">${esc(locked ? row.decision : row.matchStatus.replaceAll('_', ' '))}</span></td><td data-label="Movimiento DOMUS">${proposals}${rejected}</td><td data-label="Decisión"><div class="actions"><button class="btn primary" type="button" data-review-confirm="${esc(row.statement.id)}" ${locked || !row.selectedMovementId ? 'disabled' : ''}>Conciliar</button><button class="btn" type="button" data-review-discard="${esc(row.statement.id)}" ${locked ? 'disabled' : ''}>Omitir esta línea</button></div></td></tr>`;
+  }).join('');
+}
 
 function bindDetails(root, vm) {
   const detail = root.querySelector('#treasury3Detail'), title = root.querySelector('#treasury3DetailTitle'), body = root.querySelector('#treasury3DetailBody'), mobile = root.querySelector('#treasury3DetailMobile');
@@ -184,7 +194,7 @@ function bindReconciliationReview(output, entry, generation) {
     entry.session = session;
     const summary = reviewSummary(session);
     output.className = '';
-    output.innerHTML = `${entry.stale ? '<div class="msg error">Los movimientos han cambiado. Esta revisión conserva las decisiones anteriores y requiere un nuevo análisis antes de confirmar.</div>' : ''}${message ? `<div class="msg ${message.kind}">${esc(message.text)}</div>` : ''}<div class="msg info">Cuenta: <strong>${esc(metadata.account.name)}</strong> · Huella ${esc(metadata.fingerprint.contentSha256.slice(0, 12))}… · Modo seguro: ${metadata.automatic.propuesto} coincidencias claras, ${metadata.automatic.ambiguo} ambiguas, ${metadata.automatic.revisar} para revisar y ${metadata.automatic.sin_coincidencia} sin coincidencia. Cargar el archivo no crea movimientos. Las operaciones ausentes se pueden revisar y guardar con «Revisar y crear movimiento».</div><div class="section-title treasury-review-summary"><div><strong>${summary.total} líneas</strong> · ${summary.confirmada} conciliadas localmente · ${summary.descartada} descartadas · ${summary.pendiente} pendientes. Las operaciones ausentes no se incorporan hasta que revises y guardes su formulario.</div><button class="btn" type="button" data-download-review>Descargar informe</button></div><div class="table-wrap treasury-review-table" tabindex="0" role="region" aria-label="Revisión del extracto"><table class="table"><thead><tr><th>Fecha</th><th>Extracto</th><th>Importe</th><th>Estado</th><th>Movimiento DOMUS</th><th>Decisión</th></tr></thead><tbody>${reconciliationRows(session)}</tbody></table></div>`;
+    output.innerHTML = `${entry.stale ? '<div class="msg error">Los movimientos han cambiado. Esta revisión conserva las decisiones anteriores y requiere un nuevo análisis antes de confirmar.</div>' : ''}${message ? `<div class="msg ${message.kind}">${esc(message.text)}</div>` : ''}<div class="msg info">Cuenta: <strong>${esc(metadata.account.name)}</strong> · Resultado de la comparación: ${metadata.automatic.propuesto} coincidencias claras, ${metadata.automatic.ambiguo} ambiguas, ${metadata.automatic.revisar} para revisar y ${metadata.automatic.sin_coincidencia} sin coincidencia. Pulsa «Abrir movimiento» para consultar su ficha y confirmar o rechazar la coincidencia sin salir del extracto. Cargar el archivo no crea movimientos. Las operaciones ausentes se pueden revisar y guardar con «Revisar y crear movimiento».</div><div class="section-title treasury-review-summary"><div><strong>${summary.total} líneas</strong> · ${summary.confirmada} conciliadas localmente · ${summary.descartada} descartadas · ${summary.pendiente} pendientes. Las operaciones ausentes no se incorporan hasta que revises y guardes su formulario.</div><button class="btn" type="button" data-download-review>Descargar informe</button></div><div class="table-wrap treasury-review-table" tabindex="0" role="region" aria-label="Revisión del extracto"><table class="table"><thead><tr><th>Fecha</th><th>Extracto</th><th>Importe</th><th>Estado</th><th>Movimiento DOMUS</th><th>Decisión</th></tr></thead><tbody>${reconciliationRows(session)}</tbody></table></div>`;
     persistencePanel?.bindReview(output, entry);
     output.querySelectorAll('[data-review-create]').forEach(button => button.onclick = async () => {
       if (generation !== renderGeneration || entry.stale || !statementCreation) return;
@@ -198,10 +208,40 @@ function bindReconciliationReview(output, entry, generation) {
         render({kind:'info', text:'Formulario preparado. El movimiento solo se incorpora al pulsar Guardar. Después se actualizarán las coincidencias del extracto.'});
       } catch(error) { render({kind:'error', text:error.message}); }
     });
+    output.querySelectorAll('[data-review-open]').forEach(button => button.onclick = async () => {
+      if (!statementInspection || generation !== renderGeneration) return;
+      const statementId = button.dataset.reviewOpen, movementId = button.dataset.reviewCandidate;
+      const boundContext = activeContext;
+      const row = entry.session.rows.find(item=>item.statement.id===statementId);
+      const candidate = row?.candidates.find(item=>item.id===movementId);
+      if (!candidate) return;
+      const decide = action => {
+        if (boundContext !== activeContext || entry.stale || statementReviews.get(activeReviewKey) !== entry) throw new Error('La revisión ha cambiado. Vuelve al extracto y comprueba los datos actuales.');
+        const latest = entry.session.rows.find(item=>item.statement.id===statementId);
+        if (!latest || latest.decision !== 'pendiente' || !latest.candidates.some(item=>item.id===movementId)) throw new Error('Esta línea ya no admite esa decisión.');
+        if (action === 'confirm') {
+          const selected = selectReviewCandidate(entry.session, statementId, movementId);
+          const confirmed = decideReview(selected, statementId, 'confirmada');
+          persistencePanel?.captureDecision(entry, statementId, selected);
+          entry.session = confirmed;
+        } else entry.session = rejectReviewCandidate(entry.session, statementId, movementId);
+        renderTreasury3(currentSnapshot);
+      };
+      try { await statementInspection({candidate, statement:row.statement, account:metadata.account,
+        userId:currentSnapshot.userId, householdId:currentSnapshot.householdId,
+        canDecide:row.decision==='pendiente'&&!entry.stale,
+        onConfirm:()=>decide('confirm'), onReject:()=>decide('reject')});
+      } catch(error) { render({kind:'error',text:error.message}); }
+    });
+    output.querySelectorAll('[data-review-restore]').forEach(button => button.onclick = () => {
+      if (generation !== renderGeneration || entry.stale) return;
+      try { session = restoreReviewCandidates(entry.session, button.dataset.reviewRestore); render(); }
+      catch(error) { render({kind:'error',text:error.message}); }
+    });
     output.querySelectorAll('[data-review-select]').forEach(select => select.onchange = () => { if (generation !== renderGeneration || entry.stale) return; try { session = selectReviewCandidate(session, select.dataset.reviewSelect, select.value); render(); } catch (error) { render({ kind: 'error', text: error.message }); } });
-    output.querySelectorAll('[data-review-confirm]').forEach(button => button.onclick = () => { if (generation !== renderGeneration || entry.stale) return; try { persistencePanel?.captureDecision(entry, button.dataset.reviewConfirm, session); session = decideReview(session, button.dataset.reviewConfirm, 'confirmada'); render({ kind: 'ok', text: 'Coincidencia confirmada solo para esta revisión local.' }); } catch (error) { render({ kind: 'error', text: error.message }); } });
+    output.querySelectorAll('[data-review-confirm]').forEach(button => button.onclick = () => { if (generation !== renderGeneration || entry.stale) return; try { persistencePanel?.captureDecision(entry, button.dataset.reviewConfirm, session); session = decideReview(session, button.dataset.reviewConfirm, 'confirmada'); render({ kind: 'ok', text: 'Coincidencia revisada. Falta preparar las conciliaciones y sincronizarlas para guardarla en el historial.' }); } catch (error) { render({ kind: 'error', text: error.message }); } });
     output.querySelectorAll('[data-review-discard]').forEach(button => button.onclick = () => { try { session = decideReview(session, button.dataset.reviewDiscard, 'descartada'); render(); } catch (error) { render({ kind: 'error', text: error.message }); } });
-    if (entry.stale) output.querySelectorAll('[data-review-confirm], [data-review-select], [data-review-discard], [data-review-create]').forEach(control => control.disabled = true);
+    if (entry.stale) output.querySelectorAll('[data-review-confirm], [data-review-select], [data-review-discard], [data-review-create], [data-review-restore]').forEach(control => control.disabled = true);
     output.querySelector('[data-download-review]').onclick = () => {
       if (generation !== renderGeneration) return;
       downloadReport({ ...buildReconciliationReport({ account: metadata.account, fileName: metadata.fileName, fingerprint: metadata.fingerprint, session }), stale: !!entry.stale }, metadata.fileName);
@@ -316,8 +356,7 @@ export function renderTreasury3(snapshot) {
     entry.stale = entry.signature !== signature(entry.metadata.account.id);
     if (entry.stale && entry.refreshAfterCreation) {
       const results = reconcileStatement(entry.session.rows.map(row=>row.statement), movementsForStatementAccount(vm.real,entry.metadata.account.id));
-      const fresh = createReviewSession(results);
-      entry.session = Object.freeze({rows: Object.freeze(fresh.rows.map(row => entry.session.rows.find(old=>old.statement.id===row.statement.id&&old.decision!=='pendiente') || row))});
+      entry.session = refreshReviewSession(entry.session, results);
       entry.metadata.automatic = reconciliationSummary(results);
       entry.signature = signature(entry.metadata.account.id); entry.stale = false; entry.refreshAfterCreation = false;
     }
@@ -345,7 +384,7 @@ export function renderTreasury3(snapshot) {
       output.className = '';
       const option = selected => '<option value="-1">Sin columna</option>' + info.headers.map((h,i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${esc(h || '(sin título)')}</option>`).join('');
       const labels = { date:'Fecha real de operación', concept:'Concepto', amount:'Importe con signo (− cargo / + abono)', debit:'Cargo', credit:'Abono', reference:'Referencia (opcional)' };
-      output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p><label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>${restoredFormat?'Hemos recuperado las columnas que elegiste para esta cuenta. Revisa la propuesta. ':''}Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(draft.controls?.mapping[key] ?? info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>`;
+      output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p><label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><p>Muestra de ${info.preview.length} de ${info.count} movimientos. La revisión del siguiente paso incluye todos.</p><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>${restoredFormat?'Hemos recuperado las columnas que elegiste para esta cuenta. Revisa la propuesta. ':''}Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(draft.controls?.mapping[key] ?? info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>`;
       output.querySelector('[data-csv-delimiter]').value = draft.controls?.delimiter ?? (info.delimiter==='\t'?'tab':info.delimiter);
       if (draft.controls) output.querySelector('[data-csv-header]').value = draft.controls.headerRow;
       output.querySelector('[data-csv-format]').onclick = () => { try { const delimiter = output.querySelector('[data-csv-delimiter]').value; info = inspectStatementCsv(text,{delimiter:delimiter==='tab'?'\t':delimiter,headerRow:Number(output.querySelector('[data-csv-header]').value)-1}); restoredFormat=false; draft.info=info; draft.restoredFormat=false; draft.controls=null; display(); } catch(error) { output.querySelector('[data-csv-message]').textContent = 'No importado: '+error.message; } };
@@ -452,5 +491,5 @@ export function renderTreasury3(snapshot) {
   }
   return vm;
 }
-window.DOMUSTreasury3 = { render: renderTreasury3, reset: resetTreasury3, snapshot: createTreasurySnapshot, configurePersistence, configureStatementCreation, statementSaved, normalize: normalizeTreasuryItem, monthly: monthlyTreasury, summary: () => lastViewModel };
+window.DOMUSTreasury3 = { render: renderTreasury3, reset: resetTreasury3, snapshot: createTreasurySnapshot, configurePersistence, configureStatementCreation, configureStatementInspection, statementSaved, normalize: normalizeTreasuryItem, monthly: monthlyTreasury, summary: () => lastViewModel };
 window.dispatchEvent(new CustomEvent('domus-treasury3-ready'));
