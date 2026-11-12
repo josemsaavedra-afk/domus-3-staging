@@ -8,7 +8,7 @@ const base=resolve('domus-3'),html=await readFile(base+'/index.html','utf8');
 const styles=[...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(x=>x[1]).join('\n');
 const category='00000000-0000-4000-8000-000000000003',household='00000000-0000-4000-8000-000000000001';
 const server=createServer(async(req,res)=>{
- if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end(`<style>${styles}</style><div id="classificationRuleList"></div><form id="movementForm"><input id="editSeriesId"><select id="fType"><option value="expense">Gasto</option></select><input id="fConcept"><input id="fAmount"><select id="fCategory"><option value="${category}">Gastos de actividad económica</option></select><select id="fExpenseScope"><option value=""></option><option value="business">Actividad económica</option></select></form>`);return;}
+ if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end(`<style>${styles}</style><div id="classificationRuleList"></div><form id="movementForm"><input id="editSeriesId"><select id="fType"><option value="expense">Gasto</option></select><input id="fConcept"><input id="fAmount"><select id="fCategory"><option value=""></option><option value="${category}" selected>Gastos de actividad económica</option></select><select id="fExpenseScope"><option value=""></option><option value="business">Actividad económica</option></select></form>`);return;}
  try{const path=resolve(base,'.'+req.url);if(!path.startsWith(base+'/'))throw Error();res.setHeader('Content-Type','text/javascript');res.end(await readFile(path));}catch{res.statusCode=404;res.end();}
 });
 await new Promise(done=>server.listen(0,'127.0.0.1',done));let browser;
