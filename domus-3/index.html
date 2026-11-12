@@ -265,7 +265,7 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 3.0.0-rc.1.138 · Build 30182<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 3.0.0-rc.1.139 · Build 30183<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -1187,6 +1187,97 @@ async function importSelectedDocuments(){
  finally{setBusy(btn,false)}
 }
 const udocReviewButton=document.getElementById('udocReviewBtn');
+let udocReviewSession=null,udocReviewSaving=false;
+const udocMoney=value=>{const raw=String(value??'').trim().replace(/\s/g,'').replace(/€/g,'');if(!raw)return null;const normalized=raw.includes(',')&&raw.includes('.')?(raw.lastIndexOf(',')>raw.lastIndexOf('.')?raw.replaceAll('.','').replace(',','.'):raw.replaceAll(',','')):raw.replace(',','.');const number=Number(normalized);return Number.isFinite(number)&&number>0&&number<10000000?number:null};
+const udocDate=value=>{
+ const text=String(value||'');
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(text))return null;
+ const parsed=new Date(text+'T00:00:00Z');
+ return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===text?text:null;
+};
+function udocFieldsForAttempt(attemptIndex){const values={};for(const input of document.querySelectorAll('[data-udoc-attempt="'+attemptIndex+'"]'))values[input.dataset.udocPath]=input.value.trim()||null;return values}
+function udocDraftFromReview(attempt,values){
+ const reading=attempt?.interpretation||{},kind=values['document.kind']||reading.document_type;
+ const issuer=values['party.issuer.name'],invoice=values['reference.document'],date=udocDate(values['date.economic']||values['date.issue']),amount=udocMoney(values['total.payable']??values['total.gross']);
+  const requestedType=values['movement.type']||values['economic.type']||reading.economic_type||reading.movement_type||'expense',type=requestedType==='income'?'income':'expense';
+ const context=Object.values(values).filter(v=>v!=null).join(' ').toLowerCase();
+ // Never turn settlements, reimbursements, reservations or supporting documents into a generic invoice.
+ if(kind!=='invoice'||!issuer||!invoice||!date||amount===null||/\brhd\b|driiveme|reembolso|reservation|reserva|albar[aá]n|justificante/.test(context))return null;
+  return {type,concept:String(issuer),counterparty:String(issuer),invoice_number:String(invoice),amount,date,due_date:date,document_date:date,recurrence:'none',source:'udoc_ai_review',movement_role:'standard',expense_scope:'unclassified',extraction_quality:'medium',review_required:true,field_sources:{concept:'revisión IA guardada',counterparty:'revisión IA guardada',invoice_number:'revisión IA guardada',amount:'revisión IA guardada',document_date:'revisión IA guardada',type:'revisión IA guardada'},udoc_review:true};
+}
+function udocOriginalMatches(doc,source_sha256){return (doc?.extracted_data?.source_sha256||doc?.extracted_data?.udoc_source_sha256)===source_sha256}
+function udocReviewDraftState(prior,drafts,source_sha256,interpretation_sha256){
+ const confirmed=prior.filter(d=>d.review_status==='confirmed'||d.confirmed_series_id);
+ if(confirmed.length)return {preserved:prior.filter(d=>d.review_status==='confirmed'||d.confirmed_series_id||d.udoc_source_sha256!==source_sha256),prepared:[],confirmed};
+ const preserved=prior.filter(d=>d.udoc_source_sha256!==source_sha256);
+ const prepared=drafts.map(d=>({...d,udoc_source_sha256:source_sha256,udoc_interpretation_sha256:interpretation_sha256}));
+ return {preserved,prepared,confirmed};
+}
+function udocReviewIsCurrent(session){
+ return udocReviewSession===session&&user?.id===session.owner&&household?.id===session.home&&selectedDocumentFiles[0]===session.file;
+}
+function udocRequireCurrentReview(session){
+ if(!udocReviewIsCurrent(session))throw new Error('La sesión o el documento han cambiado.');
+}
+async function udocArchivedDocument(file,session){
+ const bytes=await file.arrayBuffer(),hash=await crypto.subtle.digest('SHA-256',bytes),source_sha256=Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+ udocRequireCurrentReview(session);
+ const byHash=await sb.from('documents').select('*').eq('household_id',session.home)
+  .or('extracted_data->>source_sha256.eq.'+source_sha256+',extracted_data->>udoc_source_sha256.eq.'+source_sha256).limit(3);
+ udocRequireCurrentReview(session);
+ if(byHash.error)throw byHash.error;
+ const exact=(byHash.data||[]).filter(d=>d.household_id===session.home&&d.storage_path&&d.file_retained&&udocOriginalMatches(d,source_sha256));
+ if(exact.length===1)return exact[0];
+ if(exact.length>1)throw new Error('Hay varios originales archivados con esta huella. Selecciona el documento correcto desde el Archivo de referencias.');
+ // Only legacy documents without a fingerprint need name/size and byte verification.
+ const result=await sb.from('documents').select('*').eq('household_id',session.home).eq('file_name',file.name).eq('file_size',file.size).limit(3);
+ udocRequireCurrentReview(session);
+ if(result.error)throw result.error;
+  const retained=(result.data||[]).filter(d=>d.household_id===session.home&&d.storage_path&&d.file_retained),matches=retained.filter(d=>udocOriginalMatches(d,source_sha256));
+  if(matches.length===1)return matches[0];
+  const legacy=retained.filter(d=>!(d.extracted_data?.source_sha256||d.extracted_data?.udoc_source_sha256));
+  if(matches.length||legacy.length!==1)throw new Error(retained.length?'Hay varios documentos archivados con ese nombre y tamaño o su huella no coincide. Abre el Archivo de referencias y selecciona el original correcto antes de guardar la revisión.':'Primero importa y archiva este original en DOMUS. No se puede guardar una revisión IA sin documento conservado.');
+  const doc=legacy[0],original=await getDocumentBlob(doc);
+  const archivedHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await original.arrayBuffer())),b=>b.toString(16).padStart(2,'0')).join('');
+  udocRequireCurrentReview(session);
+  if(archivedHash!==source_sha256)throw new Error('El archivo seleccionado no coincide con el original archivado.');
+  return {...doc,extracted_data:{...(doc.extracted_data||{}),source_sha256}};
+}
+async function saveUdocReview(){
+ const status=document.getElementById('udocReviewStatus'),dialog=document.getElementById('udocReviewDialog'),session=udocReviewSession;
+ if(udocReviewSaving||!session||session.saveBlocked)return;if(!udocReviewIsCurrent(session)){status.textContent='La sesión o el documento han cambiado. La revisión no se ha guardado.';return}
+ udocReviewSaving=true;const button=document.getElementById('udocReviewSaveBtn');button.disabled=true;status.textContent='Guardando revisión…';
+ try{
+  const doc=await udocArchivedDocument(session.file,session);
+  udocRequireCurrentReview(session);
+  if(doc.household_id!==session.home||typeof doc.updated_at!=='string'||!Number.isFinite(Date.parse(doc.updated_at)))throw new Error('No se puede verificar el hogar o la versión del documento.');
+  const history=Array.isArray(doc.extracted_data?.udoc_review_history)?doc.extracted_data.udoc_review_history:[];
+  const attempts=session.interpretations.map((attempt,index)=>{const values=udocFieldsForAttempt(index);return {status:attempt.status||'NEEDS_REVIEW',issues:Array.isArray(attempt.issues)?attempt.issues:[],interpretation:{...attempt.interpretation,fields:(attempt.interpretation?.fields||[]).map(field=>({...field,value:values[field.path]??null}))},corrected_fields:values,draft:attempt.status==='INVALID_PROPOSAL'?null:udocDraftFromReview(attempt,values)};});
+  const drafts=attempts.flatMap(item=>item.draft?[item.draft]:[]),prior=Array.isArray(doc.extracted_data?.drafts)?doc.extracted_data.drafts:[],{preserved,prepared,confirmed}=udocReviewDraftState(prior,drafts,session.digest,session.interpretationHash);
+  const record={saved_at:new Date().toISOString(),source_sha256:session.digest,interpretation_sha256:session.interpretationHash,status:session.result.status,attempts};
+  const nextHistory=[...history.filter(item=>item.interpretation_sha256!==session.interpretationHash),record].slice(-20);
+  const payload={analysis_status:confirmed.length?doc.analysis_status:'review',extracted_data:{...(doc.extracted_data||{}),drafts:[...preserved,...prepared],udoc_review_history:nextHistory,udoc_latest_review:record}};
+  const {data:auth,error:authError}=await sb.auth.getSession();
+  udocRequireCurrentReview(session);
+  if(authError||auth?.session?.user?.id!==session.owner||!auth.session.access_token)throw new Error('No se pudo verificar la sesión antes de guardar.');
+  // Do not enqueue or retry an ambiguous mutation. Only a returned row is confirmation.
+  session.saveBlocked=true;
+  const {data:written,error:writeError}=await sb.from('documents').update(payload)
+   .eq('id',doc.id).eq('household_id',session.home).eq('updated_at',doc.updated_at)
+   .select('id,updated_at');
+  if(writeError)throw new Error('No se ha confirmado el guardado. Comprueba el Archivo de referencias antes de repetir.');
+  if(!Array.isArray(written)||written.length!==1||written[0]?.id!==doc.id||
+     typeof written[0].updated_at!=='string'||!Number.isFinite(Date.parse(written[0].updated_at)))
+   throw new Error('La revisión no se confirmó: el documento pudo cambiar. Vuelve a abrirlo desde el Archivo de referencias.');
+  if(!udocReviewIsCurrent(session))return;
+  status.textContent=confirmed.length?'Revisión guardada. Se conserva el movimiento ya confirmado; no se ha creado otra propuesta económica.':prepared.length?'Revisión guardada. La propuesta queda pendiente de tu confirmación expresa.':'Revisión guardada. Esta lectura no puede crear un movimiento: completa o corrige sus errores en el archivo antes de una propuesta económica.';
+  dialog.close();
+  try{await refreshAll()}catch{if(user?.id===session.owner&&household?.id===session.home)status.textContent='Revisión guardada. No se pudo actualizar la vista; consulta el Archivo de referencias.';return}
+  if(user?.id!==session.owner||household?.id!==session.home)return;
+  if(prepared.length){const refreshed=documents.find(d=>d.id===doc.id)||{...doc,extracted_data:{...(doc.extracted_data||{}),drafts:[...preserved,...prepared]}};renderDocDrafts(structuredClone(refreshed.extracted_data.drafts),refreshed);}
+ }catch(error){if(udocReviewIsCurrent(session))status.textContent=session.saveBlocked?'Guardado sin confirmar. '+(error?.message||'Consulta el Archivo de referencias.'):'No se ha enviado la revisión: '+(error?.message||error)}
+ finally{udocReviewSaving=false;button.disabled=Boolean(udocReviewSession?.saveBlocked)}
+}
 const udocReviewUrl=(()=>{
  const configured=window.DOMUS_CONFIG?.udocReviewOrigin;
  if(window.DOMUS_CONFIG?.udocReview!==true)return null;
@@ -1235,19 +1326,39 @@ udocReviewButton.addEventListener('click',async()=>{
     const label=document.createElement('label'),input=document.createElement('input');
     const names={'document.kind':'Clase de documento','reference.document':'Número del documento','date.issue':'Fecha del documento','date.economic':'Fecha económica','party.recipient.name':'Destinatario','party.recipient.tax_id':'Identificación del destinatario','party.issuer.name':'Emisor','party.issuer.tax_id':'Identificación del emisor','total.payable':'Total a pagar','total.base':'Base imponible','total.vat':'IVA','total.withholding':'Retención','total.gross':'Importe bruto'};
     const friendlyPath=names[field.path]||field.path.replace(/^reference\.invoice\.(\d+)$/,'Factura relacionada $1').replace(/^reference\.insurance_notice\.(\d+)$/,'Seguro relacionado $1').replace(/^line\.(\d+)\.total$/,'Línea $1 · importe').replace(/^line\.(\d+)\.description$/,'Línea $1 · concepto');
-    label.className='field';label.textContent=friendlyPath+' ';input.type='text';input.value=field.value??'';input.dataset.udocPath=field.path;label.append(input);group.append(label);
+     label.className='field';label.textContent=friendlyPath+' ';input.type='text';input.value=field.value??'';input.dataset.udocPath=field.path;input.dataset.udocAttempt=index;label.append(input);
+     for(const evidence of (field.evidence||[]).slice(0,8)){
+      const note=document.createElement('small');
+      note.textContent='Evidencia original · '+String(evidence.source_id??'origen no indicado')+
+       (evidence.quote?' · '+String(evidence.quote):'')+
+       (Array.isArray(evidence.region)?' · zona '+evidence.region.join(', '):'');
+      label.append(note);
+     }
+     group.append(label);
+   }
+   for(const relation of reading.relationships||[]){
+    const cited=(reading.fields||[]).find(field=>field.path===relation.reference_path);
+    const note=document.createElement('p');
+    note.textContent='Relación sugerida, sin confirmar · '+String(relation.kind)+' · '+String(cited?.value??relation.reference_path);
+    group.append(note);
    }
    for(const issue of new Set([...(reading.warnings||[]),...(reading.contradictions||[]),...(attempt.issues||[])])){const note=document.createElement('p');note.textContent=issue;group.append(note)}
    fields.append(group);
   }
-  status.textContent=interpretations.some(a=>a.status==='INVALID_PROPOSAL')?'Lectura conservada con errores de validación. Revisión obligatoria.':'Lectura disponible para revisión.';
+   const interpretationHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(result.attempts)))),byte=>byte.toString(16).padStart(2,'0')).join('');
+   if(user?.id!==owner||household?.id!==home||selectedDocumentFiles[0]!==file)throw new Error('La sesión o el documento han cambiado.');
+   udocReviewSession={file,owner,home,digest,result,interpretations,interpretationHash};
+   document.getElementById('udocReviewSaveBtn').disabled=false;
+   status.textContent=interpretations.some(a=>a.status==='INVALID_PROPOSAL')?'Lectura conservada con errores de validación. Debe guardarse y corregirse; permanece bloqueada para crear movimientos.':'Lectura disponible para revisión y guardado.';
   dialog.showModal();
  }catch(error){status.textContent=error.message||'No se pudo completar el análisis.'}
  finally{udocReviewButton.disabled=false}
 });
 document.getElementById('udocReviewDialog').addEventListener('close',()=>{
  document.getElementById('udocReviewFields').replaceChildren();
+  udocReviewSession=null;
 });
+document.getElementById('udocReviewSaveBtn').addEventListener('click',saveUdocReview);
 async function getDocumentBlob(d){const {data,error}=await sb.storage.from('household-documents').createSignedUrl(d.storage_path,120);if(error)throw error;const r=await fetch(data.signedUrl);if(!r.ok)throw new Error('No se pudo leer el archivo');return await r.blob()}
 async function analyzeDocument(id){const d=documents.find(x=>x.id===id);if(!d)return;document.getElementById('docProgress').textContent='Leyendo '+d.file_name+'…';try{await sb.from('documents').update({analysis_status:'processing'}).eq('id',id);const blob=await getDocumentBlob(d);await analyzeBlob(d,blob)}catch(e){await sb.from('documents').update({analysis_status:'error'}).eq('id',id);alert(e.message)}}
 let lastDocumentOcrConfidence=null,lastDocumentOcrMode='';
@@ -1962,7 +2073,7 @@ function documentConfirmationState(drafts,index,seriesId,occurrenceDate=null){
  const next=drafts.map((d,i)=>i===index?{...d,review_status:'confirmed',confirmed_series_id:seriesId,confirmed_occurrence_date:occurrenceDate||null}:d),all=next.every(d=>d.review_status==='confirmed');
  return {drafts:next,analysis_status:all?'confirmed':'review',series_id:next.length===1?seriesId:null};
 }
-async function completeDocumentDraft(index,seriesId,occurrenceDate=null){const next=documentConfirmationState(currentDocDrafts,index,seriesId,occurrenceDate);await updateRowSafely('documents',currentDocumentId,{analysis_status:next.analysis_status,series_id:next.series_id,extracted_data:{drafts:next.drafts}});currentDocDrafts=next.drafts;}
+async function completeDocumentDraft(index,seriesId,occurrenceDate=null){const next=documentConfirmationState(currentDocDrafts,index,seriesId,occurrenceDate),current=documents.find(d=>d.id===currentDocumentId);await updateRowSafely('documents',currentDocumentId,{analysis_status:next.analysis_status,series_id:next.series_id,extracted_data:{...(current?.extracted_data||{}),drafts:next.drafts}});currentDocDrafts=next.drafts;}
 function continueDocumentDraftReview(message=''){
  if(message){const banner=document.getElementById('docSaveConfirmation')||document.createElement('div');banner.id='docSaveConfirmation';banner.className='msg ok';banner.setAttribute('role','status');banner.setAttribute('aria-live','assertive');banner.textContent=message;const modal=document.getElementById('docAnalysisModal');const box=modal?.querySelector('.modal-box');if(box){box.prepend(banner);box.scrollTop=0}}
  if(currentDocDrafts.some(d=>d.review_status!=='confirmed')){const doc=documents.find(d=>d.id===currentDocumentId);if(doc)renderDocDrafts(currentDocDrafts,doc)}else openNextDocumentDraftBatch();
@@ -2343,7 +2454,7 @@ const bottomMoreBtn=document.getElementById('bottomMoreBtn'),bottomMore=document
 if(bottomMoreBtn&&bottomMore){bottomMoreBtn.onclick=()=>{const opening=bottomMore.classList.contains('hidden');bottomMore.classList.toggle('hidden',!opening);bottomMoreBtn.setAttribute('aria-expanded',String(opening))};document.addEventListener('click',event=>{if(!bottomMore.contains(event.target)&&!bottomMoreBtn.contains(event.target)){bottomMore.classList.add('hidden');bottomMoreBtn.setAttribute('aria-expanded','false')}})}
 bindMovementControls();window.addEventListener('focus',()=>{if(user&&household){if(navigator.onLine)refreshAll();else updateSyncBadge()}});
 
-const APP_BUILD='30182';
+const APP_BUILD='30183';
 async function registerAppWorker(){
   if(!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol) || !new URL('.',location.href).pathname.endsWith('/domus-3/')) return;
   try{
