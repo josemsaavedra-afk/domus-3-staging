@@ -19,7 +19,7 @@ try{
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.evaluate(({category,household})=>{
    Object.assign(window,{people:[{id:'jeni',household_id:household,name:'Jeni',active:true}],accounts:[{id:'ing',household_id:household,name:'ING Jeni',active:true}],paymentMethods:[{id:'card',household_id:household,name:'Tarjeta',active:true}],categories:[{id:category,household_id:household,name:'Gastos de actividad económica',kind:'expense',active:true}],household:{id:household},domusRules:[],domusRulesReady:true,stored:[],escapeHtml:s=>String(s).replace(/</g,'&lt;'),syncPrefFields:()=>{},
-    sb:{rpc:async()=>({data:34}),from:()=>({insert:row=>({select:()=>({single:async()=>{stored.push({...row,id:'r'});return{data:{id:'r'}};}})})})},refreshAll:async()=>{window.domusRules=stored;}});
+    sb:{rpc:async()=>({data:34}),from:()=>({insert:row=>({select:()=>({single:async()=>{stored.push({...row,id:'r'+(stored.length||'')});return{data:{id:'r'}};}})})})},refreshAll:async()=>{window.domusRules=stored;}});
   },{category,household});
   await page.addScriptTag({url:'/src/classification/master.js'});await page.addScriptTag({url:'/src/classification/rules-ui.js'});
   await page.evaluate(()=>DOMUSRuleUI.edit());
