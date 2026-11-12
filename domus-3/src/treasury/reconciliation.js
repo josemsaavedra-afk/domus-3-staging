@@ -4,7 +4,8 @@ const iso = value => String(value || '').slice(0, 10);
 const norm = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const daysApart = (a, b) => Math.abs((Date.parse(`${iso(a)}T00:00:00Z`) - Date.parse(`${iso(b)}T00:00:00Z`)) / DAY);
 
-function tokens(value) { return new Set(norm(value).split(' ').filter(token => token.length > 2)); }
+const genericWords = new Set(['pago','pagos','compra','compras','tarjeta','cargo','abono','recibo','factura','comision','seguro','ingreso','gasto','transferencia','bizum','para','del','las','los','una','con']);
+function tokens(value) { return new Set(norm(value).split(' ').filter(token => token.length > 2 && /[a-z]/.test(token) && !genericWords.has(token))); }
 function textScore(a, b) {
   const aa = tokens(a), bb = tokens(b); if (!aa.size || !bb.size) return 0;
   const common = [...aa].filter(token => bb.has(token)).length;
@@ -22,10 +23,12 @@ export function movementMatchScore(statement, movement) {
   const bank = cents(statementSignedAmount(statement)), domus = cents(movement.signedAmount);
   if (!bank || bank !== domus) return 0;
   const distance = daysApart(statement.date, movement.date);
-  if (!Number.isFinite(distance) || distance > 5) return 0;
-  let score = 60 + Math.max(0, 20 - distance * 4);
-  score += textScore(`${statement.concept || ''} ${statement.reference || ''}`, `${movement.concept || ''} ${movement.source?.invoice_number || ''} ${movement.source?.counterparty || ''}`);
-  if (statement.reference && movement.source?.invoice_number && norm(statement.reference) === norm(movement.source.invoice_number)) score += 20;
+  if (!Number.isFinite(distance) || distance !== 0) return 0;
+  const referenceMatch = statement.reference && movement.source?.invoice_number && norm(statement.reference) === norm(movement.source.invoice_number);
+  const similarity = textScore(`${statement.concept || ''} ${statement.reference || ''}`, `${movement.concept || ''} ${movement.source?.invoice_number || ''} ${movement.source?.counterparty || ''}`);
+  if (!similarity && !referenceMatch) return 0;
+  let score = 80 + similarity;
+  if (referenceMatch) score += 20;
   return Math.min(100, score);
 }
 

@@ -1,3 +1,5 @@
+import { saveStatementWork, readStatementWork } from './statement-work-store.js';
+import { proposeStatementDefaults, validateStatementDefaults } from './statement-context.js';
 import { buildStatementDraft, statementCreationEligibility } from './statement-draft.js';
 import { createBankReminder, bindMonthlyReminder } from './monthly-reminder.js';
 import { readStatementFormat, rememberStatementFormat, matchingStatementFormat } from './statement-preferences.js';
@@ -10,7 +12,7 @@ import { createTreasurySnapshot } from './snapshot.js';
 import { buildCheckpointDraft } from './checkpoint-draft.js';
 import { createTreasuryViewModel, monthlyTreasury, monthlyTreasuryBreakdowns } from './view-model.js';
 import { reconcileStatement, reconciliationSummary } from './reconciliation.js';
-import { createReviewSession, decideReview, reviewSummary, refreshReviewSession, selectReviewCandidate, rejectReviewCandidate, restoreReviewCandidates } from './reconciliation-review.js';
+import { createReviewSession, decideReview, reviewSummary, refreshReviewSession, importReviewReport, selectReviewCandidate, rejectReviewCandidate, restoreReviewCandidates } from './reconciliation-review.js';
 import { parseStatementCsv, inspectStatementCsv } from './statement-csv.js';
 import { accountWithLocalCheckpoint, createLocalCheckpoint, validateAccountReconciliation } from './balance-checkpoint.js';
 import { buildReconciliationReport, createStatementFingerprint, movementsForStatementAccount, reconciliationReportFileName, serializeReconciliationReport } from './reconciliation-report.js';
@@ -40,6 +42,7 @@ const statementReviews = new Map();
 let activeReviewKey = null;
 let statementDraft = null, renderedStatementDraft = null, statementAccountId = '', statementPanelOpen = false;
 let statementReadToken = 0;
+let statementWorkRestored=false,statementWorkPaused=false,statementWorkMessage='';
 let statementCreation = null, statementInspection = null;
 function configureStatementInspection(handler) { statementInspection = handler; }
 function configureStatementCreation(handler) { statementCreation = handler; }
@@ -77,6 +80,7 @@ export function resetTreasury3() {
   statementReviews.clear();
   activeReviewKey = null;
   statementDraft = null; renderedStatementDraft = null; statementAccountId = ''; statementPanelOpen = false; statementReadToken++;
+  statementWorkRestored=false;statementWorkPaused=false;statementWorkMessage='';
   activeContext = null;
   renderGeneration++;
   const root = document.getElementById('treasury3Root');
@@ -158,9 +162,9 @@ function selectableMovementCards(rows,selected){
  if(!rows.length)return '<div class="empty">Sin movimientos en este desglose.</div>';
  return rows.map((row,i)=>`<article class="treasury-mobile-movement" data-treasury-select-row="${i}"${selected.has(i)?'':' style="opacity:.48"'}><div class="treasury-mobile-movement-top"><div><label style="display:flex;align-items:center;gap:.5rem"><input type="checkbox" data-treasury-select="${i}" aria-label="Incluir ${esc(row.concept)} en el cálculo" ${selected.has(i)?'checked':''}><strong>${esc(row.concept)}</strong></label><small>${date(row.date)} · ${esc(LABEL[row.status]||row.status)}</small>${row.originalDate&&row.originalDate!==row.date?`<small>Fecha prevista original: ${date(row.originalDate)}</small>`:''}</div><span class="amount ${row.type}">${row.type==='income'?'+':'−'}${euro(row.amount)}</span></div><div class="treasury-mobile-movement-type">${row.type==='income'?'Ingreso':'Pago'}</div></article>`).join('');
 }
-function reconciliationRows(session) {
+function reconciliationRows(session,onlyPending=false) {
   const signed = value => (value > 0 ? '+' : '') + euro(value);
-  return session.rows.map(row => {
+  return session.rows.filter(row=>!onlyPending||row.decision==='pendiente').map(row => {
     const locked = row.decision !== 'pendiente';
     const candidate = row.candidates.find(item => item.id === row.selectedMovementId) || row.candidates[0];
     const proposals = row.candidates.length ? `<select aria-label="Movimiento propuesto para ${esc(row.statement.concept)}" class="treasury-review-select" data-review-select="${esc(row.statement.id)}" ${locked ? 'disabled' : ''}><option value="">Seleccionar propuesta…</option>${row.candidates.map(item => `<option value="${esc(item.id)}" ${item.id === row.selectedMovementId ? 'selected' : ''}>${esc(item.concept)} · ${date(item.date)} · ${signed(item.signedAmount)}</option>`).join('')}</select>
@@ -186,15 +190,74 @@ function downloadReport(report, fileName) {
   link.href = url; link.download = reconciliationReportFileName(fileName); document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
 }
 
+function saveStatementProgress() {
+  if(!currentSnapshot||!statementWorkRestored||(!statementDraft&&!statementReviews.size))return false;
+  try {
+    const panel=document.querySelector('[data-statement-panel]');
+    if(statementDraft&&renderedStatementDraft===statementDraft&&panel?.querySelector('[data-csv-map]'))statementDraft.controls={
+      mapping:Object.fromEntries([...panel.querySelectorAll('[data-csv-map]')].map(node=>[node.dataset.csvMap,Number(node.value)])),
+      delimiter:panel.querySelector('[data-csv-delimiter]').value,headerRow:panel.querySelector('[data-csv-header]').value};
+    saveStatementWork(preferenceStorage,currentSnapshot,{reviews:statementReviews,activeReviewKey,draft:statementDraft,accountId:statementAccountId});
+    statementWorkMessage='Avance guardado en este navegador. Puedes cerrar y continuar después con esta misma cuenta de usuario.';
+    return true;
+  } catch {
+    statementWorkMessage='No se ha podido guardar el avance en este navegador. No cierres sin guardar y sincronizar tus conciliaciones; puedes descargar el informe de revisión.';
+    return false;
+  } finally {document.querySelectorAll('[data-statement-work-status]').forEach(node=>node.textContent=statementWorkMessage);}
+}
+function restoreStatementProgress(snapshot,vm,accounts) {
+  if(statementWorkRestored)return;statementWorkRestored=true;
+  const saved=readStatementWork(preferenceStorage,snapshot);if(!saved)return;
+  for(const item of saved.reviews){
+    try {
+      const account=accounts.find(row=>row.id===item.metadata.accountId);if(!account)continue;
+      const rows=parseStatementCsv(item.metadata.csv,item.metadata.mapping);
+      const movements=movementsForStatementAccount(vm.real,account.id),results=reconcileStatement(rows,movements);
+      const session=refreshReviewSession(item.session,results,{verifySavedDecisions:true,movements});
+      statementReviews.set(item.id,{session,signature:JSON.stringify(movements.map(row=>[row.id,row.date,row.signedAmount,row.concept])),metadata:{...item.metadata,account,automatic:reconciliationSummary(results)},showOnlyPending:item.showOnlyPending});
+    } catch { /* A broken or obsolete entry never replaces the user's live data. */ }
+  }
+  const draft=saved.draft;
+  if(draft&&accounts.some(account=>account.id===draft.accountId)){
+    try{statementDraft={file:{name:draft.fileName},text:draft.text,accountId:draft.accountId,controls:draft.controls,info:inspectStatementCsv(draft.text,draft.format),defaults:draft.defaults||{},restoredFormat:false,formatContext:{userId:snapshot.userId,householdId:snapshot.householdId,accountId:draft.accountId}};}catch{}
+  }
+  activeReviewKey=statementReviews.has(saved.activeReviewKey)?saved.activeReviewKey:null;
+  statementAccountId=saved.accountId||'';
+  statementWorkPaused=Boolean(statementDraft||statementReviews.size);
+  statementWorkMessage='Avance recuperado de este navegador. Las coincidencias se han comprobado de nuevo con los movimientos actuales.';
+}
+function statementWorkHtml(){return `<p role="status" data-statement-work-status>${esc(statementWorkMessage)}</p><button class="btn" type="button" data-statement-pause>Guardar avance y pausar</button>`;}
+function bindStatementWork(output,entry=null){
+  output.querySelector('[data-statement-pause]')?.addEventListener('click',()=>{
+    if(!saveStatementProgress())return;
+    statementWorkPaused=true;statementPanelOpen=false;
+    renderTreasury3(currentSnapshot);
+  });
+  output.querySelector('[data-review-pending-only]')?.addEventListener('change',event=>{entry.showOnlyPending=event.target.checked;renderTreasury3(currentSnapshot);});
+}
+function openStatementImport(){statementWorkPaused=false;statementPanelOpen=true;const panel=document.querySelector('[data-statement-panel]');if(panel)panel.open=true;}
+
+function statementDefaultsHtml(defaults={}) {
+  const options = (rows,selected) => '<option value="">Sin dato común</option>'+(rows||[]).filter(row=>row.household_id===currentSnapshot.householdId&&row.active!==false).map(row=>`<option value="${esc(row.id)}" ${row.id===selected?'selected':''}>${esc(row.name)}</option>`).join('');
+  return `<div class="msg info" data-statement-defaults><strong>Datos comunes de este extracto</strong><p>Se proponen a partir de la cuenta y del archivo. Se rellenan al crear movimientos; puedes cambiarlos aquí o en una línea concreta. No cambian movimientos ya guardados.</p><div class="grid two"><label>De quién es<select data-statement-default="personId">${options(currentSnapshot.people,defaults.personId)}</select></label><label>Quién paga / cobra<select data-statement-default="payerPersonId">${options(currentSnapshot.people,defaults.payerPersonId)}</select></label><label>Forma de pago / cobro<select data-statement-default="paymentMethodId">${options(currentSnapshot.paymentMethods,defaults.paymentMethodId)}</select></label></div></div>`;
+}
+function bindStatementDefaults(output,defaults) {
+  output.querySelectorAll('[data-statement-default]').forEach(select=>select.onchange=()=>{defaults[select.dataset.statementDefault]=select.value;saveStatementProgress();});
+}
+
 function bindReconciliationReview(output, entry, generation) {
   let session = entry.session;
   const metadata = entry.metadata;
+  metadata.defaults ||= {};
   const render = message => {
     if (generation !== renderGeneration) return;
     entry.session = session;
     const summary = reviewSummary(session);
+    saveStatementProgress();
     output.className = '';
-    output.innerHTML = `${entry.stale ? '<div class="msg error">Los movimientos han cambiado. Esta revisión conserva las decisiones anteriores y requiere un nuevo análisis antes de confirmar.</div>' : ''}${message ? `<div class="msg ${message.kind}">${esc(message.text)}</div>` : ''}<div class="msg info">Cuenta: <strong>${esc(metadata.account.name)}</strong> · Resultado de la comparación: ${metadata.automatic.propuesto} coincidencias claras, ${metadata.automatic.ambiguo} ambiguas, ${metadata.automatic.revisar} para revisar y ${metadata.automatic.sin_coincidencia} sin coincidencia. Pulsa «Abrir movimiento» para consultar su ficha y confirmar o rechazar la coincidencia sin salir del extracto. Cargar el archivo no crea movimientos. Las operaciones ausentes se pueden revisar y guardar con «Revisar y crear movimiento».</div><div class="section-title treasury-review-summary"><div><strong>${summary.total} líneas</strong> · ${summary.confirmada} conciliadas localmente · ${summary.descartada} descartadas · ${summary.pendiente} pendientes. Las operaciones ausentes no se incorporan hasta que revises y guardes su formulario.</div><button class="btn" type="button" data-download-review>Descargar informe</button></div><div class="table-wrap treasury-review-table" tabindex="0" role="region" aria-label="Revisión del extracto"><table class="table"><thead><tr><th>Fecha</th><th>Extracto</th><th>Importe</th><th>Estado</th><th>Movimiento DOMUS</th><th>Decisión</th></tr></thead><tbody>${reconciliationRows(session)}</tbody></table></div>`;
+    output.innerHTML = `${entry.stale ? '<div class="msg error">Los movimientos han cambiado. Esta revisión conserva las decisiones anteriores y requiere un nuevo análisis antes de confirmar.</div>' : ''}${message ? `<div class="msg ${message.kind}">${esc(message.text)}</div>` : ''}<div class="msg info">Cuenta: <strong>${esc(metadata.account.name)}</strong> · Coincidencias con la misma fecha e importe y texto o referencia compatibles: ${metadata.automatic.propuesto} coincidencias claras, ${metadata.automatic.ambiguo} ambiguas, ${metadata.automatic.revisar} para revisar y ${metadata.automatic.sin_coincidencia} sin coincidencia. Pulsa «Abrir movimiento» para consultar su ficha y confirmar o rechazar la coincidencia sin salir del extracto. Cargar el archivo no crea movimientos. Las operaciones ausentes se pueden revisar y guardar con «Revisar y crear movimiento».</div>${statementDefaultsHtml(metadata.defaults)}<div class="section-title treasury-review-summary"><div><strong>${summary.total} líneas</strong> · ${summary.confirmada} conciliadas localmente · ${summary.descartada} descartadas · ${summary.pendiente} pendientes. Las operaciones ausentes no se incorporan hasta que revises y guardes su formulario.</div><div class="actions"><button class="btn" type="button" data-download-review>Descargar informe</button><label class="btn">Recuperar avance de un informe<input type="file" accept=".json,application/json" data-review-import-report hidden></label></div></div>${statementWorkHtml()}<label><input type="checkbox" data-review-pending-only ${entry.showOnlyPending?'checked':''}> Ver solo movimientos pendientes de revisión</label><div class="table-wrap treasury-review-table" tabindex="0" role="region" aria-label="Revisión del extracto"><table class="table"><thead><tr><th>Fecha</th><th>Extracto</th><th>Importe</th><th>Estado</th><th>Movimiento DOMUS</th><th>Decisión</th></tr></thead><tbody>${reconciliationRows(session,entry.showOnlyPending)}</tbody></table></div>`;
+    bindStatementDefaults(output,metadata.defaults);
+    bindStatementWork(output,entry);
     persistencePanel?.bindReview(output, entry);
     output.querySelectorAll('[data-review-create]').forEach(button => button.onclick = async () => {
       if (generation !== renderGeneration || entry.stale || !statementCreation) return;
@@ -202,7 +265,7 @@ function bindReconciliationReview(output, entry, generation) {
       const context = currentSnapshot;
       try {
         const row = session.rows.find(item => item.statement.id === button.dataset.reviewCreate);
-        const draft = await buildStatementDraft({ householdId: context.householdId, userId: context.userId, account: metadata.account, row, rows: session.rows, fileName: metadata.fileName });
+        const draft = await buildStatementDraft({ householdId: context.householdId, userId: context.userId, account: metadata.account, row, rows: session.rows, fileName: metadata.fileName, defaults:metadata.defaults, people:currentSnapshot.people, paymentMethods:currentSnapshot.paymentMethods });
         if (generation !== renderGeneration || currentSnapshot !== context) return;
         await statementCreation(draft);
         render({kind:'info', text:'Formulario preparado. El movimiento solo se incorpora al pulsar Guardar. Después se actualizarán las coincidencias del extracto.'});
@@ -230,6 +293,8 @@ function bindReconciliationReview(output, entry, generation) {
       try { await statementInspection({candidate, statement:row.statement, account:metadata.account,
         userId:currentSnapshot.userId, householdId:currentSnapshot.householdId,
         canDecide:row.decision==='pendiente'&&!entry.stale,
+        defaults:validateStatementDefaults(metadata.defaults,currentSnapshot),
+        onEdited:()=>{if(boundContext===activeContext&&statementReviews.get(activeReviewKey)===entry){entry.refreshAfterCreation=true;entry.reopenMovementIds=[...(entry.reopenMovementIds||[]),movementId];}},
         onConfirm:()=>decide('confirm'), onReject:()=>decide('reject')});
       } catch(error) { render({kind:'error',text:error.message}); }
     });
@@ -242,6 +307,18 @@ function bindReconciliationReview(output, entry, generation) {
     output.querySelectorAll('[data-review-confirm]').forEach(button => button.onclick = () => { if (generation !== renderGeneration || entry.stale) return; try { persistencePanel?.captureDecision(entry, button.dataset.reviewConfirm, session); session = decideReview(session, button.dataset.reviewConfirm, 'confirmada'); render({ kind: 'ok', text: 'Coincidencia revisada. Falta preparar las conciliaciones y sincronizarlas para guardarla en el historial.' }); } catch (error) { render({ kind: 'error', text: error.message }); } });
     output.querySelectorAll('[data-review-discard]').forEach(button => button.onclick = () => { try { session = decideReview(session, button.dataset.reviewDiscard, 'descartada'); render(); } catch (error) { render({ kind: 'error', text: error.message }); } });
     if (entry.stale) output.querySelectorAll('[data-review-confirm], [data-review-select], [data-review-discard], [data-review-create], [data-review-restore]').forEach(control => control.disabled = true);
+    output.querySelector('[data-review-import-report]').onchange=async event=>{
+      const context=activeContext;
+      try{
+        const file=event.target.files?.[0];if(!file)return;if(file.size>5*1024*1024)throw Error('El informe supera 5 MB.');
+        const report=JSON.parse(await file.text());
+        if(context!==activeContext||statementReviews.get(activeReviewKey)!==entry||entry.stale)return;
+        const result=importReviewReport(entry.session,report,{accountId:metadata.account.id,contentSha256:metadata.fingerprint.contentSha256});
+        session=result.session;entry.session=session;
+        const notice={kind:'info',text:`Avance recuperado: ${result.accepted} decisiones. ${result.recheck} coincidencias necesitan comprobarse de nuevo con la fecha e importe actuales.`};
+        if(generation===renderGeneration)render(notice);else renderTreasury3(currentSnapshot);
+      }catch(error){render({kind:'error',text:error.message});}finally{event.target.value='';}
+    };
     output.querySelector('[data-download-review]').onclick = () => {
       if (generation !== renderGeneration) return;
       downloadReport({ ...buildReconciliationReport({ account: metadata.account, fileName: metadata.fileName, fingerprint: metadata.fingerprint, session }), stale: !!entry.stale }, metadata.fileName);
@@ -294,6 +371,7 @@ export function renderTreasury3(snapshot) {
   const sourceAccounts = (snapshot.accounts || []).filter(account => snapshot.householdId && account.household_id === snapshot.householdId && account.active !== false);
   const accounts = sourceAccounts.map(account => accountWithLocalCheckpoint(account, checkpointFor(account.id)));
   const vm = createTreasuryViewModel(snapshot.rows || [], accounts, snapshot.asOf || new Date());
+  restoreStatementProgress(snapshot,vm,sourceAccounts);
   lastViewModel = vm; queueMicrotask(()=>window.renderDashboard?.());
 
   const realAccounts=vm.accountRows.filter(row=>row.id),confirmedAccounts=realAccounts.filter(row=>row.confirmedBalance!=null);
@@ -325,7 +403,8 @@ export function renderTreasury3(snapshot) {
     <p class="muted">Solo gastos pendientes anteriores a la fecha efectiva del siguiente cobro habitual, incluidos los vencidos sin pagar. Ningún ingreso se suma ni se descuenta.</p>
     ${habitualIntervalCards(habitualIncomeIntervals(vm))}
   </section>
-  <details class="card" data-statement-panel ${statementPanelOpen || activeReviewKey || statementDraft ? 'open' : ''}><summary>Importar y comparar un extracto (opcional)</summary>
+  ${statementWorkPaused?`<div class="card"><strong>Revisión bancaria guardada para continuar</strong><p>${activeReviewKey?reviewSummary(statementReviews.get(activeReviewKey).session).pendiente+' movimientos pendientes de revisión.':'Archivo preparado para revisar.'}</p><button class="btn primary" type="button" data-statement-resume>Reanudar revisión pendiente</button><p role="status" data-statement-work-status>${esc(statementWorkMessage)}</p></div>`:''}
+  <details class="card" data-statement-panel ${!statementWorkPaused&&(statementPanelOpen || activeReviewKey || statementDraft) ? 'open' : ''}><summary>Importar y comparar un extracto (opcional)</summary>
     <p>Compara pagos y cobros con tus movimientos. Esta revisión es voluntaria y no calcula saldos bancarios.</p>
 
     <div class="treasury-advanced">    <div class="card"><div class="section-title"><div><h2>Conciliación bancaria segura</h2><p class="muted">Compara lo que ya tienes y añade las operaciones que falten, después de revisarlas.</p></div><label class="btn">2. Seleccionar extracto<input id="treasuryCsv" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values" hidden></label></div><div class="msg info"><strong>Cómo hacerlo:</strong><ol><li>Selecciona la cuenta y carga el extracto CSV.</li><li>Comprueba las columnas y pulsa «Validar y preparar revisión».</li><li>Si el movimiento ya existe, elige «Conciliar»; no se crea otra copia.</li><li>Si falta, pulsa «Revisar y crear movimiento», comprueba quién paga o cobra, el ámbito y la categoría y pulsa «Guardar».</li><li>Al guardar, DOMUS actualiza las coincidencias. Continúa con las demás operaciones que falten.</li></ol>Cargar el archivo no guarda gastos ni cobros. «Preparar guardado del extracto» guarda el documento bancario; «Preparar conciliaciones» guarda sus enlaces con movimientos existentes. Los traspasos entre cuentas no son ingresos ni gastos.</div><div id="treasuryCsvResult" class="empty">1. Selecciona la cuenta. Después elige tu CSV o TSV. DOMUS buscará coincidencias y te permitirá revisar las operaciones que falten.</div></div>
@@ -342,6 +421,11 @@ export function renderTreasury3(snapshot) {
 
   <div id="treasury3Detail" class="card hidden"><div class="section-title treasury-detail-head"><h2 id="treasury3DetailTitle">Desglose</h2><button class="btn" type="button" id="treasury3Close">Cerrar</button></div><div id="treasury3DetailMobile" class="treasury-detail-mobile"></div><div class="table-wrap treasury-detail-table" tabindex="0" role="region" aria-label="Detalle de tesorería"><table class="table"><thead><tr><th>✓</th><th>Fecha</th><th>Estado</th><th>Concepto</th><th>Tipo</th><th>Importe</th></tr></thead><tbody id="treasury3DetailBody"></tbody></table></div><div class="treasury-selection-summary" aria-live="polite" style="position:sticky;bottom:calc(76px + env(safe-area-inset-bottom, 0px));z-index:15;display:flex;flex-wrap:wrap;align-items:center;gap:.7rem;margin:1rem 0;padding:.8rem;background:var(--surface,#fff);border:1px solid var(--line,#ddd);border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.14)"><strong id="treasury3SelectedTotal"></strong><span id="treasury3FullTotal" class="muted"></span><button class="btn" type="button" id="treasury3SelectAll">Marcar todos</button><button class="btn" type="button" id="treasury3SelectNone">Desmarcar todos</button><small class="muted">Selección temporal: se restablece al cerrar.</small></div></div>`;
 
+  root.querySelector('[data-statement-resume]')?.addEventListener('click',()=>{
+    statementWorkPaused=false;statementPanelOpen=true;
+    const entry=statementReviews.get(activeReviewKey);if(entry)entry.showOnlyPending=true;
+    renderTreasury3(currentSnapshot);root.querySelector('[data-statement-panel]')?.scrollIntoView({block:'start'});
+  });
   const accountSelect = document.createElement('select');
   accountSelect.id = 'treasuryCsvAccount'; accountSelect.className = 'treasury-review-select'; accountSelect.setAttribute('aria-label', 'Cuenta del extracto');
   accountSelect.innerHTML = '<option value="">1. Cuenta del extracto…</option>'+sourceAccounts.map(account => `<option value="${esc(account.id)}">${esc(account.name || 'Cuenta sin nombre')}</option>`).join('');
@@ -354,9 +438,10 @@ export function renderTreasury3(snapshot) {
     statementDraft = null;
     activeReviewKey = key; statementAccountId = entry.metadata.account.id; accountSelect.value = statementAccountId;
     entry.stale = entry.signature !== signature(entry.metadata.account.id);
-    if (entry.stale && entry.refreshAfterCreation) {
+    if (entry.refreshAfterCreation) {
       const results = reconcileStatement(entry.session.rows.map(row=>row.statement), movementsForStatementAccount(vm.real,entry.metadata.account.id));
-      entry.session = refreshReviewSession(entry.session, results);
+      entry.session = refreshReviewSession(entry.session, results, {reopenMovementIds:entry.reopenMovementIds||[]});
+      entry.reopenMovementIds=[];
       entry.metadata.automatic = reconciliationSummary(results);
       entry.signature = signature(entry.metadata.account.id); entry.stale = false; entry.refreshAfterCreation = false;
     }
@@ -366,7 +451,7 @@ export function renderTreasury3(snapshot) {
     const saved = document.createElement('select'); saved.setAttribute('aria-label', 'Revisiones de esta sesión');
     saved.innerHTML = '<option value="">Reabrir revisión…</option>' + [...statementReviews].map(([key,entry]) => '<option value="' + esc(key) + '">' + esc(entry.metadata.account.name + ' · ' + entry.metadata.fileName) + '</option>').join('');
     fileLabel.parentElement.insertBefore(saved, fileLabel); saved.value = activeReviewKey || '';
-    saved.onchange = () => { if (generation === renderGeneration) { statementReadToken++; showReview(saved.value); } };
+    saved.onchange = () => { if (generation === renderGeneration) { statementReadToken++; statementWorkPaused=false;showReview(saved.value); } };
   }
   if (activeReviewKey) showReview(activeReviewKey);
   const fileInput = root.querySelector('#treasuryCsv');
@@ -384,10 +469,13 @@ export function renderTreasury3(snapshot) {
       output.className = '';
       const option = selected => '<option value="-1">Sin columna</option>' + info.headers.map((h,i) => `<option value="${i}" ${i===selected?'selected':''}>${i+1}. ${esc(h || '(sin título)')}</option>`).join('');
       const labels = { date:'Fecha real de operación', concept:'Concepto', amount:'Importe con signo (− cargo / + abono)', debit:'Cargo', credit:'Abono', reference:'Referencia (opcional)' };
-      output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p><label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><p>Muestra de ${info.preview.length} de ${info.count} movimientos. La revisión del siguiente paso incluye todos.</p><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>${restoredFormat?'Hemos recuperado las columnas que elegiste para esta cuenta. Revisa la propuesta. ':''}Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(draft.controls?.mapping[key] ?? info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>`;
+      output.innerHTML = `<h3>3. Formato detectado · ${info.delimiter==='\t'?'TSV':'CSV'}</h3><p>${esc(file.name)} · ${info.count} filas · Cuenta: ${esc(account.name)}</p>${statementDefaultsHtml(draft.defaults)}<label>Separador <select data-csv-delimiter><option value=";">Punto y coma</option><option value=",">Coma</option><option value="tab">Tabulación</option></select></label><label>Fila de encabezados <input data-csv-header type="number" min="1" max="30" value="${info.headerRow+1}"></label><button class="btn" data-csv-format>Actualizar formato</button><h3>4. Vista previa del archivo</h3><p>Muestra de ${info.preview.length} de ${info.count} movimientos. La revisión del siguiente paso incluye todos.</p><div class="table-wrap"><table class="table"><thead><tr>${info.headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${info.preview.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div><h3>5. Comprueba las columnas</h3><p>${restoredFormat?'Hemos recuperado las columnas que elegiste para esta cuenta. Revisa la propuesta. ':''}Elige fecha y concepto, y después importe único o cargo / abono. Si una columna no se detecta, selecciónala aquí.</p><div class="grid two">${Object.entries(labels).map(([key,label])=>`<label>${label}<select data-csv-map="${key}">${option(draft.controls?.mapping[key] ?? info.indexes[key])}</select></label>`).join('')}</div><p class="msg info" data-csv-message>No importado todavía. La vista previa no modifica el historial.</p><button class="btn primary" data-csv-review>6. Validar y preparar revisión</button>${statementWorkHtml()}`;
+      bindStatementDefaults(output,draft.defaults);
+      bindStatementWork(output);
+      output.querySelectorAll('[data-csv-map],[data-csv-header],[data-csv-delimiter]').forEach(node=>node.addEventListener('change',saveStatementProgress));
       output.querySelector('[data-csv-delimiter]').value = draft.controls?.delimiter ?? (info.delimiter==='\t'?'tab':info.delimiter);
       if (draft.controls) output.querySelector('[data-csv-header]').value = draft.controls.headerRow;
-      output.querySelector('[data-csv-format]').onclick = () => { try { const delimiter = output.querySelector('[data-csv-delimiter]').value; info = inspectStatementCsv(text,{delimiter:delimiter==='tab'?'\t':delimiter,headerRow:Number(output.querySelector('[data-csv-header]').value)-1}); restoredFormat=false; draft.info=info; draft.restoredFormat=false; draft.controls=null; display(); } catch(error) { output.querySelector('[data-csv-message]').textContent = 'No importado: '+error.message; } };
+      output.querySelector('[data-csv-format]').onclick = () => { try { const delimiter = output.querySelector('[data-csv-delimiter]').value; info = inspectStatementCsv(text,{delimiter:delimiter==='tab'?'\t':delimiter,headerRow:Number(output.querySelector('[data-csv-header]').value)-1}); restoredFormat=false; draft.info=info; draft.restoredFormat=false; draft.controls=null; display();saveStatementProgress(); } catch(error) { output.querySelector('[data-csv-message]').textContent = 'No importado: '+error.message; } };
       output.querySelector('[data-csv-review]').onclick = async () => {
         const note = output.querySelector('[data-csv-message]');
         try {
@@ -401,12 +489,12 @@ export function renderTreasury3(snapshot) {
           const currentMovements = movementsForStatementAccount(lastViewModel.real,account.id);
           const results = reconcileStatement(rows,currentMovements);
           const key = existing ? fingerprint.duplicateKey+':revision:'+(statementReviews.size+1) : fingerprint.duplicateKey;
-          statementReviews.set(key,{session:createReviewSession(results),signature:JSON.stringify(currentMovements.map(row => [row.id, row.date, row.signedAmount, row.concept])),metadata:{account,fileName:file.name,csv:text,mapping,fingerprint,automatic:reconciliationSummary(results)}});
+          statementReviews.set(key,{session:createReviewSession(results),signature:JSON.stringify(currentMovements.map(row => [row.id, row.date, row.signedAmount, row.concept])),metadata:{account,defaults:{...draft.defaults},fileName:file.name,csv:text,mapping,fingerprint,automatic:reconciliationSummary(results)}});
           statementDraft=null;activeReviewKey=key;renderTreasury3(currentSnapshot);
         } catch(error) { note.className='msg error';note.textContent='No importado: '+error.message+'. El historial anterior se conserva.'; }
       };
     };
-    display();
+    display();saveStatementProgress();
   };
   if (statementDraft) displayDraft(statementDraft);
   fileInput.onchange = async event => {
@@ -430,8 +518,8 @@ export function renderTreasury3(snapshot) {
           if (matching) { info = {...detected, indexes: {...detected.indexes, ...matching}}; restoredFormat = true; }
         } catch { /* A different format uses fresh detection and visible column choices. */ }
       }
-      statementDraft = {file: {name:file.name}, text, accountId:account.id, formatContext, info, restoredFormat};
-      statementAccountId = account.id; activeReviewKey = null; statementPanelOpen = true;
+      statementDraft = {file: {name:file.name}, text, accountId:account.id, formatContext, info, restoredFormat, defaults:proposeStatementDefaults({account,people:currentSnapshot.people,paymentMethods:currentSnapshot.paymentMethods,householdId:currentSnapshot.householdId,fileName:file.name,rows:info.rows.map(row=>({concept:row[info.indexes.concept]||''}))})};
+      statementAccountId = account.id; activeReviewKey = null; statementPanelOpen = true;statementWorkPaused=false;
       renderTreasury3(currentSnapshot);
     } catch(error) {
       if (readToken === statementReadToken && readContext === activeContext) {
@@ -491,5 +579,6 @@ export function renderTreasury3(snapshot) {
   }
   return vm;
 }
-window.DOMUSTreasury3 = { render: renderTreasury3, reset: resetTreasury3, snapshot: createTreasurySnapshot, configurePersistence, configureStatementCreation, configureStatementInspection, statementSaved, normalize: normalizeTreasuryItem, monthly: monthlyTreasury, summary: () => lastViewModel };
+window.DOMUSTreasury3 = { render: renderTreasury3, reset: resetTreasury3, snapshot: createTreasurySnapshot, configurePersistence, configureStatementCreation, configureStatementInspection, openStatementImport, statementSaved, normalize: normalizeTreasuryItem, monthly: monthlyTreasury, summary: () => lastViewModel };
+window.addEventListener?.('pagehide',saveStatementProgress);
 window.dispatchEvent(new CustomEvent('domus-treasury3-ready'));

@@ -64,3 +64,13 @@ test('adding a missing movement preserves rejected proposals and earlier confirm
  assert.equal(session.rows[0].decision,'confirmada');assert.equal(session.rows[1].candidates.length,1);
  assert.equal(session.rows[1].rejectedCandidates[0].id,'movement-a');
 });
+
+test('older report recovers valid decisions but not a wrong-file or missing candidate match',async()=>{
+ const {importReviewReport}=await import('../domus-3/src/treasury/reconciliation-review.js');
+ const report={format:'domus-treasury-reconciliation',version:1,account:{id:'bank'},statement:{contentSha256:'file'},rows:[
+  {statementId:'line-1',date:'2026-09-15',signedAmount:-10,decision:'confirmada',movementId:'movement-a'},
+  {statementId:'line-3',date:'2026-09-17',signedAmount:-5,decision:'confirmada',movementId:'wrong-date-movement'}]};
+ const result=importReviewReport(createReviewSession(results),report,{accountId:'bank',contentSha256:'file'});
+ assert.equal(result.accepted,1);assert.equal(result.recheck,1);assert.equal(result.session.rows[2].decision,'pendiente');
+ assert.throws(()=>importReviewReport(createReviewSession(results),report,{accountId:'another',contentSha256:'file'}),/no pertenece/);
+});
