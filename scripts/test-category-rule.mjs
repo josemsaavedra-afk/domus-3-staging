@@ -28,6 +28,9 @@ try{
   const saved=await page.evaluate(()=>stored[0]);assert.deepEqual(saved.conditions,{category_id:category});assert.deepEqual(saved.proposals,{expense_scope:'business'});
   await page.evaluate(()=>DOMUSRuleUI.edit('r'));assert.equal(await page.inputValue('#rc_category_id'),category);assert.equal(await page.inputValue('#rp_expense_scope'),'business');
   await page.click('#ruleClose');await page.evaluate(()=>DOMUSRuleUI.manual());await page.click('#rulePreview_manual button');assert.equal(await page.inputValue('#fExpenseScope'),'business');
-  assert.deepEqual(errors,[]);console.log(`PASS ${width}px: category-only rule saved, reopened and applied to the draft`);await page.close();
+  await page.fill('#fConcept','Comercio repetido');await page.evaluate(()=>DOMUSRuleUI.manual());await page.click('#rulePreview_manual [data-create-rule]');
+  assert.equal(await page.inputValue('#rc_text'),'Comercio repetido');await page.click('#ruleEditorForm button[type=submit]');await page.waitForFunction(()=>stored.length===2);
+  assert.equal(await page.inputValue('#fConcept'),'Comercio repetido');await page.selectOption('#fCategory','');await page.selectOption('#fExpenseScope','');await page.evaluate(()=>DOMUSRuleUI.manual());await page.click('#rulePreview_manual [data-apply-rule]');assert.equal(await page.inputValue('#fCategory'),category);
+  assert.deepEqual(errors,[]);console.log(`PASS ${width}px: category-only rule, create from current movement, retain draft, apply to next matching movement`);await page.close();
  }
 }finally{await browser?.close();await new Promise(done=>server.close(done));}

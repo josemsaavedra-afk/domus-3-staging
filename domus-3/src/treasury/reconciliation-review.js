@@ -1,3 +1,4 @@
+import { movementMatchScore } from './reconciliation.js';
 const freezeRows = rows => Object.freeze(rows.map(row => Object.freeze({ ...row, candidates: Object.freeze([...row.candidates]), rejectedCandidates: Object.freeze([...(row.rejectedCandidates || [])]) })));
 
 function candidateList(result) {
@@ -22,13 +23,20 @@ export function createReviewSession(results) {
 
 // After creating one missing movement, keep the other reviewed choices when
 // their underlying candidates have not changed.
-export function refreshReviewSession(previous, results) {
+export function refreshReviewSession(previous, results, {reopenMovementIds=[],verifySavedDecisions=false,movements=[]} = {}) {
   const fresh = createReviewSession(results);
   const same = (a,b) => a && b && ['id','date','signedAmount','concept','accountId'].every(key=>a[key]===b[key]);
   return Object.freeze({rows:freezeRows(fresh.rows.map(row=>{
     const old=previous.rows.find(item=>item.statement.id===row.statement.id);
     if(!old)return row;
-    if(old.decision!=='pendiente')return old;
+    if(old.decision==='confirmada'&&reopenMovementIds.includes(old.selectedMovementId))return row;
+    if(old.decision==='confirmada'&&verifySavedDecisions){
+      const selected=movements.find(item=>item.id===old.selectedMovementId);
+      const proof=old.candidates.find(item=>item.id===old.selectedMovementId);
+      if(!same(selected,proof)||!movementMatchScore(row.statement,selected))return row;
+      return {...row,candidates:[selected,...row.candidates.filter(item=>item.id!==selected.id)],selectedMovementId:selected.id,decision:'confirmada'};
+    }
+    if(old.decision!=='pendiente')return {...old,statement:row.statement};
     const rejected=(old.rejectedCandidates||[]).filter(item=>row.candidates.some(candidate=>same(item,candidate)));
     const candidates=row.candidates.filter(item=>!rejected.some(candidate=>candidate.id===item.id));
     const selected=candidates.find(item=>item.id===old.selectedMovementId&&same(item,old.candidates.find(candidate=>candidate.id===item.id)));
@@ -96,4 +104,25 @@ export function confirmedReviewDraft(session) {
     signedAmount: row.statement.signedAmount,
     source: 'revision_local_no_persistida'
   })));
+}
+
+// Bridge from older builds: their exported report can recover reviewed choices
+// only for the exact same account/file and still-valid live candidates.
+export function importReviewReport(session, report, {accountId,contentSha256}) {
+ if(report?.format!=='domus-treasury-reconciliation'||report.version!==1||report.account?.id!==accountId||report.statement?.contentSha256!==contentSha256||!Array.isArray(report.rows))throw Error('El informe no pertenece a esta cuenta y a este mismo archivo bancario.');
+ let next=session,accepted=0,recheck=0;
+ for(const saved of report.rows){
+  if(!['confirmada','descartada'].includes(saved.decision))continue;
+  const row=next.rows.find(item=>item.statement.id===saved.statementId);
+  if(!row||row.decision!=='pendiente')continue;
+  if(row.statement.date!==saved.date||row.statement.signedAmount!==saved.signedAmount){recheck++;continue;}
+  try{
+   if(saved.decision==='confirmada'){
+    if(!row.candidates.some(candidate=>candidate.id===saved.movementId)){recheck++;continue;}
+    next=selectReviewCandidate(next,saved.statementId,saved.movementId);
+   }
+   next=decideReview(next,saved.statementId,saved.decision);accepted++;
+  }catch{recheck++;}
+ }
+ return {session:next,accepted,recheck};
 }

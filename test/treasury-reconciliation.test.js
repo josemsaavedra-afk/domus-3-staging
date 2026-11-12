@@ -15,3 +15,14 @@ test('calcula saldo solo desde un saldo inicial confirmado', () => { assert.equa
 test('resume el resultado sin confirmar conciliaciones', () => { const summary = reconciliationSummary(reconcileStatement([{ date: '2026-09-17', concept: 'Nomina', signedAmount: 1200 }, { date: '2026-09-01', concept: 'Otro', signedAmount: -9 }], movements)); assert.deepEqual(summary, { total: 2, propuesto: 1, revisar: 0, ambiguo: 0, sin_coincidencia: 1 }); });
 test('importa CSV español con cargo y abono', () => { const rows = parseStatementCsv('Fecha;Concepto;Cargo;Abono;Referencia\n15/09/2026;Mercadona;42,15;;T-100\n17/09/2026;Nómina;;1.200,00;'); assert.deepEqual(rows.map(row => row.signedAmount), [-42.15, 1200]); assert.equal(rows[0].date, '2026-09-15'); });
 test('rechaza CSV sin columnas mínimas', () => { assert.throws(() => parseStatementCsv('Uno;Dos\na;b'), /Se necesitan/); });
+
+test('never proposes the three equal fuel amounts from another date',()=>{
+ const bank={date:'2026-10-02',concept:'Pago MORGANE OIL OTERO',signedAmount:-20};
+ const rows=[1,2,3].map(id=>({id:String(id),date:'2026-10-05',concept:'Petroleo',signedAmount:-20}));
+ assert.equal(reconcileStatement([bank],rows)[0].status,'sin_coincidencia');
+ assert.equal(movementMatchScore({...bank,concept:'MORGANE OIL OTERO'},{...rows[0],concept:'MORGANE OIL OTERO'}),0);
+});
+test('same amount alone, generic words or card suffix never identify a different merchant',()=>{
+ const bank={date:'2026-10-03',concept:'Pago KIABI ALCALA ***3011',signedAmount:-18};
+ for(const concept of ['Comisión ONLOGIST','Pago distinto ***3011','Gasto tarjeta'])assert.equal(movementMatchScore(bank,{date:bank.date,concept,signedAmount:-18}),0);
+});

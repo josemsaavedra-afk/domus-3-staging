@@ -14,7 +14,7 @@ test('open actual movement from statement, return, confirm/reject and preserve o
  Object.assign(globalThis,{window:dom.window,document:dom.window.document,Event:dom.window.Event,CustomEvent:dom.window.CustomEvent});
  const w=dom.window,q=s=>w.document.querySelector(s);let created;
  const originals=[{id:'coffee',household_id:'h',account_id:'a',type:'expense',amount:3,concept:'Café',notes:'Nota café',start_date:'2026-10-01',occurrence_date:'2026-10-01',status:'done',actual_date:'2026-10-01'},
- {id:'petro',household_id:'h',account_id:'a',type:'expense',amount:45,concept:'petroleo',notes:'Tique de combustible 123',invoice_number:'ticket-123',payer_person_id:'jeni',category_id:'fuel',start_date:'2026-10-05',occurrence_date:'2026-10-05',status:'done',actual_date:'2026-10-05'}];
+ {id:'petro',household_id:'h',account_id:'a',type:'expense',amount:45,concept:'PETROPRIX combustible',notes:'Tique de combustible 123',invoice_number:'ticket-123',payer_person_id:'jeni',category_id:'fuel',start_date:'2026-10-02',occurrence_date:'2026-10-02',status:'done',actual_date:'2026-10-02'}];
  Object.assign(w,{user:{id:'u'},household:{id:'h'},series:originals,movementDetailReturn:null,DOMUSClassification:{labelName:()=>'',counterpartyLabel:()=>''},
   findOccurrence:(id,date)=>{const m=originals.find(x=>x.id===id&&x.occurrence_date===date);return m&&{...m,occurrenceDate:new Date(date+'T12:00:00'),state:{actual_date:date},recurrence:'none'};},
   fmt:value=>value instanceof Date||Object.prototype.toString.call(value)==='[object Date]'?value.toISOString().slice(0,10):String(value),parseDate:s=>new Date(s+'T12:00:00'),
@@ -42,7 +42,7 @@ test('open actual movement from statement, return, confirm/reject and preserve o
   assert.match(q('#statementCandidateReview').textContent,/PETROPRIX/);
   assert.match(q('#movementDetailBody').textContent,/Tique de combustible 123/);
   assert.match(q('#movementDetailBody').textContent,/Combustible/);
-  assert.match(q('#movementDetailBody').textContent,/2026-10-05/);
+  assert.match(q('#movementDetailBody').textContent,/2026-10-02/);
   assert.match(q('#movementDetailBody').textContent,/ticket-123/);
   q('[data-statement-candidate-back]').click();assert.equal(w.scrollY,480);
   assert.match(q('.treasury-review-summary').textContent,/1 conciliadas/);
@@ -53,7 +53,7 @@ test('open actual movement from statement, return, confirm/reject and preserve o
   assert.match(q('.treasury-review-summary').textContent,/2 conciliadas/);
   assert.equal(w.scrollY,480);
   // New review: rejecting a match keeps the bank line and makes creation possible.
-  ui.resetTreasury3();ui.renderTreasury3(snapshot);await load();row(first).querySelector('[data-review-confirm]').click();
+  w.localStorage.clear();ui.resetTreasury3();ui.renderTreasury3(snapshot);await load();row(first).querySelector('[data-review-confirm]').click();
   await row(petro).querySelector('[data-review-open]').onclick();q('[data-statement-candidate-reject]').click();
   assert.ok(row(petro).querySelector('[data-review-create]'));
   assert.match(q('.treasury-review-summary').textContent,/1 conciliadas/);

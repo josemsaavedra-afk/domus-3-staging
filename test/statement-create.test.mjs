@@ -34,7 +34,7 @@ const html=readFileSync('domus-3/index.html','utf8');
 const openSource=html.slice(html.indexOf('async function openStatementMovement('),html.indexOf('function treasury3Snapshot('));
 function formRuntime(){
  const fields=new Map();const field=id=>{if(!fields.has(id))fields.set(id,{value:'',dataset:{}});return fields.get(id)};
- const messages=[];const context={user:{id:'user'},household:{id:'house'},accounts:[input.account],series:[],document:{getElementById:field},openForm:()=>{},syncMovementModel:()=>{},syncPrefFields:()=>{},captureMovementForm:()=>{},msg:(...args)=>messages.push(args)};
+ const messages=[];const context={window:{},user:{id:'user'},household:{id:'house'},accounts:[input.account],series:[],document:{getElementById:field},openForm:()=>{},syncMovementModel:()=>{},syncPrefFields:()=>{},captureMovementForm:()=>{},msg:(...args)=>messages.push(args)};
  vm.createContext(context);vm.runInContext(openSource,context);return {context,field,messages};
 }
 test('host opens the real movement form with stable identity, paid date and blank classification, never writes on open',async()=>{

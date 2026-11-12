@@ -1,7 +1,7 @@
 import { parseBankDate } from './statement-csv.js';
 
 // Rebuild all known history; only forecasts have an upper horizon.
-export function createTreasurySnapshot({ householdId, userId, accounts = [], series = [], states = [], asOf }) {
+export function createTreasurySnapshot({ householdId, userId, accounts = [], people = [], paymentMethods = [], series = [], states = [], asOf }) {
   const today = parseBankDate(asOf), horizon = `${Number(today.slice(0, 4)) + 2}-12-31`;
   const members = series.filter(row => row.household_id === householdId);
   const statesBySeries = new Map();
@@ -52,5 +52,5 @@ export function createTreasurySnapshot({ householdId, userId, accounts = [], ser
         occurrence_date: original, expected_treasury_date: original, status: state.status || 'pending' });
     }
   }
-  return { householdId, userId, asOf: today, accounts: accounts.filter(row => row.household_id === householdId).map(row => ({ ...row })), rows };
+  return { householdId, userId, asOf: today, people: people.filter(row=>row.household_id===householdId&&row.active!==false), paymentMethods: paymentMethods.filter(row=>row.household_id===householdId&&row.active!==false), accounts: accounts.filter(row => row.household_id === householdId).map(row => ({ ...row })), rows };
 }
