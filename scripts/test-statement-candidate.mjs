@@ -53,7 +53,7 @@ try{
   });
   await page.locator('[data-statement-panel]').evaluate(el=>el.open=true);await page.selectOption('#treasuryCsvAccount','a');
   const csv='Fecha;Concepto;Importe\n01/10/2026;Café;-3,00\n02/10/2026;PETROPRIX;-45,00\n03/10/2026;Otro pago;-7,00';
-  await page.setInputFiles('#treasuryCsv',{name:'octubre.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await page.click('[data-csv-review]');
+  await page.setInputFiles('#treasuryCsv',{name:'ING_Jeni_solo_tarjeta.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await page.click('[data-csv-review]');
   await page.locator('[data-review-confirm]').first().click();
   const petro=page.locator('[data-review-row]').filter({hasText:'PETROPRIX'});
   await petro.locator('[data-review-open]').click();
