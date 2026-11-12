@@ -118,14 +118,24 @@
       counterparty: unique(values(type === 'income' ? ['cliente'] : ['proveedor', 'comercio']))
     };
   }
-  const ruleRefs={person_id:'people',payer_person_id:'people',account_id:'accounts',counterparty_id:'counterparties',category_id:'categories',activity_project_id:'activity_projects',tag_ids:'tags'};
+  const ruleRefs={person_id:'people',payer_person_id:'people',account_id:'accounts',counterparty_id:'counterparties',category_id:'categories',activity_project_id:'activity_projects',tag_ids:'tags',payment_method_id:'payment_methods'};
+  // Editable business data only: identities, household, audit and source are not rule targets.
+  const ruleFields=['counterparty_id','concept','account_id','type','category_id','person_id','payer_person_id','amount','activity_project_id','tag_ids','expense_scope','payment_method_id','invoice_number','counterparty','notes','movement_role','business_percentage','income_source_type','document_date','actual_date','due_date','status','recurrence','recurrence_end','prefinanceable','prefinance_available_from'];
+  const ruleEnums={type:['income','expense'],expense_scope:['domestic','business','mixed'],movement_role:['standard','commission','insurance','prefinance_fee'],income_source_type:['habitual','variable'],status:['done','pending','cancelled'],recurrence:['none','monthly','quarterly','semiannual','annual'],prefinance_fee_type:['percentage','fixed']};
+  const ruleText=['concept','invoice_number','counterparty','notes'];
+  const ruleNumbers=['amount','business_percentage','prefinance_fee_value'];
+  const ruleDates=['document_date','actual_date','due_date','recurrence_end','prefinance_available_from'];
+  function validRuleDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const d=new Date(value+'T12:00:00Z');return Number.isFinite(+d)&&d.toISOString().slice(0,10)===value;}
   function validateRule(rule,catalogs){
     if(!rule.household_id||!String(rule.name||'').trim()||!Number.isInteger(rule.priority)||rule.priority < -2147483648||rule.priority > 2147483647)throw Error('Nombre y prioridad entera obligatorios.');
-    for(const [part,allowed] of [['conditions',['counterparty_id','concept','account_id','type','category_id','person_id','payer_person_id','amount']],['proposals',['category_id','person_id','payer_person_id','account_id','counterparty_id','activity_project_id','tag_ids','expense_scope','due_policy']]]){
+    for(const [part,allowed] of [['conditions',ruleFields],['proposals',[...ruleFields,'due_policy']]]){
       const data=rule[part];if(!data||Array.isArray(data)||typeof data!=='object'||!Object.keys(data).length)throw Error('Define al menos una condición y una propuesta.');
       for(const [field,value] of Object.entries(data)){
         if(!allowed.includes(field))throw Error('Campo no admitido: '+field);
         if(ruleRefs[field]){const ids=field==='tag_ids'?value:[value];if(!Array.isArray(ids)||!ids.length||ids.some(id=>!(catalogs[ruleRefs[field]]||[]).some(x=>x.id===id&&x.household_id===rule.household_id)))throw Error('Las referencias deben pertenecer al mismo hogar.');}
+        if(ruleEnums[field]&&!ruleEnums[field].includes(value))throw Error('Valor no válido: '+field);
+        if(ruleDates.includes(field)&&!validRuleDate(value))throw Error('Fecha no válida: '+field);
+        if(field==='prefinanceable'&&typeof value!=='boolean')throw Error('Valor lógico no válido.');
         if(field==='type'&&!['income','expense'].includes(value))throw Error('Tipo no válido.');
         if(field==='expense_scope'&&!['domestic','business','mixed'].includes(value))throw Error('Ámbito no válido.');
         if(field==='due_policy'){
@@ -137,8 +147,10 @@
             if(value.weekend_policy&&!['none','sat_prev_sun_next'].includes(value.weekend_policy))throw Error('Ajuste de fin de semana no válido.');
           }else throw Error('Modo de vencimiento no válido.');
         }
-        if(field==='concept'&&(!value||!['contains','equals'].includes(value.mode)||typeof value.value!=='string'||!value.value.trim()||Object.keys(value).some(k=>!['mode','value'].includes(k))))throw Error('Condición de concepto no válida.');
-        if(field==='amount'&&(!value||Array.isArray(value)||!Object.keys(value).length||Object.entries(value).some(([k,v])=>!['min','max'].includes(k)||typeof v!=='number'||!Number.isFinite(v)||v<0)||value.min!=null&&value.max!=null&&value.min>value.max))throw Error('Rango de importe no válido.');
+        if(ruleText.includes(field)&&part==='conditions'&&(!value||!['contains','equals'].includes(value.mode)||typeof value.value!=='string'||!value.value.trim()||Object.keys(value).some(k=>!['mode','value'].includes(k))))throw Error('Condición de concepto no válida.');
+        if(ruleText.includes(field)&&part==='proposals'&&(typeof value!=='string'||!value.trim()||value.length>10000))throw Error('Texto de propuesta no válido.');
+        if(ruleNumbers.includes(field)&&part==='proposals'&&(typeof value!=='number'||!Number.isFinite(value)||value<0||(field==='business_percentage'&&value>100)))throw Error('Importe o porcentaje no válido.');
+        if(ruleNumbers.includes(field)&&part==='conditions'&&(!value||Array.isArray(value)||!Object.keys(value).length||Object.entries(value).some(([k,v])=>!['min','max'].includes(k)||typeof v!=='number'||!Number.isFinite(v)||v<0)||value.min!=null&&value.max!=null&&value.min>value.max))throw Error('Rango de importe no válido.');
       }
     }return rule;
   }
@@ -151,12 +163,12 @@
       try{validateRule(rule,own)}catch(_){warnings.push('Regla no disponible para proponer: '+rule.name);continue}
       const reasons=[];let hit=true;
       for(const [field,value] of Object.entries(rule.conditions)){
-        const ok=field==='concept'?(value.mode==='contains'?key(row.concept).includes(key(value.value)):key(row.concept)===key(value.value)):field==='amount'?(row.amount!=null&&row.amount!==''&&Number.isFinite(Number(row.amount))&&(value.min==null||Number(row.amount)>=value.min)&&(value.max==null||Number(row.amount)<=value.max)):row[field]===value;
+        const ok=ruleText.includes(field)?(value.mode==='contains'?key(row[field]).includes(key(value.value)):key(row[field])===key(value.value)):ruleNumbers.includes(field)?(row[field]!=null&&row[field]!==''&&Number.isFinite(Number(row[field]))&&(value.min==null||Number(row[field])>=value.min)&&(value.max==null||Number(row[field])<=value.max)):field==='tag_ids'?value.every(id=>(row.tag_ids||[]).includes(id)):row[field]===value;
         if(!ok){hit=false;break}reasons.push({field,condition:value,observed:row[field]??null});
       }
       if(hit)matches.push({id:rule.id,revision:rule.revision||1,name:rule.name,priority:rule.priority,reasons,proposals:rule.proposals});
     }
-    for(const field of [...new Set(matches.flatMap(r=>Object.keys(r.proposals)))]){
+    for(const field of [...new Set(matches.flatMap(r=>Object.keys(r.proposals)))].sort((a,b)=>(a==='type'?-1:b==='type'?1:0))){
       const candidates=[];
       for(const rule of matches.filter(r=>Object.hasOwn(r.proposals,field))){
         let value=rule.proposals[field];
@@ -168,10 +180,10 @@
       if(field==='tag_ids'){proposals[field]=[...new Set(candidates.flatMap(x=>x.value))];explanation[field]=candidates;continue}
       const top=candidates.filter(x=>x.priority===candidates[0].priority),values=[...new Set(top.map(x=>x.value))];
       if(values.length>1){conflicts.push({field,rules:top});continue}
-      proposals[field]=values[0];explanation[field]=top;
+      proposals[field]=values[0];explanation[field]=top;if(field==='type')row.type=values[0];
     }
     if(identified&&!Object.hasOwn(proposals,'counterparty_id')&&!conflicts.some(x=>x.field==='counterparty_id')){proposals.counterparty_id=identified;explanation.counterparty_id=[{name:'Alias/nombre único del maestro',reasons:[{field:'counterparty',observed:input.counterparty}]}]}
     return {input:{...input},identified_counterparty_id:identified,matches,proposals,explanation,conflicts,warnings};
   }
-  window.DOMUSClassification = Object.freeze({validateRule, proposeRules, labelOptions, labelFields, labelText, labelName, matchCounterparty, counterpartyFields, counterpartyLabel, masterPayload, categoryLabel, selectable, options, validateMovement, equivalentCategory, documentProposal});
+  window.DOMUSClassification = Object.freeze({ruleFields,ruleEnums,ruleText,ruleNumbers,ruleDates,validateRule, proposeRules, labelOptions, labelFields, labelText, labelName, matchCounterparty, counterpartyFields, counterpartyLabel, masterPayload, categoryLabel, selectable, options, validateMovement, equivalentCategory, documentProposal});
 })();

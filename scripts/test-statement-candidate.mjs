@@ -42,7 +42,7 @@ try{
     stateMap:()=>new Map(series.map(row=>[row.id+'|'+row.occurrence_date,{series_id:row.id,occurrence_date:row.occurrence_date,status:'done',actual_date:row.actual_date}])),
     dateKey:date=>date.toISOString().slice(0,10),closeDayModal:()=>{},setSimpleMovementMode:()=>{},setMovementAdvanced:()=>{},refreshMovementIncomeChoices:()=>{},syncPrefFields:()=>{},captureMovementForm:()=>{},movementFormChanged:()=>false,
     msg:(id,text)=>q(id).textContent=text,setBusy:()=>{},duplicateCandidates:()=>[],duplicateWarning:()=>true,validateMovementDates:()=>{},requireClassificationSchema:async()=>{},requireLabelsSchema:async()=>{},sameNullable:(a,b)=>a===b,syncExpenseLinks:async()=>{},friendlyCloudError:e=>e.message,
-    sb:{rpc:async(name,args)=>{if(name!=='domus3_save_single_movement'||args.p_source_id!==args.p_target_id)throw Error('Wrong edit path');const row=series.find(row=>row.id===args.p_target_id);Object.assign(row,args.p_patch,{actual_date:args.p_state.actual_date});editWrites++;return{data:row.id};}},
+    sb:{rpc:async(name,args)=>{if(name!=='domus3_save_single_movement'||args.p_source_id!==args.p_target_id)throw Error('Wrong edit path');const row=series.find(row=>row.id===args.p_target_id);Object.assign(row,args.p_patch,{actual_date:args.p_state.actual_date,document_date:args.p_state.document_date});editWrites++;return{data:row.id};}},
     refreshAll:async()=>{snapshot={...snapshot,rows:series.map(m=>({...m,id:m.id+'|'+m.occurrence_date,series_id:m.id}))};ui.renderTreasury3(snapshot);}});
   });
   await page.addScriptTag({content:inspector+'\n'+details+'\n'+editing+'\n'+atomic+'\n'+submit});
@@ -78,6 +78,10 @@ try{
   assert.equal(await page.evaluate(()=>series.length),2);assert.equal(await page.evaluate(()=>series.find(row=>row.id==='petro').payer_person_id),'jeni');
   assert.match(await page.locator('.treasury-review-summary').textContent(),/1 conciliadas/);assert.deepEqual(errors,[]);
   console.log(`PASS ${width}px: actual detail, close, refresh, reject, create draft, restore, confirm, edit/save same identity, other lines retained`);
+  // Report repair uses the same real edit handler and atomic save, never a copied movement.
+  await page.addScriptTag({content:html.slice(html.indexOf('let reportDateReturn=null;'),html.indexOf('function documentSourceText('))});
+  await page.evaluate(()=>{window.reportSnapshot={missingDocumentDates:[series.find(row=>row.id==='petro')]};completeReportDocumentDate(0);});
+  assert.equal(await page.inputValue('#fDocumentDate'),'');assert.equal(await page.inputValue('#fActualDate'),'2026-10-02');await page.fill('#fDocumentDate','2026-10-01');await page.click('#movementForm button[type=submit]');await page.waitForFunction(()=>editWrites===2&&!document.getElementById('movementModal').classList.contains('show'));assert.equal(await page.evaluate(()=>series.find(row=>row.id==='petro').document_date),'2026-10-01');assert.equal(await page.evaluate(()=>series.find(row=>row.id==='petro').actual_date),'2026-10-02');assert.equal(await page.evaluate(()=>series.length),2);assert.deepEqual(errors,[]);console.log(`PASS ${width}px: report missing-date repair edits/saves original identity, preserves actual date`);
   await page.close();
  }
 }finally{await browser?.close();await new Promise(done=>server.close(done));}
