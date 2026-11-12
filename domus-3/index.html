@@ -970,11 +970,10 @@ function renderReports(){
  const onlogistDates=new Map();for(const x of activity){if(x.type!=='income')continue;const ref=onlogistReference(x);if(ref)onlogistDates.set(ref.ref,ref.day)}
  const monthNames={enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12};
  const accrualDay=x=>{const concept=String(x.concept||'').toLowerCase(),lyreco=concept.match(/lyreco\s+resto\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/),doc=x.state?.document_date||'',base=dateKey(x.baseOccurrenceDate||x.occurrenceDate||x.documentDate);
- if(x.state?.document_date)return x.state.document_date.slice(0,10);
  if(lyreco){const month=monthNames[lyreco[1]],payment=base||doc,year=Number(payment.slice(0,4))-(month>Number(payment.slice(5,7))?1:0);return year+'-'+String(month).padStart(2,'0')+'-01'}
  const ref=onlogistReference(x);if(ref)return onlogistDates.get(ref.ref)||ref.day;
  if(/lyreco/.test(concept)&&/primera quincena/.test(concept)){const d=base||doc;return d.slice(0,7)+'-01'}
- if(/lyreco/.test(concept)&&/transferencia/.test(concept))return '';
+ if(/lyreco/.test(concept)&&/transferencia/.test(concept))return doc;
  if(/onlogist/i.test(concept)&&!doc)return '';
  return doc;
  };
