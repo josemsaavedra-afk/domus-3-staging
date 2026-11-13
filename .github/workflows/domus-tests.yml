@@ -24,3 +24,4 @@ jobs:
           node scripts/test-statement-candidate.mjs
           node scripts/test-category-rule.mjs
           node scripts/test-statement-workflow.mjs
+          node scripts/test-udoc-review.mjs

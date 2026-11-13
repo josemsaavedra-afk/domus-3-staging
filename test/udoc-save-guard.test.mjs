@@ -58,6 +58,7 @@ test('a confirmed row alone permits success and the prepared draft',async()=>{
  assert.deepEqual(x.writes[0].filters,[['id','doc-a'],['household_id','home-a'],['updated_at',oldVersion]]);
  assert.equal(x.writes[0].columns,'id,updated_at');
  assert.equal(x.writes[0].payload.extracted_data.drafts[0].amount,7);
+ assert.equal(x.writes[0].payload.extracted_data.drafts[0].review_required,false,'a reviewed valid invoice must allow explicit creation');
  assert.deepEqual(x.events,['closed','draft displayed']);
 });
 

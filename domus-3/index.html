@@ -378,9 +378,9 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
           <p id="udocReviewStatus" role="status" aria-live="polite"></p>
           <dialog id="udocReviewDialog" aria-labelledby="udocReviewTitle">
             <h2 id="udocReviewTitle">Revisar lectura de IA</h2>
-            <p>Comprueba cada dato con el original. Los cambios de esta vista son provisionales.</p>
+            <p>Comprueba cada dato con el original. Guarda la revisión para conservar tus cambios; después podrás confirmar el movimiento desde su propuesta.</p>
             <div id="udocReviewFields" class="stack"></div>
-            <form method="dialog"><button class="btn" type="submit">Cerrar revisión</button></form>
+            <div class="actions"><button id="udocReviewSaveBtn" class="btn primary" type="button">Guardar revisión</button><form method="dialog"><button class="btn" type="submit">Cerrar revisión</button></form></div>
           </dialog>
           <div id="docProgress" class="progress"></div>
           <div class="doc-batch"><strong>Control de duplicados</strong><div class="muted">DOMUS comprueba número de factura y emisor. Compartir fecha e importe no basta para considerar dos facturas duplicadas.</div></div>
@@ -1203,7 +1203,7 @@ function udocDraftFromReview(attempt,values){
  const context=Object.values(values).filter(v=>v!=null).join(' ').toLowerCase();
  // Never turn settlements, reimbursements, reservations or supporting documents into a generic invoice.
  if(kind!=='invoice'||!issuer||!invoice||!date||amount===null||/\brhd\b|driiveme|reembolso|reservation|reserva|albar[aá]n|justificante/.test(context))return null;
-  return {type,concept:String(issuer),counterparty:String(issuer),invoice_number:String(invoice),amount,date,due_date:date,document_date:date,recurrence:'none',source:'udoc_ai_review',movement_role:'standard',expense_scope:'unclassified',extraction_quality:'medium',review_required:true,field_sources:{concept:'revisión IA guardada',counterparty:'revisión IA guardada',invoice_number:'revisión IA guardada',amount:'revisión IA guardada',document_date:'revisión IA guardada',type:'revisión IA guardada'},udoc_review:true};
+  return {type,concept:String(issuer),counterparty:String(issuer),invoice_number:String(invoice),amount,date,due_date:date,document_date:date,recurrence:'none',source:'udoc_ai_review',movement_role:'standard',expense_scope:'unclassified',extraction_quality:'medium',review_required:false,field_sources:{concept:'revisión IA guardada',counterparty:'revisión IA guardada',invoice_number:'revisión IA guardada',amount:'revisión IA guardada',document_date:'revisión IA guardada',type:'revisión IA guardada'},udoc_review:true};
 }
 function udocOriginalMatches(doc,source_sha256){return (doc?.extracted_data?.source_sha256||doc?.extracted_data?.udoc_source_sha256)===source_sha256}
 function udocReviewDraftState(prior,drafts,source_sha256,interpretation_sha256){
