@@ -31,6 +31,7 @@ async function run(documentText, fields, overrides = {}) {
     createElement: element,
   };
   const requests = [];
+  const retained={id:'doc',household_id:'fixture-home',file_retained:true,storage_path:'retained',updated_at:'2026-11-13T08:00:00Z',extracted_data:{source_sha256:digest}};
   const context = vm.createContext({
     document, crypto: webcrypto, URL, AbortSignal, TextEncoder,
     window: { DOMUS_CONFIG: { udocReview: true, udocReviewOrigin: 'https://udoc.example' } },
@@ -38,7 +39,7 @@ async function run(documentText, fields, overrides = {}) {
     user: { id: 'fixture-user' }, household: { id: 'fixture-home' },
     sb: { auth: { getSession: async () => ({
       data: { session: { user: { id: 'fixture-user' }, access_token: 'fixture-token' } },
-    }) } },
+    }) },from:()=>{let patch;const q={eq:()=>q,or:()=>q,limit:async()=>({data:[retained]}),select:()=>patch?Promise.resolve({data:[{id:retained.id,updated_at:retained.updated_at}]}):q,update:value=>{patch=value;Object.assign(retained,value);return q;}};return q;} },
     fetch: async (url, options) => {
       requests.push({ url, options });
       return { ok: true, json: async () => ({
