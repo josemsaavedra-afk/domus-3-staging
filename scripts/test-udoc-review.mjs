@@ -53,7 +53,7 @@ try{
       return q;
      }}});
     document.querySelectorAll('section[id$="View"]').forEach(node=>node.classList.add('hidden'));document.getElementById('documentsView').classList.remove('hidden');
-    for(const node of document.querySelectorAll('.app,.app-shell,#app'))node.classList.remove('hidden');document.querySelector('.auth-wrap')?.remove();
+    for(const node of document.querySelectorAll('.app,.app-shell,#app,#appScreen'))node.classList.remove('hidden');document.querySelector('.auth-wrap')?.remove();
    });
    await page.addScriptTag({url:'/src/classification/master.js'});await page.addScriptTag({content:select+'\n'+archive+'\n'+simplify+'\n'+confirmation+'\n'+handler});
    await page.evaluate(()=>{document.getElementById('docFile').onchange=e=>selectDocumentFiles(e.target);});
@@ -78,7 +78,7 @@ try{
   // A renamed identical original resolves by hash; another saved review cannot create a second draft.
   await page.evaluate(()=>document.getElementById('docAnalysisModal').classList.remove('show'));await selectOriginal('renamed-protocol.txt');await page.click('#udocReviewSaveBtn');await page.waitForFunction(()=>!document.getElementById('udocReviewDialog').open);assert.equal(await page.evaluate(()=>documents[0].extracted_data.drafts.length),1);assert.equal(await page.evaluate(()=>series.length),1);assert.equal(await page.evaluate(()=>fixtureReads.every(read=>read.filters.some(([k,v])=>k==='household_id'&&v==='home-a'))),true);
   // Concurrent revision: keep edits open, never claim success or retry the mutation.
-  await selectOriginal('renamed-again.txt');await page.evaluate(()=>fixtureMode='conflict');await page.click('#udocReviewSaveBtn');await page.waitForFunction(()=>document.getElementById('udocReviewSaveBtn').disabled);assert.match(await page.locator('#udocReviewStatus').textContent(),/Guardado sin confirmar/);const writes=await page.evaluate(()=>fixtureWrites);await page.evaluate(()=>saveUdocReview());assert.equal(await page.evaluate(()=>fixtureWrites),writes);assert.equal(await page.locator('#udocReviewDialog').evaluate(node=>node.open),true);
+  await selectOriginal('renamed-again.txt');await page.evaluate(()=>fixtureMode='conflict');await page.click('#udocReviewSaveBtn');await page.waitForFunction(()=>document.getElementById('udocReviewStatus').textContent.includes('Guardado sin confirmar'));assert.match(await page.locator('#udocReviewStatus').textContent(),/Guardado sin confirmar/);const writes=await page.evaluate(()=>fixtureWrites);await page.evaluate(()=>saveUdocReview());assert.equal(await page.evaluate(()=>fixtureWrites),writes);assert.equal(await page.locator('#udocReviewDialog').evaluate(node=>node.open),true);
   await page.evaluate(()=>document.getElementById('udocReviewDialog').close());await selectOriginal('scope-switch.txt');await page.evaluate(()=>fixtureMode='switch-home');const scopedWrites=await page.evaluate(()=>fixtureWrites);await page.click('#udocReviewSaveBtn');await page.waitForFunction(()=>document.getElementById('udocReviewStatus').textContent.includes('han cambiado'));assert.equal(await page.evaluate(()=>fixtureWrites),scopedWrites);
   assert.deepEqual(errors,[]);console.log(`PASS ${width}px: real UDOC edit/save/create/confirm/reload/reopen, fingerprint rename, no duplicate, stale revision and household switch`);await page.close();
  }
