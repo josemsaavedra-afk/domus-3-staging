@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-12",
+  "base_main": "1b1af0efbb5e5baf58f90a6814129644647a7b0f",
+  "recovered_candidate": "15251465d3048fa4ef4d4e98b8be9317fc67bb37",
+  "merge_base": "e344f807ab0d6b16f0507804b18c488c41e834d4",
+  "candidate_build": 30183,
+  "public_build": 30182,
+  "tests": {
+    "unique": 101,
+    "passed_final": 101,
+    "failed_final": 0,
+    "skipped": 0,
+    "new": 8,
+    "regression": 93,
+    "groups": {
+      "udoc-ai-review": 10,
+      "udoc-save-guard": 8,
+      "udoc-original-reopen": 6,
+      "document-families_and_pwa": 77
+    },
+    "repeat_runs_not_added": true,
+    "fixture_fixes": [
+      "Export lexical udocDate in Node test context",
+      "Provide documents global in failure-persistence fixture"
+    ]
+  },
+  "assets": {
+    "verified_unchanged_public": 41,
+    "candidate_manifest": 42,
+    "inline_js_compiles": true
+  },
+  "scope": "Local Node/V8 protocol and PWA tests, not OpenAI accuracy, browser or iPhone acceptance",
+  "paid_calls": 0,
+  "real_uploads": 0,
+  "real_economic_writes": 0,
+  "deployments_started": 0
+}
