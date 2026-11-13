@@ -14,14 +14,14 @@ async function setup(mode){
  const digest=Buffer.from(await webcrypto.subtle.digest('SHA-256',await file.arrayBuffer())).toString('hex');
  const ids=new Map(),writes=[],reads=[],events=[];
  const get=id=>{
-  if(!ids.has(id))ids.set(id,{textContent:'',disabled:false,close(){events.push('closed')}});
+  if(!ids.has(id))ids.set(id,{textContent:'',disabled:false,replaceChildren(){},close(){events.push('closed')}});
   return ids.get(id);
  };
  const values={'document.kind':'invoice','party.issuer.name':'Fixture','reference.document':'T-1',
   'date.issue':'2026-11-10','total.payable':'7.00'};
  const row={id:'doc-a',household_id:'home-a',storage_path:'fixture.txt',file_retained:true,
   updated_at:oldVersion,extracted_data:{source_sha256:digest}};
- const attempts=[{interpretation:{document_type:'invoice',fields:Object.keys(values).map(path=>({path}))}}];
+ const attempts=[{status:mode==='invalid'?'INVALID_PROPOSAL':'NEEDS_REVIEW',interpretation:{document_type:'invoice',fields:Object.keys(values).map(path=>({path}))}}];
  const context=vm.createContext({
   document:{getElementById:get,querySelectorAll:()=>Object.entries(values).map(([path,value])=>({dataset:{udocPath:path},value}))},
   crypto:webcrypto,structuredClone,file,digest,attempts,selectedDocumentFiles:[file],
@@ -74,7 +74,7 @@ for(const mode of ['scope','other']){
  test(mode+' cannot send a write under another household',async()=>{
   const x=await setup(mode);await x.run();
   assert.deepEqual(x.reads[0],['household_id','home-a']);
-  assert.equal(x.writes.length,0);assert.deepEqual(x.events,[]);
+  assert.equal(x.writes.length,0);assert.deepEqual(x.events,mode==='scope'?['closed']:[]);
  });
 }
 test('refresh failure does not turn an acknowledged save into failure',async()=>{
@@ -85,4 +85,8 @@ test('refresh failure does not turn an acknowledged save into failure',async()=>
 test('two clicks only send one mutation',async()=>{
  const x=await setup('ack');await Promise.all([x.run(),x.run()]);
  assert.equal(x.writes.length,1);
+});
+
+test('an invalid interpretation remains archived without an economic draft even after correcting its fields',async()=>{
+ const x=await setup('invalid');await x.run();assert.equal(x.writes[0].payload.extracted_data.drafts.length,0);assert.deepEqual(x.events,['closed']);assert.match(x.get('udocReviewStatus').textContent,/no puede crear un movimiento/);
 });

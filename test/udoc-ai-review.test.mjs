@@ -108,8 +108,8 @@ test('only a complete reviewed invoice becomes a draft and settlement-like readi
   });
   assert.equal(invoice.invoice_number, 'F-42');
   assert.equal(invoice.amount, 12.5);
-  assert.equal(context.__udocDraftFromReview({ interpretation: { document_type: 'invoice' } }, {
-    'document.kind': 'invoice', 'party.issuer.name': 'RHD', 'reference.document': 'RHD-1',
+  assert.equal(context.__udocDraftFromReview({ interpretation: { document_type: 'settlement' } }, {
+    'document.kind': 'settlement', 'party.issuer.name': 'RHD', 'reference.document': 'RHD-1',
     'date.issue': '2026-11-08', 'total.payable': '12,50 €',
   }), null);
   assert.equal(context.__udocDraftFromReview({ interpretation: { document_type: 'invoice', economic_type: 'income' } }, {

@@ -72,3 +72,19 @@ test('calendar checks accept complete valid leap-day and normal dates only',asyn
  assert.equal(c.testDate('2026-11-12'),'2026-11-12');
  assert.equal(c.testDate(null),null);
 });
+
+test('packet proposals preserve each invoice and never substitute a combined or empty total',async()=>{
+ const {context:c}=await fixture();
+ const drafts=c.udocDraftsFromReview({interpretation:{document_type:'packet'}},{
+  'document.kind':'invoice','party.issuer.name':'Proveedor de protocolo','reference.document':'COMBINED','date.issue':'2026-11-13','total.payable':'999',
+  'document.1.kind':'invoice','document.1.reference':'A-1','document.1.date.issue':'2026-11-10','document.1.total.payable':'100',
+  'document.2.kind':'invoice','document.2.reference':'A-2','document.2.date.issue':'2026-11-11','document.2.total.payable':'20',
+  'document.3.kind':'invoice','document.3.reference':'EMPTY','document.3.date.issue':'2026-11-11','document.3.total.payable':null,
+ });
+ assert.equal(drafts.length,2);assert.deepEqual(Array.from(drafts,d=>d.invoice_number),['A-1','A-2']);assert.deepEqual(Array.from(drafts,d=>d.amount),[100,20]);assert.equal(drafts[0].type,null);assert.equal(drafts[0].review_required,false);
+});
+test('supplier name does not block a complete invoice and a pending packet part survives reanalysis',async()=>{
+ const {context:c}=await fixture();
+ const draft=c.udocDraftFromReview({interpretation:{document_type:'invoice'}},{'document.kind':'invoice','party.issuer.name':'DriiveMe','reference.document':'A-1','date.issue':'2026-11-10','total.payable':'100'});assert.ok(draft);assert.equal(draft.type,null);
+ const prior=[{review_status:'confirmed',confirmed_series_id:'m1',udoc_source_sha256:'sha'},{invoice_number:'SECOND',amount:20,udoc_source_sha256:'sha'}],state=c.udocReviewDraftState(prior,[],'sha','new');assert.equal(state.preserved.length,2);assert.equal(state.preserved[1].invoice_number,'SECOND');assert.equal(state.prepared.length,0);
+});
