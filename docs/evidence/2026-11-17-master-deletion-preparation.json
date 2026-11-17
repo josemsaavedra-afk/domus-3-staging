@@ -1,0 +1,62 @@
+{
+  "recorded_on": "2026-11-17",
+  "tests_executed_on": "2026-11-16",
+  "repository": "josemsaavedra-afk/domus-3-staging",
+  "base": "79749ee0fa2e0835f8e8ae879c078deb29d1163e",
+  "scope": "Preparation only: guarded deletion of unreferenced configurable masters. Issue #28 remains open.",
+  "local_tests": {
+    "executed": 26,
+    "passed": 26,
+    "failed_final": 0,
+    "skipped": 0,
+    "new": 22,
+    "regression": 4,
+    "groups": [
+      {
+        "command": "node --test test/master-deletion.test.mjs",
+        "passed": 11
+      },
+      {
+        "command": "node --test test/master-delete-ui.test.mjs test/pwa-update.test.mjs",
+        "passed": 15
+      }
+    ],
+    "runtime": "Node 24.22.1, PGlite 0.5.8, jsdom 31.0.1",
+    "reruns_counted": false,
+    "reexecuted_20261117": false,
+    "coverage": [
+      "seven active/inactive catalogs",
+      "RLS and membership revocation",
+      "SET NULL and composite FK rejection",
+      "JSON references",
+      "versioned preview and stale row rejection",
+      "anonymous and other-household denial",
+      "no direct browser DELETE grant",
+      "cancel, timeout, double click, changed session, uncertain ack",
+      "real settings markup under jsdom",
+      "PWA version/cache checks"
+    ]
+  },
+  "static_checks_previous_session": {
+    "asset_hashes": 43,
+    "inline_scripts_compiled": 2
+  },
+  "source_sha256": {
+    "domus-3/index.html": "ee9fa76054e58e7bc9a8a22930f1788ce77c26b6dd214ec0a29ea6666cb11bf2",
+    "domus-3/src/classification/master-delete.js": "eaa221f62d27ce9af5501a658bbe0a8a82c79edd5523284a9b95f2985760370e",
+    "domus-3/asset-manifest.js": "341df0a86ac7220b91f1ea53701c70c10762688d3ed511119b815434e3253d67",
+    "domus-3/sw.js": "8433484126a4572484a250c937922a617e0a96a6d1feb37e7f9b14c9ee580430",
+    "domus-3/version.json": "83ddcd32b7ac58f01851121ad918a5351ad23f5ea63bf1c341a17eef82489fcb",
+    "supabase/migrations/20261116205429_guarded_master_deletion.sql": "b15c98eb28e5eaaf98499c755a62aad9f3717a3bbede8aa857ce6d58dc6d689f",
+    "test/master-deletion.test.mjs": "f511731a6c7c6c4eafc5470312a12249230d69cecdd06d018f32f364315a9c0c",
+    "test/master-delete-ui.test.mjs": "4b7064c0ffa04d33f1ca43d400c4db5c1e36dbed444140dc59d691ace0f0f4f7"
+  },
+  "limitations": [
+    "Synthetic local database and DOM; not actual Supabase authentication or iPhone.",
+    "No remote migration applied; no Pages deployment.",
+    "No controlled historical reassignment implemented; referenced rows remain protected.",
+    "No real data read or changed; no provider/API calls or CI started.",
+    "Locks and permissions require multi-connection PostgreSQL and deployed policy validation before integration."
+  ],
+  "next": "Review least-privilege SQL against deployed grants and concurrent transactions, implement controlled reassignment separately preserving historical documents, then stage with synthetic authenticated fixtures before publish."
+}

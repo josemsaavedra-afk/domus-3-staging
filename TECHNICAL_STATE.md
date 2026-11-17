@@ -1,3 +1,9 @@
+## 17/11/2026 · #28 preparada en rama, no desplegada
+
+Recuperado el bloque de eliminación protegida de siete maestros probado el 16/11: 26 casos locales (22 nuevos + 4 PWA), 0 fallos finales/omitidos. [Alcance y siguiente paso](docs/work/20261117-master-deletion.md), [evidencia y huellas](docs/evidence/2026-11-17-master-deletion-preparation.json). Base main 79749ee0; GET público 17/11 confirma 30185 / rc.1.141. La numeración 30186 / rc.1.142 de esta rama NO está publicada.
+
+Confirmación versionada, RLS y dependencias FK/JSON; separación eliminar/desactivar; timeout sin reintento. Migración NO aplicada. Falta reasignación controlada, revisión multisesión y aceptación autenticada staging/iPhone. #28 sigue abierta; no se afirma eliminación disponible al usuario. No datos reales, IA ni producción. Prioridad compartida sigue UDOC y su aceptación real sin nuevo gasto.
+
 ## DOMUS 3.0 Staging — Build 30143, Z26 y Agenda (2026-10-28)
 
 - Lector documental ONLOGIST: acepta prefijos de comisión V26 y Z26 en referencia principal y referencias relacionadas. Ambos siguen el criterio de comisión de total neto; no se cambia seguro VS ni autofactura G.
