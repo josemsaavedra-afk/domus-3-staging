@@ -1391,3 +1391,8 @@ Base: main d5616b7; RC1 30039 preservado. Estado: IMPLEMENTADO, pendiente de com
 ## 18/11/2026 — beta Familias, tutor y ayuda (Work)
 
 La orden posterior del propietario da prioridad absoluta a DOMUS 4.0 Beta Familias. Sobre f70f1c790895c5525ae35820d8d329d910cb8d17 se implementa continuación del tutor por usuario/hogar, instrucciones ordenadas por pantalla y ejemplo doméstico en el editor de reglas. Cinco pruebas nuevas y tres regresiones locales aprobadas (8/8); no equivalen a navegador, iPhone, Auth/Storage real ni beta privada entregada. Detalle y siguiente acción en docs/evidence/2026-11-18-families-help-continuity.md. Proyecto dedicado observado existente, sin aprovisionar recursos ni tocar producción. Pendiente probar aislamiento real y configurar origen privado; ninguna URL privada verificada aquí. Invitaciones deshabilitadas hasta revisión. Sin gasto IA ni CI nueva solicitada; informe diario separado.
+
+
+## 18/11/2026 — alta privada: correo elegido por el propietario
+
+Incidencia reproducida en logs Auth/Postgres: el trigger de lista privada rechazaba el correo que el propietario acababa de elegir en la pantalla de registro. Se autoriza ese correo exclusivamente en el entorno dedicado de familias, conservando los anteriores y el bloqueo de terceros. No se amplían permisos generales, ni se crea cuenta con contraseña del propietario, ni se envía correo. Prueba del trigger real en subtransacciones revertidas: correo autorizado aceptado, ajeno rechazado; cero usuarios de prueba persistidos. Detalle saneado en docs/evidence/2026-11-18-families-signup-allowlist.md. Pendiente que el propietario complete su alta con su contraseña y confirmación de correo por el circuito normal; no equivale a aceptación integral.
