@@ -40,12 +40,16 @@ try {
 
     // Exercise the real UI from the end of successful sign-in, with no live database.
     await page.evaluate(() => {
+      user = { id: 'browser-test' };
+      household = { id: 'fixture-home', name: 'Hogar de prueba' };
+      membership = { member: { user_id: user.id, household_id: household.id, role: 'owner' }, household };
       showOnly('app');
       DOMUSFamilyHelp.start({ userId: 'browser-test', householdId: 'fixture-home' });
     });
     assert.equal(await page.textContent('#domusHelpTitle'), 'Tu hogar digital');
     await page.click('#familyHelpNext');
     await page.click('#familyHelpAction');
+    assert.deepEqual(errors, []);
     assert.equal(await page.inputValue('#fType'), 'income');
     assert.equal(await page.inputValue('#fRecurrence'), 'monthly');
     assert.equal(await page.inputValue('#fStatus'), 'pending');
