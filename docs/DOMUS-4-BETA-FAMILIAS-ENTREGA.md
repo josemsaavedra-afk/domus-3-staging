@@ -17,3 +17,13 @@ Fecha 2026-11-18. Rama domus-4-beta-familias-20261118.
 Entregar al propietario URL de entorno separado, usuario de prueba, lista de funciones verificadas y defectos conocidos. Solo después de su aprobación se habilitan invitaciones a otras familias.
 ## Estado
 Rama creada. Arquitectura de aislamiento, implementación, pruebas, despliegue y entrega aún NO VERIFICADOS. No declarar beta lista hasta superar las puertas anteriores.
+
+## Implementación en la rama beta
+
+El build 40000 parte de 30185. El tutor inicial abre los formularios que usa la aplicación para registrar ingresos recurrentes, cuentas y gastos previstos. La ayuda contextual incluye conciliación, documentos, reglas y acceso al hogar. El paquete web excluye el viaje precargado y el alta usa categorías genéricas.
+
+La configuración publicada en la rama arranca sin conexión a la nube. Para habilitarla se requiere un proyecto Supabase dedicado con un esquema DOMUS instalado sin datos, Auth separado, altas públicas desactivadas y bucket privado. Tras instalar y comprobar ese esquema, `backend/families/private-review.sql` añade el alta familiar, sus categorías y la comprobación de entorno. El cliente requiere el identificador dedicado, la clave publicable y la respuesta esperada de esa comprobación antes de iniciar Auth. No aplicar el SQL a los proyectos actuales de DOMUS.
+
+Las pruebas locales del recorrido y del SQL de alta usan JSDOM y PostgreSQL embebido. Faltan la verificación de Auth, las políticas entre dos hogares, los archivos y las operaciones reales de extremo a extremo en el proyecto dedicado. La revisión del propietario mantiene deshabilitado el acceso por código heredado. Las invitaciones por correo con permisos requieren implementación y verificación antes de compartir con terceros.
+
+No usar el flujo de GitHub Pages de DOMUS 3.0 para esta entrega. La publicación requiere un origen privado separado con acceso exclusivo del propietario y configuración beta independiente.

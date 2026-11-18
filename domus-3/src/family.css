@@ -1,0 +1,56 @@
+#domusHelpButton {
+  position: fixed;
+  right: 16px;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  z-index: 150;
+  width: 48px;
+  height: 48px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #073b3a;
+  color: white;
+  font-size: 24px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 16px #0004;
+}
+
+#domusHelpDialog {
+  width: min(520px, calc(100% - 32px));
+  max-height: 82dvh;
+  overflow: auto;
+  border: 1px solid #888;
+  border-radius: 16px;
+  padding: 22px;
+  background: var(--panel, white);
+  color: var(--ink, #172033);
+}
+
+#domusHelpDialog::backdrop { background: #0009; }
+#domusHelpDialog p { line-height: 1.6; }
+#domusHelpDialog [hidden] { display: none; }
+
+#expensesScopeField,
+#expenseScopeField,
+#businessPercentageField,
+#scopeForecast,
+#reportBusinessSummary,
+#prefinanceFields,
+#prefinanceDetails,
+.settings-grid .card:has(#activity_projectsSettingsList),
+
+.field:has(> :is(#fActivity, #fIncomeKind, #fMovementRole, #reportActivity, #reportScope, #reportComponent, #budgetItemScope)),
+.field:has(> :is([id^="ddScope"], [id^="ddActivity"], [id^="ddRole"], [id^="ddPref"])) {
+  display: none !important;
+}
+
+#onlogistInlineFields,
+#linkedInvoicesField,
+#interpaymentSummary,
+.grid.two:has(#prefinanceList),
+[id^="ddPrefBox"],
+.field:has(> [id^="ddPref"]),
+.field:has(> #fClosingDate),
+.field:has(> :is([id^="ddRetention"], [id^="ddLinked"], [id^="ddClosing"])) {
+  display: none !important;
+}

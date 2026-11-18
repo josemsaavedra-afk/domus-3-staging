@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "DOMUS 3.0 · Tesorería",
-  "short_name": "DOMUS 3",
+  "name": "DOMUS 4.0 Beta Familias",
+  "short_name": "DOMUS Familias",
   "scope": "./",
   "start_url": "./index.html?source=pwa",
   "display": "standalone",

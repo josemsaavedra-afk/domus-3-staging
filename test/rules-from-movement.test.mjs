@@ -9,10 +9,11 @@ test('create rule from manual and document drafts preserves the draft and classi
  try{
   vm.runInContext(master+'\n'+rules,dom.getInternalVMContext());const q=id=>w.document.getElementById(id);
   w.DOMUSRuleUI.manual();q('rulePreview_manual').querySelector('[data-create-rule]').click();
-  assert.equal(q('rc_text').value,'Molino Acebuchal');assert.equal(q('rp_category_id').value,'food');assert.equal(q('rp_expense_scope').value,'domestic');
+  assert.equal(q('rc_text').value,'Molino Acebuchal');assert.equal(q('rp_category_id').value,'food');assert.equal(q('rp_expense_scope').closest('.field').hidden,true);
+  assert.equal([...q('ruleAddProposal').options].some(o=>o.value==='expense_scope'),false);
   await q('ruleEditorForm').onsubmit({preventDefault(){},submitter:q('ruleEditorForm').querySelector('[type=submit]')});
-  assert.equal(stored.length,1);assert.equal(q('fConcept').value,'Molino Acebuchal');assert.equal(q('fAmount').value,'3.52');assert.equal(q('fNotes').value,'Nota que no debe perderse');
-  q('fCategory').value='';q('fExpenseScope').value='';w.DOMUSRuleUI.manual();q('rulePreview_manual').querySelector('[data-apply-rule]').click();assert.equal(q('fCategory').value,'food');assert.equal(q('fExpenseScope').value,'domestic');
+  assert.equal(stored.length,1);assert.equal(Object.hasOwn(stored[0].proposals,'expense_scope'),false);assert.equal(q('fConcept').value,'Molino Acebuchal');assert.equal(q('fAmount').value,'3.52');assert.equal(q('fNotes').value,'Nota que no debe perderse');
+  q('fCategory').value='';w.DOMUSRuleUI.manual();q('rulePreview_manual').querySelector('[data-apply-rule]').click();assert.equal(q('fCategory').value,'food');assert.equal(q('fExpenseScope').value,'domestic');
   // Documents use the same editor without leaving or saving the movement.
   q('ddConcept0').value='Otro comercio';q('ddAmount0').value='8';q('ddNotes0').value='Documento sin perder';w.DOMUSRuleUI.docs([{}]);q('rulePreview_doc0').querySelector('[data-create-rule]').click();
   await q('ruleEditorForm').onsubmit({preventDefault(){},submitter:q('ruleEditorForm').querySelector('[type=submit]')});

@@ -20,17 +20,17 @@ test('category alone can condition scope without a supplier, concept or changing
  assert.throws(()=>C.validateRule({...rule,conditions:{category_id:foreign}},catalogs),/hogar/);
 });
 
-test('rule editor saves, reopens and applies a category condition with no other condition',async()=>{
- const dom=new JSDOM('<div id="classificationRuleList"></div><form id="movementForm"><input id="editSeriesId"><select id="fType"><option value="expense">Gasto</option></select><input id="fConcept"><input id="fAmount"><select id="fCategory"><option value="'+category+'">Gastos</option></select><select id="fExpenseScope"><option value=""></option><option value="business">Actividad</option></select></form>',{url:'https://example.test/',runScripts:'outside-only'});
+test('rule editor saves, reopens and applies a category condition with a domestic result',async()=>{
+ const dom=new JSDOM('<div id="classificationRuleList"></div><form id="movementForm"><input id="editSeriesId"><select id="fType"><option value="expense">Gasto</option></select><input id="fConcept"><input id="fAmount"><select id="fCategory"><option value="'+category+'">Gastos</option></select><textarea id="fNotes"></textarea></form>',{url:'https://example.test/',runScripts:'outside-only'});
  const w=dom.window,stored=[];Object.defineProperty(w.navigator,'onLine',{value:true});
  Object.assign(w,{people:[],accounts:[],categories:catalogs.categories.filter(x=>x.household_id===household),household:{id:household},domusRules:[],domusRulesReady:true,escapeHtml:s=>String(s),syncPrefFields:()=>{},sb:{rpc:async()=>({data:34}),from:()=>({insert:row=>({select:()=>({single:async()=>{stored.push({...row,id:'r'});return{data:{id:'r'}};}})}),update:()=>assert.fail('unexpected update')})},refreshAll:async()=>{w.domusRules=stored;}});
  try{
   vm.runInContext(source+'\n'+ui,dom.getInternalVMContext());w.DOMUSRuleUI.edit();
-  const q=id=>w.document.getElementById(id);q('ruleName').value=rule.name;q('rc_category_id').value=category;q('rp_expense_scope').value='business';
+  const q=id=>w.document.getElementById(id);q('ruleName').value='Comprobar justificante';q('rc_category_id').value=category;q('rp_notes').value='Revisar el recibo';
   await q('ruleEditorForm').onsubmit({preventDefault(){},submitter:q('ruleEditorForm').querySelector('[type=submit]')});
-  assert.equal(stored.length,1);assert.deepEqual({...stored[0].conditions},{category_id:category});assert.deepEqual({...stored[0].proposals},{expense_scope:'business'});
-  w.DOMUSRuleUI.edit('r');assert.equal(q('rc_category_id').value,category);assert.equal(q('rp_expense_scope').value,'business');
-  w.DOMUSRuleUI.manual();assert.match(q('rulePreview_manual').textContent,/Actividad económica/);q('rulePreview_manual').querySelector('button').click();assert.equal(q('fExpenseScope').value,'business');
+  assert.equal(stored.length,1);assert.deepEqual({...stored[0].conditions},{category_id:category});assert.deepEqual({...stored[0].proposals},{notes:'Revisar el recibo'});
+  w.DOMUSRuleUI.edit('r');assert.equal(q('rc_category_id').value,category);assert.equal(q('rp_notes').value,'Revisar el recibo');
+  w.DOMUSRuleUI.manual();assert.match(q('rulePreview_manual').textContent,/Revisar el recibo/);q('rulePreview_manual').querySelector('button').click();assert.equal(q('fNotes').value,'Revisar el recibo');
  }finally{dom.window.close();}
 });
 
