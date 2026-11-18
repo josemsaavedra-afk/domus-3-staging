@@ -1235,6 +1235,7 @@ function udocCloseStaleReview(session){
  if(udocReviewSession!==session)return;
  udocReviewSession=null;
  document.getElementById('udocReviewFields').replaceChildren();
+ document.getElementById('udocReviewSaveBtn').disabled=true;
  document.getElementById('udocReviewDialog').close();
  document.getElementById('udocReviewStatus').textContent='La sesión o el documento han cambiado. Se ha cerrado esta revisión; consulta su estado en el Archivo de referencias del hogar original.';
 }
@@ -1345,7 +1346,7 @@ async function udocRecoverReading(session,token){
  udocRequireCurrentReview(session);
  if(response.status===404)throw new Error('El servidor no conserva una lectura recuperable de este original. Se mantiene el intento pendiente; no se ha repetido la consulta a IA.');
  if(!response.ok)throw new Error('No se pudo comprobar la lectura guardada en el servidor. No se ha repetido la consulta a IA.');
- return response.json();
+ const result=await response.json();udocRequireCurrentReview(session);return result;
 }
 async function saveUdocReview(){
  const status=document.getElementById('udocReviewStatus'),dialog=document.getElementById('udocReviewDialog'),session=udocReviewSession;
@@ -1404,14 +1405,16 @@ async function readUdocSelection(options={}){
  const file=selectedDocumentFiles[0],owner=user?.id,home=household?.id;
  if(!owner||!home||!sb){status.textContent='Inicia sesión para analizar el documento.';return}
  udocReviewButton.disabled=true;
+ document.getElementById('udocReviewSaveBtn').disabled=true;
  status.textContent='Analizando con IA…';
  fields.replaceChildren();
+ let session=null;
  try{
   if(!file.size||file.size>20*1024**2)throw new Error('Selecciona un original de hasta 20 MiB para este lector.');
   const {data,error}=await sb.auth.getSession();
   if(error||data.session?.user?.id!==owner||!data.session.access_token||household?.id!==home)throw new Error('La sesión ha cambiado.');
   const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer())),byte=>byte.toString(16).padStart(2,'0')).join('');
-  const session={file,owner,home,digest};udocReviewSession=session;
+  session={file,owner,home,digest};udocReviewSession=session;
   status.textContent='Conservando y verificando el original…';
   let archived=options.allowProvider===false?await udocArchivedDocument(file,session):await udocEnsureOriginal(file,session),result=udocStoredResult(archived,digest)||udocPendingResult(session),recovered=Boolean(result),serverRecovered=false,rawSaveWarning='';
   if(!result&&archived.extracted_data?.udoc_pending_attempt){status.textContent='Buscando la lectura ya realizada; sin repetir IA…';result=await udocRecoverReading(session,data.session.access_token);recovered=true;serverRecovered=true;}
@@ -1423,10 +1426,11 @@ async function readUdocSelection(options={}){
     method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':file.type||'application/octet-stream'},
     body:file,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(90000)
    });
+   udocRequireCurrentReview(session);
    if(!response.ok)throw new Error('UDOC no pudo analizar el archivo.');
    result=await response.json();
   }
-  if(user?.id!==owner||household?.id!==home||selectedDocumentFiles[0]!==file)throw new Error('La sesión o el documento han cambiado.');
+  udocRequireCurrentReview(session);
   if(result.schema_version!=='1.0'||result.automatic_economic_action!==false||result.source_sha256!==digest||!Array.isArray(result.attempts))throw new Error('La respuesta de UDOC no corresponde al documento.');
   if(result.status==='PENDING_AI'){status.textContent='El análisis no se ha completado. Revisa la conexión o el límite de consumo antes de volver a intentarlo.';return}
   if(!recovered||serverRecovered){const locallyRetained=udocKeepPending(session,result);try{archived=await udocRetainRaw(archived,session,result);udocClearPending(session);}catch(error){udocRequireCurrentReview(session);rawSaveWarning=error.message+(locallyRetained?' La lectura queda pendiente en este navegador, para este usuario y hogar.':' No se pudo conservar una copia local; no cierres esta ventana.');}}
@@ -1464,12 +1468,16 @@ async function readUdocSelection(options={}){
    fields.append(group);
   }
    const interpretationHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(result.attempts)))),byte=>byte.toString(16).padStart(2,'0')).join('');
-   if(user?.id!==owner||household?.id!==home||selectedDocumentFiles[0]!==file)throw new Error('La sesión o el documento han cambiado.');
+   udocRequireCurrentReview(session);
    udocReviewSession=Object.assign(session,{result,interpretations,interpretationHash,documentVersion:archived.updated_at,reviewBaseline:JSON.stringify(archived.extracted_data?.udoc_latest_review||null),rawSaveUnconfirmed:Boolean(rawSaveWarning)||!udocStoredResult(archived,digest)&&Boolean(udocPendingResult(session))});
    document.getElementById('udocReviewSaveBtn').disabled=false;
    status.textContent=rawSaveWarning|| (recovered?'Lectura recuperada del archivo; sin nueva consulta a IA. ':'' )+(interpretations.some(a=>a.status==='INVALID_PROPOSAL')?'Lectura conservada con errores de validación. Debe guardarse y corregirse; permanece bloqueada para crear movimientos.':'Lectura disponible para revisión y guardado.');
   dialog.showModal();
- }catch(error){status.textContent=error.message||'No se pudo completar el análisis.'}
+ }catch(error){
+  if(session&&!udocReviewIsCurrent(session)){udocCloseStaleReview(session);return;}
+  if(user?.id!==owner||household?.id!==home||selectedDocumentFiles[0]!==file)return;
+  status.textContent=error.message||'No se pudo completar el análisis.';
+ }
  finally{udocReviewButton.disabled=false}
 }
 udocReviewButton.addEventListener('click',()=>readUdocSelection());
@@ -1488,6 +1496,7 @@ async function openStoredUdocReview(id){
 document.getElementById('udocReviewDialog').addEventListener('close',()=>{
  if(document.getElementById('udocReviewDialog').open)return;
  document.getElementById('udocReviewFields').replaceChildren();
+ document.getElementById('udocReviewSaveBtn').disabled=true;
   udocReviewSession=null;
 });
 document.getElementById('udocReviewSaveBtn').addEventListener('click',saveUdocReview);
