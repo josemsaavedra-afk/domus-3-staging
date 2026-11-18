@@ -27,3 +27,8 @@ La configuración publicada en la rama arranca sin conexión a la nube. Para hab
 Las pruebas locales del recorrido y del SQL de alta usan JSDOM y PostgreSQL embebido. Faltan la verificación de Auth, las políticas entre dos hogares, los archivos y las operaciones reales de extremo a extremo en el proyecto dedicado. La revisión del propietario mantiene deshabilitado el acceso por código heredado. Las invitaciones por correo con permisos requieren implementación y verificación antes de compartir con terceros.
 
 No usar el flujo de GitHub Pages de DOMUS 3.0 para esta entrega. La publicación requiere un origen privado separado con acceso exclusivo del propietario y configuración beta independiente.
+
+
+## 18/11/2026 — beta Familias, tutor y ayuda (Work)
+
+La orden posterior del propietario da prioridad absoluta a DOMUS 4.0 Beta Familias. Sobre f70f1c790895c5525ae35820d8d329d910cb8d17 se implementa continuación del tutor por usuario/hogar, instrucciones ordenadas por pantalla y ejemplo doméstico en el editor de reglas. Cinco pruebas nuevas y tres regresiones locales aprobadas (8/8); no equivalen a navegador, iPhone, Auth/Storage real ni beta privada entregada. Detalle y siguiente acción en docs/evidence/2026-11-18-families-help-continuity.md. Proyecto dedicado observado existente, sin aprovisionar recursos ni tocar producción. Pendiente probar aislamiento real y configurar origen privado; ninguna URL privada verificada aquí. Invitaciones deshabilitadas hasta revisión. Sin gasto IA ni CI nueva solicitada; informe diario separado.

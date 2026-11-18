@@ -22,6 +22,19 @@
     ['Resumen', 'En Inicio verás lo más próximo. Usa Agenda para revisar fechas y Movimientos para confirmar los cobros y pagos. Puedes volver al recorrido desde el botón ?.']
   ];
 
+  const instructions = {
+    dashboard: ['Comprueba qué está pendiente y su fecha; pendiente no significa pagado o cobrado.', 'Abre una fila para revisar el importe, la cuenta y quién paga o cobra.', 'Registra lo que falte en Movimientos. No añadas otra fila si ya aparece en el listado.'],
+    treasury: ['Elige primero la cuenta bancaria o caja que vas a comprobar.', 'Importa el extracto de esa cuenta y revisa las coincidencias una a una.', 'Asocia una fila al movimiento que ya existe; crea uno nuevo solo si falta.', 'Comprueba las filas pendientes antes de terminar. Importar no significa que todo esté conciliado.'],
+    calendar: ['Elige el día; usa Hoy para regresar a la fecha actual.', 'Abre el cobro o pago y comprueba su importe y fecha.', 'Confirma Realizado solo cuando haya ocurrido. Si cambia la previsión, edita su fecha sin duplicarlo.'],
+    movements: ['Elige + Ingreso para dinero que entra o − Gasto para dinero que sale.', 'Escribe concepto, importe y fecha. Indica la cuenta y quién paga o cobra.', 'Elige Pendiente o Realizado según lo que haya ocurrido.', 'En Más detalles y repetición configura recibos recurrentes; revisa el siguiente vencimiento antes de guardar.', 'Abre la fila guardada para corregirla; no crees otra para arreglar el mismo pago.'],
+    budgets: ['Crea el plan con un nombre reconocible y añade sus partidas.', 'Anota lo que esperas gastar o ingresar; una previsión no es un pago realizado.', 'Revisa cada partida y su cuenta antes de convertirla en movimiento.', 'Para alquiler o recibos periódicos, usa la repetición de Movimientos.'],
+    stats: ['Elige el periodo que quieras consultar.', 'Filtra por cuenta o categoría y comprueba qué filas entran en el resultado.', 'Distingue previsiones pendientes de cobros y pagos realizados.', 'Usa Imprimir / Guardar PDF cuando la consulta muestre lo que necesitas.'],
+    documents: ['Selecciona el justificante y espera a que termine la lectura.', 'Comprueba fecha, concepto e importe con el original; si falta un dato, complétalo.', 'Elige cuenta, categoría y quién paga o cobra.', 'Si ya existe el movimiento, vincúlalo en vez de crearlo otra vez.', 'La propuesta necesita tu confirmación; una lectura automática no garantiza que los datos sean correctos.'],
+    settings: ['Añade un nombre para cada cuenta o caja, sin escribir contraseñas bancarias.', 'Revisa las categorías y formas de pago antes de usarlas.', 'Edita los nombres que necesites; desactiva lo que dejes de usar.', 'Abre Reglas si quieres que DOMUS proponga una clasificación repetitiva.'],
+    rules: ['Pulsa Nueva regla y escribe un nombre, por ejemplo Supermercado.', 'En SI, elige Concepto contiene y escribe supermercado. Deben cumplirse todas las condiciones que añadas.', 'En CLASIFICAR, elige Categoría: Alimentación. Un resultado vacío deja ese campo sin decidir.', 'La prioridad con número menor se comprueba antes. Si hay propuestas incompatibles, revísalas; no supongas que se resolverán solas.', 'Guarda la regla activa y abre un movimiento de prueba. Comprueba la propuesta antes de guardar el movimiento.', 'Para corregirla, vuelve a Ajustes y pulsa Editar regla o Desactivar. No modifica por sí sola todos los movimientos antiguos.'],
+    sharing: ['La beta se revisa primero con su propietario.', 'No compartas tu contraseña ni datos de acceso.', 'Invitaciones y permisos se habilitarán solo después de esa revisión; este botón no invita a nadie.']
+  };
+
   const trigger = document.createElement('button');
   trigger.id = 'domusHelpButton';
   trigger.type = 'button';
@@ -33,6 +46,8 @@
   dialog.innerHTML = `
     <h2 id="domusHelpTitle"></h2>
     <p id="domusHelpBody"></p>
+    <p id="familyHelpProgress" role="status" aria-live="polite"></p>
+    <ol id="familyHelpInstructions"></ol>
     <div class="actions">
       <button type="button" id="familyHelpAction" class="btn primary"></button>
       <button type="button" id="familyHelpBack" class="btn">Atrás</button>
@@ -62,6 +77,14 @@
     const [title, body, label, destination] = guide ? steps[step] : topics[topic];
     el('domusHelpTitle').textContent = title;
     el('domusHelpBody').textContent = body;
+    el('familyHelpProgress').textContent = guide ? `Paso ${step + 1} de ${steps.length}` : '';
+    const list = el('familyHelpInstructions');
+    list.replaceChildren();
+    for (const text of guide ? [] : instructions[topic] || []) {
+      const item = document.createElement('li');
+      item.textContent = text;
+      list.append(item);
+    }
     el('familyHelpBack').hidden = !guide || step === 0;
     el('familyHelpGuide').hidden = guide || !active;
     el('familyHelpRules').hidden = guide || topic === 'rules' || !active;
@@ -94,21 +117,28 @@
     return 'domus4-guide:' + active.userId + ':' + active.householdId;
   }
 
+  function remember() {
+    if (!active) return;
+    try { localStorage.setItem(storageKey(), completed ? 'complete' : JSON.stringify({ step })); } catch {}
+  }
+
   next.onclick = () => {
     if (step < steps.length - 1) {
       step += 1;
+      remember();
       present('guide');
       return;
     }
     if (active) {
       try { localStorage.setItem(storageKey(), 'complete'); } catch {}
       completed = true;
+      remember();
     }
     dialog.close();
     window.DOMUSFamilyNavigation.showView('dashboard');
   };
-  el('familyHelpBack').onclick = () => { step -= 1; present('guide'); };
-  el('familyHelpGuide').onclick = () => { if (completed) step = 0; present('guide'); };
+  el('familyHelpBack').onclick = () => { step = Math.max(0, step - 1); remember(); present('guide'); };
+  el('familyHelpGuide').onclick = () => { if (completed) { step = 0; completed = false; remember(); } present('guide'); };
   el('familyHelpRules').onclick = () => present('rules');
   el('familyHelpSharing').onclick = () => present('sharing');
   el('familyHelpClose').onclick = () => dialog.close();
@@ -122,10 +152,17 @@
   window.DOMUSFamilyHelp = Object.freeze({
     start(context) {
       if (active?.userId === context.userId && active.householdId === context.householdId) return;
-      active = context;
+      active = { userId: context.userId, householdId: context.householdId };
       step = 0;
       completed = false;
-      try { completed = localStorage.getItem(storageKey()) === 'complete'; } catch {}
+      try {
+        const saved = localStorage.getItem(storageKey());
+        completed = saved === 'complete';
+        if (saved && !completed) {
+          const prior = JSON.parse(saved);
+          if (Number.isInteger(prior?.step) && prior.step >= 0 && prior.step < steps.length) step = prior.step;
+        }
+      } catch {}
       if (completed) return;
       present('guide');
     },

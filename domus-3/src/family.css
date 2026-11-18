@@ -28,6 +28,7 @@
 
 #domusHelpDialog::backdrop { background: #0009; }
 #domusHelpDialog p { line-height: 1.6; }
+#domusHelpDialog li { line-height: 1.6; margin-block: 0.6em; }
 #domusHelpDialog [hidden] { display: none; }
 
 #expensesScopeField,
