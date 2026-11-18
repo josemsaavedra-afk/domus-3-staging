@@ -226,11 +226,12 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
 <body>
 <div id="authScreen" class="auth-wrap">
   <div class="auth-card">
-    <h1>DOMUS · Finanzas y tesorería</h1>
-    <p>La misma idea de la versión local, pero ahora compartida y sincronizada entre vuestros iPhone.</p>
-    <div id="authMsg" role="status" aria-live="polite"></div>
+    <h1>DOMUS 4.0 Beta Familias</h1>
+    <p id="authIntro">Entra con tu cuenta de DOMUS. Si es tu primera visita, pulsa «Crear mi cuenta de DOMUS».</p>
+    <p id="authAccountHelp" class="muted">Tu cuenta se crea aquí, con tu correo electrónico y una contraseña para DOMUS. No necesitas registrarte en ningún otro servicio. Esta beta privada admite únicamente el correo autorizado para la revisión.</p>
+<div id="authMsg" role="status" aria-live="polite"></div>
     <form id="authForm" class="stack">
-      <div class="field"><label for="authEmail">Correo electrónico</label><input id="authEmail" type="email" required autocomplete="email"></div>
+      <div class="field"><label for="authEmail">Correo electrónico</label><input id="authEmail" type="email" required autocomplete="email" aria-describedby="authAccountHelp"></div>
       <div class="field"><label for="authPassword">Contraseña</label><input id="authPassword" type="password" required minlength="6" autocomplete="current-password"></div>
       <button class="btn primary" id="authSubmit" type="submit">Entrar</button>
       <button class="btn ghost" id="forgotPasswordBtn" type="button">He olvidado mi contraseña</button>
@@ -260,7 +261,7 @@ button.btn.domus-sync-error{background:#b42318!important;color:#fff!important}
 
 <div id="appScreen" class="shell hidden">
 <aside>
-  <div class="brand">DOMUS · 4.0.0-beta.1 · Build 40000<small><span class="sync-dot"></span>Sincronizado con Supabase</small></div>
+  <div class="brand">DOMUS · 4.0.0-beta.1 · Build 40000<small><span class="sync-dot"></span>Sincronizado</small></div>
   <nav class="app-nav">
     <span class="nav-group">Día a día</span>
     <button data-view="dashboard" class="active"><span class="nav-icon">⌂</span><span>Inicio</span></button>
@@ -575,8 +576,17 @@ async function routeBySession(){if(passwordRecoveryMode)return;if(!user){showOnl
 function showOnly(which){if(which!=='app')window.DOMUSFamilyHelp?.reset();document.getElementById('authScreen').classList.toggle('hidden',which!=='auth');document.getElementById('onboardingScreen').classList.toggle('hidden',which!=='onboarding');document.getElementById('appScreen').classList.toggle('hidden',which!=='app');document.getElementById('bottomNav').classList.toggle('hidden',which!=='app')}
 async function loadMembership(){const {data,error}=await sb.from('household_members').select('*').eq('user_id',user.id).limit(1);if(error)throw error;if(!data?.length)return null;const member=data[0];const {data:hh,error:he}=await sb.from('households').select('*').eq('id',member.household_id).single();if(he)throw he;return {member,household:hh}}
 
-let authMode='login';document.getElementById('toggleAuthMode').onclick=()=>{authMode=authMode==='login'?'signup':'login';document.getElementById('authSubmit').textContent=authMode==='login'?'Entrar':'Crear cuenta';document.getElementById('toggleAuthMode').textContent=authMode==='login'?'Crear cuenta nueva':'Ya tengo cuenta';document.getElementById('authPassword').autocomplete=authMode==='login'?'current-password':'new-password';msg('authMsg','')};
-document.getElementById('authForm').onsubmit=async e=>{e.preventDefault();if(!sb)return;const btn=document.getElementById('authSubmit');setBusy(btn,true);msg('authMsg','');const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;try{if(authMode==='login'){const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error}else{const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:authRedirectUrl()}});if(error)throw error;if(!data.session)msg('authMsg','Cuenta creada. Revisa tu correo para confirmarla y después entra.','ok');else msg('authMsg','Cuenta creada.','ok')}}catch(err){msg('authMsg',friendlyAuthError(err.message),'error')}finally{setBusy(btn,false)}};
+let authMode='login';document.getElementById('toggleAuthMode').onclick=()=>{
+ authMode=authMode==='login'?'signup':'login';
+ const login=authMode==='login';
+ document.getElementById('authIntro').textContent=login?'Entra con tu cuenta de DOMUS. Si es tu primera visita, pulsa «Crear mi cuenta de DOMUS».':'Crea tu cuenta de DOMUS aquí. Escribe el correo autorizado para la beta y elige una contraseña para DOMUS.';
+ document.getElementById('authSubmit').textContent=login?'Entrar':'Crear mi cuenta de DOMUS';
+ document.getElementById('toggleAuthMode').textContent=login?'Crear mi cuenta de DOMUS':'Ya tengo cuenta de DOMUS';
+ document.getElementById('authPassword').autocomplete=login?'current-password':'new-password';
+ document.getElementById('forgotPasswordBtn').hidden=!login;
+ msg('authMsg','');
+};
+document.getElementById('authForm').onsubmit=async e=>{e.preventDefault();if(!sb)return;const btn=document.getElementById('authSubmit');setBusy(btn,true);msg('authMsg','');const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;try{if(authMode==='login'){const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error}else{const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:authRedirectUrl()}});if(error)throw error;if(!data.session)msg('authMsg','Cuenta de DOMUS creada. Revisa tu correo para confirmarla y después vuelve aquí para entrar.','ok');else msg('authMsg','Cuenta creada.','ok')}}catch(err){msg('authMsg',friendlyAuthError(err.message),'error')}finally{setBusy(btn,false)}};
 document.getElementById('forgotPasswordBtn').onclick=async()=>{const input=document.getElementById('authEmail'),email=input.value.trim(),btn=document.getElementById('forgotPasswordBtn');if(!email){input.focus();return msg('authMsg','Escribe primero el correo de la cuenta.','error')}setBusy(btn,true);try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl()});if(error)throw error;msg('authMsg','Si el correo pertenece a una cuenta, recibirá un enlace para establecer una contraseña nueva. Revisa también la carpeta de spam.','ok')}catch(err){msg('authMsg','No se pudo completar la solicitud. Inténtalo de nuevo más tarde.','error')}finally{setBusy(btn,false)}};
 document.getElementById('passwordRecoveryForm').onsubmit=async e=>{e.preventDefault();if(recoverySaving)return;if(!passwordRecoveryMode||!user?.id||user.id!==recoveryUserId)return msg('authMsg','El enlace de recuperación no es válido o ha caducado. Solicita otro.','error');const password=document.getElementById('recoveryPassword').value,confirmation=document.getElementById('recoveryPasswordConfirm').value,btn=document.getElementById('recoveryPasswordSubmit');if(password.length<8)return msg('authMsg','La contraseña debe tener al menos 8 caracteres.','error');if(password!==confirmation)return msg('authMsg','Las dos contraseñas no coinciden.','error');recoverySaving=true;setBusy(btn,true);try{const {data,error}=await sb.auth.updateUser({password});if(error)throw error;if(data?.user?.id&&data.user.id!==recoveryUserId)throw new Error('La identidad de la sesión ha cambiado');passwordRecoveryMode=false;recoveryUserId=null;document.getElementById('passwordRecoveryForm').classList.add('hidden');document.getElementById('authForm').classList.remove('hidden');document.getElementById('recoveryPassword').value='';document.getElementById('recoveryPasswordConfirm').value='';msg('authMsg','Contraseña actualizada. Ya puedes usar este correo y contraseña desde el icono de DOMUS.','ok');await routeBySession()}catch(err){msg('authMsg',friendlyAuthError(err.message),'error')}finally{recoverySaving=false;setBusy(btn,false)}};
 document.getElementById('recoveryCancel').onclick=()=>logout().catch(err=>msg('authMsg',friendlyAuthError(err.message),'error'));
